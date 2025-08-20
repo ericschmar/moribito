@@ -10,7 +10,8 @@ import (
 
 // Config represents the LDAP CLI configuration
 type Config struct {
-	LDAP LDAPConfig `yaml:"ldap"`
+	LDAP       LDAPConfig       `yaml:"ldap"`
+	Pagination PaginationConfig `yaml:"pagination"`
 }
 
 // LDAPConfig contains LDAP connection settings
@@ -22,6 +23,11 @@ type LDAPConfig struct {
 	UseTLS   bool   `yaml:"use_tls"`
 	BindUser string `yaml:"bind_user"`
 	BindPass string `yaml:"bind_pass"`
+}
+
+// PaginationConfig contains pagination settings
+type PaginationConfig struct {
+	PageSize uint32 `yaml:"page_size"`
 }
 
 // Load loads configuration from a YAML file
@@ -48,6 +54,11 @@ func Load(configPath string) (*Config, error) {
 		} else {
 			config.LDAP.Port = 389
 		}
+	}
+
+	// Set pagination defaults
+	if config.Pagination.PageSize == 0 {
+		config.Pagination.PageSize = 50
 	}
 
 	return &config, nil
@@ -97,6 +108,9 @@ func Default() *Config {
 			BaseDN: "dc=example,dc=com",
 			UseSSL: false,
 			UseTLS: false,
+		},
+		Pagination: PaginationConfig{
+			PageSize: 50,
 		},
 	}
 }

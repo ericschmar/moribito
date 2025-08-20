@@ -31,6 +31,15 @@ type Entry struct {
 	Attributes map[string][]string
 }
 
+// SearchPage represents a page of search results with pagination info
+type SearchPage struct {
+	Entries    []*Entry
+	HasMore    bool
+	Cookie     []byte
+	PageSize   uint32
+	TotalCount int // -1 if unknown
+}
+
 // TreeNode represents a node in the LDAP tree
 type TreeNode struct {
 	DN       string
@@ -124,6 +133,69 @@ func (c *Client) Search(baseDN, filter string, scope int, attributes []string) (
 	return entries, nil
 }
 
+// SearchPaged performs a paginated LDAP search
+func (c *Client) SearchPaged(baseDN, filter string, scope int, attributes []string, pageSize uint32, cookie []byte) (*SearchPage, error) {
+	// Create paging control
+	pagingControl := ldap.NewControlPaging(pageSize)
+	if cookie != nil {
+		pagingControl.SetCookie(cookie)
+	}
+
+	searchRequest := ldap.NewSearchRequest(
+		baseDN,
+		scope,
+		ldap.NeverDerefAliases,
+		0, // No size limit - controlled by paging
+		0, // No time limit
+		false,
+		filter,
+		attributes,
+		[]ldap.Control{pagingControl},
+	)
+
+	result, err := c.conn.Search(searchRequest)
+	if err != nil {
+		return nil, fmt.Errorf("paged search failed: %w", err)
+	}
+
+	// Parse entries
+	entries := make([]*Entry, 0, len(result.Entries))
+	for _, entry := range result.Entries {
+		e := &Entry{
+			DN:         entry.DN,
+			Attributes: make(map[string][]string),
+		}
+
+		for _, attr := range entry.Attributes {
+			e.Attributes[attr.Name] = attr.Values
+		}
+
+		entries = append(entries, e)
+	}
+
+	// Extract paging control from response
+	var nextCookie []byte
+	hasMore := false
+
+	for _, control := range result.Controls {
+		if control.GetControlType() == ldap.ControlTypePaging {
+			if pagingResult, ok := control.(*ldap.ControlPaging); ok {
+				nextCookie = pagingResult.Cookie
+				hasMore = len(nextCookie) > 0
+			}
+			break
+		}
+	}
+
+	return &SearchPage{
+		Entries:    entries,
+		HasMore:    hasMore,
+		Cookie:     nextCookie,
+		PageSize:   pageSize,
+		TotalCount: -1, // LDAP doesn't provide total count
+	}, nil
+}
+
 // GetChildren returns immediate children of a DN
 func (c *Client) GetChildren(dn string) ([]*TreeNode, error) {
 	searchDN := dn
@@ -196,6 +268,11 @@ func (c *Client) LoadChildren(node *TreeNode) error {
 // CustomSearch performs a custom LDAP search with user-provided filter
 func (c *Client) CustomSearch(filter string) ([]*Entry, error) {
 	return c.Search(c.baseDN, filter, ldap.ScopeWholeSubtree, []string{"*"})
+}
+
+// CustomSearchPaged performs a paginated custom LDAP search with user-provided filter
+func (c *Client) CustomSearchPaged(filter string, pageSize uint32, cookie []byte) (*SearchPage, error) {
+	return c.SearchPaged(c.baseDN, filter, ldap.ScopeWholeSubtree, []string{"*"}, pageSize, cookie)
 }
 
 // extractName extracts the relative name from a DN

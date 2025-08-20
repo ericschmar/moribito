@@ -24,6 +24,7 @@ func main() {
 		useTLS     = flag.Bool("tls", false, "Use StartTLS")
 		bindUser   = flag.String("user", "", "Bind user DN")
 		bindPass   = flag.String("password", "", "Bind password")
+		pageSize   = flag.Uint("page-size", 0, "Number of entries per page (0 for default)")
 		help       = flag.Bool("help", false, "Show help")
 	)
 
@@ -75,6 +76,9 @@ func main() {
 	if *bindPass != "" {
 		cfg.LDAP.BindPass = *bindPass
 	}
+	if *pageSize != 0 {
+		cfg.Pagination.PageSize = uint32(*pageSize)
+	}
 
 	// Prompt for password if not provided and user is specified
 	if cfg.LDAP.BindUser != "" && cfg.LDAP.BindPass == "" {
@@ -113,7 +117,7 @@ func main() {
 	defer client.Close()
 
 	// Create and run the TUI
-	model := tui.NewModel(client)
+	model := tui.NewModelWithPageSize(client, cfg.Pagination.PageSize)
 	program := tea.NewProgram(model, tea.WithAltScreen(), tea.WithMouseCellMotion())
 
 	if _, err := program.Run(); err != nil {
@@ -136,6 +140,7 @@ func printHelp() {
 	fmt.Println("  -tls               Use StartTLS")
 	fmt.Println("  -user string       Bind user DN")
 	fmt.Println("  -password string   Bind password (will prompt if user provided but password not)")
+	fmt.Println("  -page-size int     Number of entries per page for paginated queries (default: 50)")
 	fmt.Println("  -help              Show this help message")
 	fmt.Println()
 	fmt.Println("Configuration file example:")
@@ -147,6 +152,8 @@ func printHelp() {
 	fmt.Println("    use_tls: false")
 	fmt.Println("    bind_user: cn=admin,dc=example,dc=com")
 	fmt.Println("    bind_pass: password")
+	fmt.Println("  pagination:")
+	fmt.Println("    page_size: 50")
 	fmt.Println()
 	fmt.Println("Navigation:")
 	fmt.Println("  Tab        - Switch between views")
