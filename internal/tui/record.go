@@ -5,15 +5,25 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/atotto/clipboard"
 	"github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/ericschmar/ldap-cli/internal/ldap"
 )
 
+// LineData represents data associated with a display line
+type LineData struct {
+	AttributeName string
+	Value         string
+	IsHeader      bool
+	IsBorder      bool
+}
+
 // RecordView displays detailed information about an LDAP entry
 type RecordView struct {
 	entry    *ldap.Entry
 	lines    []string
+	lineData []LineData // Maps line index to attribute data
 	cursor   int
 	viewport int
 	width    int
@@ -79,6 +89,8 @@ func (rv *RecordView) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "end":
 			rv.cursor = len(rv.lines) - 1
 			rv.adjustViewport()
+		case "c", "C":
+			return rv, rv.copyCurrentValue()
 		}
 	}
 
@@ -140,10 +152,12 @@ func (rv *RecordView) View() string {
 func (rv *RecordView) buildLines() {
 	if rv.entry == nil {
 		rv.lines = []string{}
+		rv.lineData = []LineData{}
 		return
 	}
 
 	rv.lines = []string{}
+	rv.lineData = []LineData{}
 
 	// Add DN header with styling
 	dnStyle := lipgloss.NewStyle().
@@ -154,7 +168,15 @@ func (rv *RecordView) buildLines() {
 		Width(rv.width - 2)
 
 	rv.lines = append(rv.lines, dnStyle.Render(fmt.Sprintf("DN: %s", rv.entry.DN)))
+	rv.lineData = append(rv.lineData, LineData{
+		AttributeName: "dn",
+		Value:         rv.entry.DN,
+		IsHeader:      true,
+		IsBorder:      false,
+	})
+
 	rv.lines = append(rv.lines, "")
+	rv.lineData = append(rv.lineData, LineData{IsBorder: true})
 
 	// Calculate column widths for better responsiveness
 	totalWidth := rv.width
@@ -200,11 +222,15 @@ func (rv *RecordView) buildLines() {
 	// Add top border
 	topBorder := "┌" + strings.Repeat("─", nameWidth+2) + "┬" + strings.Repeat("─", valueWidth+2) + "┐"
 	rv.lines = append(rv.lines, topBorder)
+	rv.lineData = append(rv.lineData, LineData{IsBorder: true})
+
 	rv.lines = append(rv.lines, headerRow)
+	rv.lineData = append(rv.lineData, LineData{IsHeader: true, IsBorder: false})
 
 	// Add separator after header
 	separator := "├" + strings.Repeat("─", nameWidth+2) + "┼" + strings.Repeat("─", valueWidth+2) + "┤"
 	rv.lines = append(rv.lines, separator)
+	rv.lineData = append(rv.lineData, LineData{IsBorder: true})
 
 	// Sort attributes for consistent display
 	var attrNames []string
@@ -225,6 +251,9 @@ func (rv *RecordView) buildLines() {
 			// For multiple values, join with bullet points
 			valueText = "• " + strings.Join(values, " • ")
 		}
+
+		// Store original values for copying
+		originalValues := strings.Join(values, ", ")
 
 		// Wrap text instead of truncating
 		wrappedLines := wrapText(valueText, valueWidth)
@@ -262,12 +291,49 @@ func (rv *RecordView) buildLines() {
 				nameStyle.Render(nameText),
 				valueStyle.Render(wrappedLine))
 			rv.lines = append(rv.lines, row)
+			rv.lineData = append(rv.lineData, LineData{
+				AttributeName: name,
+				Value:         originalValues,
+				IsHeader:      false,
+				IsBorder:      false,
+			})
 		}
 	}
 
 	// Add bottom border
 	bottomBorder := "└" + strings.Repeat("─", nameWidth+2) + "┴" + strings.Repeat("─", valueWidth+2) + "┘"
 	rv.lines = append(rv.lines, bottomBorder)
+	rv.lineData = append(rv.lineData, LineData{IsBorder: true})
+}
+
+// copyCurrentValue copies the current line's value to clipboard
+func (rv *RecordView) copyCurrentValue() tea.Cmd {
+	if rv.cursor < 0 || rv.cursor >= len(rv.lineData) {
+		return SendError(fmt.Errorf("no line selected"))
+	}
+
+	lineData := rv.lineData[rv.cursor]
+
+	// Skip non-copyable lines (borders, headers without values)
+	if lineData.IsBorder || (lineData.IsHeader && lineData.AttributeName != "dn") {
+		return SendStatus("No value to copy on this line")
+	}
+
+	// Copy the value to clipboard
+	err := clipboard.WriteAll(lineData.Value)
+	if err != nil {
+		return SendError(fmt.Errorf("failed to copy to clipboard: %w", err))
+	}
+
+	// Provide feedback about what was copied
+	var msg string
+	if lineData.AttributeName == "dn" {
+		msg = "Copied DN to clipboard"
+	} else {
+		msg = fmt.Sprintf("Copied %s value to clipboard", lineData.AttributeName)
+	}
+
+	return SendStatus(msg)
 }
 
 // wrapText wraps text to fit within the specified width
