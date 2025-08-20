@@ -1,0 +1,23 @@
+# LDAP CLI Configuration Example
+# Copy this file to one of the following locations:
+#   - ./config.yaml (current directory)
+#   - ~/.ldap-cli.yaml (home directory)
+#   - ~/.config/ldap-cli/config.yaml (XDG config directory)
+
+ldap:
+  # LDAP server connection settings
+  host: "ldap.example.com"
+  port: 389  # Use 636 for LDAPS
+  base_dn: "dc=example,dc=com"
+  
+  # Security settings
+  use_ssl: false    # Use LDAPS (port 636)
+  use_tls: false    # Use StartTLS (recommended for port 389)
+  
+  # Authentication (leave empty for anonymous bind)
+  bind_user: "cn=admin,dc=example,dc=com"
+  bind_pass: "your-password-here"
+  
+  # Alternative OU-based authentication examples:
+  # bind_user: "uid=john,ou=users,dc=example,dc=com"
+  # bind_user: "john@example.com"  # For AD-style authentication
