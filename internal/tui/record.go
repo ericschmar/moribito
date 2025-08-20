@@ -226,10 +226,8 @@ func (rv *RecordView) buildLines() {
 			valueText = "• " + strings.Join(values, " • ")
 		}
 
-		// Truncate if too long
-		if len(valueText) > valueWidth {
-			valueText = valueText[:valueWidth-3] + "..."
-		}
+		// Wrap text instead of truncating
+		wrappedLines := wrapText(valueText, valueWidth)
 
 		// Style cells
 		nameStyle := lipgloss.NewStyle().
@@ -248,16 +246,65 @@ func (rv *RecordView) buildLines() {
 			valueStyle = valueStyle.Background(lipgloss.Color("234"))
 		}
 
-		// Create the row with borders
-		row := fmt.Sprintf("│%s│%s│",
-			nameStyle.Render(name),
-			valueStyle.Render(valueText))
-		rv.lines = append(rv.lines, row)
+		// Create rows for wrapped content
+		for lineIdx, wrappedLine := range wrappedLines {
+			var nameText string
+			if lineIdx == 0 {
+				// First line shows the attribute name
+				nameText = name
+			} else {
+				// Continuation lines have empty attribute cell
+				nameText = ""
+			}
+
+			// Create the row with borders
+			row := fmt.Sprintf("│%s│%s│",
+				nameStyle.Render(nameText),
+				valueStyle.Render(wrappedLine))
+			rv.lines = append(rv.lines, row)
+		}
 	}
 
 	// Add bottom border
 	bottomBorder := "└" + strings.Repeat("─", nameWidth+2) + "┴" + strings.Repeat("─", valueWidth+2) + "┘"
 	rv.lines = append(rv.lines, bottomBorder)
+}
+
+// wrapText wraps text to fit within the specified width
+func wrapText(text string, width int) []string {
+	if width <= 0 {
+		return []string{text}
+	}
+
+	if len(text) <= width {
+		return []string{text}
+	}
+
+	var lines []string
+	remaining := text
+
+	for len(remaining) > 0 {
+		if len(remaining) <= width {
+			lines = append(lines, remaining)
+			break
+		}
+
+		// Find the best place to break the line
+		breakPoint := width
+
+		// Try to break at whitespace if possible
+		for i := width - 1; i >= 0 && i >= width-20; i-- {
+			if remaining[i] == ' ' || remaining[i] == '\t' || remaining[i] == '\n' {
+				breakPoint = i
+				break
+			}
+		}
+
+		lines = append(lines, remaining[:breakPoint])
+		remaining = strings.TrimLeft(remaining[breakPoint:], " \t\n")
+	}
+
+	return lines
 }
 
 // adjustViewport adjusts the viewport to keep the cursor visible
