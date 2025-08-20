@@ -13,6 +13,34 @@ A terminal-based LDAP server explorer built with Go and BubbleTea, providing an 
 
 ## Installation
 
+### From GitHub Releases (Recommended)
+
+Download the latest pre-built binary from [GitHub Releases](https://github.com/ericschmar/ldap-cli/releases):
+
+```bash
+# Linux x86_64
+curl -L https://github.com/ericschmar/ldap-cli/releases/latest/download/ldap-cli-linux-amd64 -o ldap-cli
+chmod +x ldap-cli
+sudo mv ldap-cli /usr/local/bin/
+
+# Linux ARM64
+curl -L https://github.com/ericschmar/ldap-cli/releases/latest/download/ldap-cli-linux-arm64 -o ldap-cli
+chmod +x ldap-cli
+sudo mv ldap-cli /usr/local/bin/
+
+# macOS Intel
+curl -L https://github.com/ericschmar/ldap-cli/releases/latest/download/ldap-cli-darwin-amd64 -o ldap-cli
+chmod +x ldap-cli
+sudo mv ldap-cli /usr/local/bin/
+
+# macOS Apple Silicon
+curl -L https://github.com/ericschmar/ldap-cli/releases/latest/download/ldap-cli-darwin-arm64 -o ldap-cli
+chmod +x ldap-cli
+sudo mv ldap-cli /usr/local/bin/
+```
+
+For Windows, download `ldap-cli-windows-amd64.exe` from the releases page.
+
 ### From Source
 
 ```bash
@@ -140,13 +168,51 @@ In the Query view, you can execute custom LDAP filters:
 
 ### Building
 ```bash
-go build -o ldap-cli cmd/ldap-cli/main.go
+# Build for current platform
+make build
+
+# Build for all platforms
+make build-all
+
+# Clean build artifacts
+make clean
+```
+
+### Code Quality
+```bash
+# Format code
+make fmt
+
+# Run linter
+make lint
+
+# Run tests
+make test
+
+# Run all CI checks (format, lint, test, build)
+make ci
 ```
 
 ### Testing
 ```bash
 go test ./...
 ```
+
+### Continuous Integration
+This project uses GitHub Actions for CI/CD:
+
+- **CI Workflow**: Runs on every push and pull request to `main` and `develop` branches
+  - Code formatting verification
+  - Linting (with warnings)
+  - Testing
+  - Building for current platform
+  - Multi-platform build artifacts (on main branch pushes)
+
+- **Release Workflow**: Triggered by version tags (e.g., `v1.0.0`)
+  - Runs full CI checks
+  - Builds for all platforms (Linux amd64/arm64, macOS amd64/arm64, Windows amd64)
+  - Creates GitHub releases with binaries and checksums
+  - Generates installation instructions
 
 ### Dependencies
 - [BubbleTea](https://github.com/charmbracelet/bubbletea) - TUI framework

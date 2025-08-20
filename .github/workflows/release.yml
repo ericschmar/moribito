@@ -1,0 +1,109 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Create Release
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Set up Go
+      uses: actions/setup-go@v5
+      with:
+        go-version: '1.24'
+        cache: true
+
+    - name: Cache Go modules
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/.cache/go-build
+          ~/go/pkg/mod
+        key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+        restore-keys: |
+          ${{ runner.os }}-go-
+
+    - name: Download dependencies
+      run: go mod download
+
+    - name: Run tests and build
+      run: make fmt test build
+
+    - name: Build for all platforms
+      run: make build-all
+
+    - name: Get tag name
+      id: tag
+      run: echo "tag=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+
+    - name: Create checksums
+      run: |
+        cd bin
+        sha256sum * > ../checksums.txt
+        cd ..
+
+    - name: Create Release
+      uses: softprops/action-gh-release@v2
+      with:
+        tag_name: ${{ steps.tag.outputs.tag }}
+        name: Release ${{ steps.tag.outputs.tag }}
+        body: |
+          ## Changes
+          
+          See [CHANGELOG.md](https://github.com/ericschmar/ldap-cli/blob/main/CHANGELOG.md) for details.
+          
+          ## Installation
+          
+          Download the appropriate binary for your platform from the assets below.
+          
+          ### Linux/macOS
+          ```bash
+          # Linux
+          wget https://github.com/ericschmar/ldap-cli/releases/download/${{ steps.tag.outputs.tag }}/ldap-cli-linux-amd64
+          chmod +x ldap-cli-linux-amd64
+          sudo mv ldap-cli-linux-amd64 /usr/local/bin/ldap-cli
+          
+          # Linux ARM64
+          wget https://github.com/ericschmar/ldap-cli/releases/download/${{ steps.tag.outputs.tag }}/ldap-cli-linux-arm64
+          chmod +x ldap-cli-linux-arm64
+          sudo mv ldap-cli-linux-arm64 /usr/local/bin/ldap-cli
+          
+          # macOS Intel
+          wget https://github.com/ericschmar/ldap-cli/releases/download/${{ steps.tag.outputs.tag }}/ldap-cli-darwin-amd64
+          chmod +x ldap-cli-darwin-amd64
+          sudo mv ldap-cli-darwin-amd64 /usr/local/bin/ldap-cli
+          
+          # macOS Apple Silicon
+          wget https://github.com/ericschmar/ldap-cli/releases/download/${{ steps.tag.outputs.tag }}/ldap-cli-darwin-arm64
+          chmod +x ldap-cli-darwin-arm64
+          sudo mv ldap-cli-darwin-arm64 /usr/local/bin/ldap-cli
+          ```
+          
+          ### Windows
+          Download `ldap-cli-windows-amd64.exe` and place it in your PATH.
+          
+          ## Verification
+          
+          Verify the download with the included checksums:
+          ```bash
+          sha256sum -c checksums.txt
+          ```
+        files: |
+          bin/ldap-cli-linux-amd64
+          bin/ldap-cli-linux-arm64
+          bin/ldap-cli-darwin-amd64
+          bin/ldap-cli-darwin-arm64
+          bin/ldap-cli-windows-amd64.exe
+          checksums.txt
+        draft: false
+        prerelease: false
