@@ -41,7 +41,9 @@ bin:
 # Build for multiple platforms
 build-all: bin
 	GOOS=linux GOARCH=amd64 go build -o bin/ldap-cli-linux-amd64 cmd/ldap-cli/main.go
+	GOOS=linux GOARCH=arm64 go build -o bin/ldap-cli-linux-arm64 cmd/ldap-cli/main.go
 	GOOS=darwin GOARCH=amd64 go build -o bin/ldap-cli-darwin-amd64 cmd/ldap-cli/main.go
+	GOOS=darwin GOARCH=arm64 go build -o bin/ldap-cli-darwin-arm64 cmd/ldap-cli/main.go
 	GOOS=windows GOARCH=amd64 go build -o bin/ldap-cli-windows-amd64.exe cmd/ldap-cli/main.go
 
 # Show help
