@@ -22,6 +22,12 @@ type QueryView struct {
 	inputMode   bool
 	loading     bool
 	error       error
+
+	// Pagination state
+	pageSize        uint32
+	hasMore         bool
+	currentCookie   []byte
+	loadingNextPage bool
 }
 
 // NewQueryView creates a new query view
@@ -31,6 +37,20 @@ func NewQueryView(client *ldap.Client) *QueryView {
 		query:     "(objectClass=*)",
 		inputMode: true,
 		cursor:    0,
+		pageSize:  50, // Default page size
+		hasMore:   false,
+	}
+}
+
+// NewQueryViewWithPageSize creates a new query view with specified page size
+func NewQueryViewWithPageSize(client *ldap.Client, pageSize uint32) *QueryView {
+	return &QueryView{
+		client:    client,
+		query:     "(objectClass=*)",
+		inputMode: true,
+		cursor:    0,
+		pageSize:  pageSize,
+		hasMore:   false,
 	}
 }
 
@@ -56,15 +76,45 @@ func (qv *QueryView) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 
 	case QueryResultsMsg:
+		// Legacy non-paginated results (fallback)
 		qv.results = msg.Results
 		qv.loading = false
 		qv.error = nil
 		qv.inputMode = false
+		qv.hasMore = false
+		qv.currentCookie = nil
 		qv.buildResultLines()
 		return qv, SendStatus(fmt.Sprintf("Found %d results", len(qv.results)))
 
+	case QueryPageMsg:
+		// Handle paginated results
+		if msg.IsFirstPage {
+			// First page - replace existing results
+			qv.results = msg.Page.Entries
+			qv.cursor = 0
+			qv.viewport = 0
+		} else {
+			// Subsequent page - append to existing results
+			qv.results = append(qv.results, msg.Page.Entries...)
+		}
+
+		qv.loading = false
+		qv.loadingNextPage = false
+		qv.error = nil
+		qv.inputMode = false
+		qv.hasMore = msg.Page.HasMore
+		qv.currentCookie = msg.Page.Cookie
+		qv.buildResultLines()
+
+		statusMsg := fmt.Sprintf("Loaded %d results", len(qv.results))
+		if qv.hasMore {
+			statusMsg += " (more available)"
+		}
+		return qv, SendStatus(statusMsg)
+
 	case ErrorMsg:
 		qv.loading = false
+		qv.loadingNextPage = false
 		qv.error = msg.Err
 		return qv, nil
 	}
@@ -113,6 +163,11 @@ func (qv *QueryView) handleBrowseMode(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		if qv.cursor < len(qv.resultLines)-1 {
 			qv.cursor++
 			qv.adjustViewport()
+
+			// Check if we need to load next page
+			if cmd := qv.checkLoadNextPage(); cmd != nil {
+				return qv, cmd
+			}
 		}
 	case "page_up":
 		qv.cursor -= qv.height - 4 // Account for header space
@@ -126,6 +181,11 @@ func (qv *QueryView) handleBrowseMode(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			qv.cursor = len(qv.resultLines) - 1
 		}
 		qv.adjustViewport()
+
+		// Check if we need to load next page
+		if cmd := qv.checkLoadNextPage(); cmd != nil {
+			return qv, cmd
+		}
 	case "enter":
 		return qv, qv.viewSelectedRecord()
 	case "escape", "/":
@@ -198,11 +258,22 @@ func (qv *QueryView) renderResults(height int) string {
 
 	var lines []string
 
-	// Add results header
+	// Add results header with pagination info
 	headerStyle := lipgloss.NewStyle().
 		Foreground(lipgloss.Color("10")).
 		Bold(true)
-	lines = append(lines, headerStyle.Render(fmt.Sprintf("Results (%d entries):", len(qv.results))))
+
+	headerText := fmt.Sprintf("Results (%d entries", len(qv.results))
+	if qv.hasMore {
+		headerText += ", more available"
+	}
+	headerText += "):"
+
+	if qv.loadingNextPage {
+		headerText += " [Loading next page...]"
+	}
+
+	lines = append(lines, headerStyle.Render(headerText))
 	lines = append(lines, "")
 
 	// Add result lines
@@ -231,16 +302,53 @@ func (qv *QueryView) renderResults(height int) string {
 	return strings.Join(lines, "\n")
 }
 
-// executeQuery executes the LDAP query
+// executeQuery executes the LDAP query using pagination
 func (qv *QueryView) executeQuery() tea.Cmd {
 	qv.loading = true
+	qv.hasMore = false
+	qv.currentCookie = nil
+	qv.results = nil
+	qv.resultLines = nil
+
 	return func() tea.Msg {
-		results, err := qv.client.CustomSearch(qv.query)
+		page, err := qv.client.CustomSearchPaged(qv.query, qv.pageSize, nil)
 		if err != nil {
 			return ErrorMsg{Err: err}
 		}
-		return QueryResultsMsg{Results: results}
+		return QueryPageMsg{Page: page, IsFirstPage: true}
 	}
+}
+
+// loadNextPage loads the next page of results
+func (qv *QueryView) loadNextPage() tea.Cmd {
+	if !qv.hasMore || qv.loadingNextPage || qv.currentCookie == nil {
+		return nil
+	}
+
+	qv.loadingNextPage = true
+
+	return func() tea.Msg {
+		page, err := qv.client.CustomSearchPaged(qv.query, qv.pageSize, qv.currentCookie)
+		if err != nil {
+			return ErrorMsg{Err: err}
+		}
+		return QueryPageMsg{Page: page, IsFirstPage: false}
+	}
+}
+
+// checkLoadNextPage checks if we need to load the next page based on cursor position
+func (qv *QueryView) checkLoadNextPage() tea.Cmd {
+	if !qv.hasMore || qv.loadingNextPage {
+		return nil
+	}
+
+	// Load next page when we're within 5 entries of the end
+	entriesFromEnd := len(qv.results) - (qv.cursor / 4) // Approximate cursor to entry mapping
+	if entriesFromEnd <= 5 {
+		return qv.loadNextPage()
+	}
+
+	return nil
 }
 
 // viewSelectedRecord shows the selected record
@@ -303,4 +411,10 @@ func (qv *QueryView) adjustViewport() {
 // QueryResultsMsg represents query results
 type QueryResultsMsg struct {
 	Results []*ldap.Entry
+}
+
+// QueryPageMsg represents a page of query results
+type QueryPageMsg struct {
+	Page        *ldap.SearchPage
+	IsFirstPage bool
 }

@@ -21,3 +21,9 @@ ldap:
   # Alternative OU-based authentication examples:
   # bind_user: "uid=john,ou=users,dc=example,dc=com"
   # bind_user: "john@example.com"  # For AD-style authentication
+
+# Pagination settings for query results
+pagination:
+  # Number of entries to load per page (default: 50)
+  # Adjust this based on your server capabilities and performance needs
+  page_size: 50

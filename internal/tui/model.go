@@ -42,6 +42,17 @@ func NewModel(client *ldap.Client) *Model {
 	}
 }
 
+// NewModelWithPageSize creates a new TUI model with specified page size for queries
+func NewModelWithPageSize(client *ldap.Client, pageSize uint32) *Model {
+	return &Model{
+		client:      client,
+		tree:        NewTreeView(client),
+		recordView:  NewRecordView(),
+		queryView:   NewQueryViewWithPageSize(client, pageSize),
+		currentView: ViewModeTree,
+	}
+}
+
 // Init initializes the model
 func (m *Model) Init() tea.Cmd {
 	return tea.Batch(
