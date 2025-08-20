@@ -136,7 +136,7 @@ func (rv *RecordView) View() string {
 	return strings.Join(displayLines, "\n")
 }
 
-// buildLines builds the display lines from the entry
+// buildLines builds the display lines from the entry in table format
 func (rv *RecordView) buildLines() {
 	if rv.entry == nil {
 		rv.lines = []string{}
@@ -145,9 +145,66 @@ func (rv *RecordView) buildLines() {
 
 	rv.lines = []string{}
 
-	// Add DN header
-	rv.lines = append(rv.lines, fmt.Sprintf("DN: %s", rv.entry.DN))
+	// Add DN header with styling
+	dnStyle := lipgloss.NewStyle().
+		Foreground(lipgloss.Color("14")).
+		Bold(true).
+		Background(lipgloss.Color("238")).
+		Padding(0, 1).
+		Width(rv.width - 2)
+
+	rv.lines = append(rv.lines, dnStyle.Render(fmt.Sprintf("DN: %s", rv.entry.DN)))
 	rv.lines = append(rv.lines, "")
+
+	// Calculate column widths for better responsiveness
+	totalWidth := rv.width
+	if totalWidth < 60 {
+		totalWidth = 60 // minimum table width
+	}
+
+	nameWidth := totalWidth / 3              // ~33% for attribute names
+	valueWidth := totalWidth - nameWidth - 4 // remaining width minus separators
+
+	// Ensure minimum widths
+	if nameWidth < 15 {
+		nameWidth = 15
+		valueWidth = totalWidth - nameWidth - 4
+	}
+	if valueWidth < 20 {
+		valueWidth = 20
+		nameWidth = totalWidth - valueWidth - 4
+	}
+
+	// Header styles
+	nameHeaderStyle := lipgloss.NewStyle().
+		Foreground(lipgloss.Color("15")).
+		Background(lipgloss.Color("240")).
+		Bold(true).
+		Width(nameWidth).
+		Align(lipgloss.Center).
+		Padding(0, 1)
+
+	valueHeaderStyle := lipgloss.NewStyle().
+		Foreground(lipgloss.Color("15")).
+		Background(lipgloss.Color("240")).
+		Bold(true).
+		Width(valueWidth).
+		Align(lipgloss.Center).
+		Padding(0, 1)
+
+	// Create table header with borders
+	headerRow := fmt.Sprintf("│%s│%s│",
+		nameHeaderStyle.Render("Attribute"),
+		valueHeaderStyle.Render("Value(s)"))
+
+	// Add top border
+	topBorder := "┌" + strings.Repeat("─", nameWidth+2) + "┬" + strings.Repeat("─", valueWidth+2) + "┐"
+	rv.lines = append(rv.lines, topBorder)
+	rv.lines = append(rv.lines, headerRow)
+
+	// Add separator after header
+	separator := "├" + strings.Repeat("─", nameWidth+2) + "┼" + strings.Repeat("─", valueWidth+2) + "┤"
+	rv.lines = append(rv.lines, separator)
 
 	// Sort attributes for consistent display
 	var attrNames []string
@@ -156,35 +213,51 @@ func (rv *RecordView) buildLines() {
 	}
 	sort.Strings(attrNames)
 
-	// Add attributes
-	for _, name := range attrNames {
+	// Add attribute rows
+	for i, name := range attrNames {
 		values := rv.entry.Attributes[name]
 
-		// Style attribute names
-		attributeStyle := lipgloss.NewStyle().
-			Foreground(lipgloss.Color("12")).
-			Bold(true)
-
+		// Create value display
+		var valueText string
 		if len(values) == 1 {
-			rv.lines = append(rv.lines, fmt.Sprintf("%s: %s",
-				attributeStyle.Render(name), values[0]))
+			valueText = values[0]
 		} else {
-			rv.lines = append(rv.lines, fmt.Sprintf("%s:", attributeStyle.Render(name)))
-			for i, value := range values {
-				prefix := "├─"
-				if i == len(values)-1 {
-					prefix = "└─"
-				}
-				rv.lines = append(rv.lines, fmt.Sprintf("  %s %s", prefix, value))
-			}
+			// For multiple values, join with bullet points
+			valueText = "• " + strings.Join(values, " • ")
 		}
-		rv.lines = append(rv.lines, "")
+
+		// Truncate if too long
+		if len(valueText) > valueWidth {
+			valueText = valueText[:valueWidth-3] + "..."
+		}
+
+		// Style cells
+		nameStyle := lipgloss.NewStyle().
+			Foreground(lipgloss.Color("12")).
+			Bold(true).
+			Width(nameWidth).
+			Padding(0, 1)
+
+		valueStyle := lipgloss.NewStyle().
+			Width(valueWidth).
+			Padding(0, 1)
+
+		// Apply alternating row colors for better readability
+		if i%2 == 1 {
+			nameStyle = nameStyle.Background(lipgloss.Color("234"))
+			valueStyle = valueStyle.Background(lipgloss.Color("234"))
+		}
+
+		// Create the row with borders
+		row := fmt.Sprintf("│%s│%s│",
+			nameStyle.Render(name),
+			valueStyle.Render(valueText))
+		rv.lines = append(rv.lines, row)
 	}
 
-	// Remove trailing empty line
-	if len(rv.lines) > 0 && rv.lines[len(rv.lines)-1] == "" {
-		rv.lines = rv.lines[:len(rv.lines)-1]
-	}
+	// Add bottom border
+	bottomBorder := "└" + strings.Repeat("─", nameWidth+2) + "┴" + strings.Repeat("─", valueWidth+2) + "┘"
+	rv.lines = append(rv.lines, bottomBorder)
 }
 
 // adjustViewport adjusts the viewport to keep the cursor visible
