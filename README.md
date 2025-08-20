@@ -168,13 +168,51 @@ In the Query view, you can execute custom LDAP filters:
 
 ### Building
 ```bash
-go build -o ldap-cli cmd/ldap-cli/main.go
+# Build for current platform
+make build
+
+# Build for all platforms
+make build-all
+
+# Clean build artifacts
+make clean
+```
+
+### Code Quality
+```bash
+# Format code
+make fmt
+
+# Run linter
+make lint
+
+# Run tests
+make test
+
+# Run all CI checks (format, lint, test, build)
+make ci
 ```
 
 ### Testing
 ```bash
 go test ./...
 ```
+
+### Continuous Integration
+This project uses GitHub Actions for CI/CD:
+
+- **CI Workflow**: Runs on every push and pull request to `main` and `develop` branches
+  - Code formatting verification
+  - Linting (with warnings)
+  - Testing
+  - Building for current platform
+  - Multi-platform build artifacts (on main branch pushes)
+
+- **Release Workflow**: Triggered by version tags (e.g., `v1.0.0`)
+  - Runs full CI checks
+  - Builds for all platforms (Linux amd64/arm64, macOS amd64/arm64, Windows amd64)
+  - Creates GitHub releases with binaries and checksums
+  - Generates installation instructions
 
 ### Dependencies
 - [BubbleTea](https://github.com/charmbracelet/bubbletea) - TUI framework

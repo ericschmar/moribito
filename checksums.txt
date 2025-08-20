@@ -1,4 +1,0 @@
-52b75c1ad8e906083b41ecfd67b4cfba703e19afaea4b83e5e48a141bdf66e9a  ldap-cli
-443eb72b61474c6d5b59c7032f9c3f54498ecbde5e11bded2c126126a29fbe65  ldap-cli-darwin-amd64
-52b75c1ad8e906083b41ecfd67b4cfba703e19afaea4b83e5e48a141bdf66e9a  ldap-cli-linux-amd64
-2826b83af49e160199a37bbeee4dc7874dc5f9b38a00b71314c5629ec3a59970  ldap-cli-windows-amd64.exe
