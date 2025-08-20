@@ -63,6 +63,8 @@ ldap:
 
 ### Tree View
 - **↑/↓** or **k/j** - Navigate up/down
+- **Page Up/Down** - Navigate by page
+- **Home/End** - Jump to top/bottom
 - **→** or **l** - Expand node (load children)
 - **←** or **h** - Collapse node
 - **Enter** - View record details

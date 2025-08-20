@@ -62,6 +62,24 @@ func (tv *TreeView) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				tv.cursor++
 				tv.adjustViewport()
 			}
+		case "page_up":
+			tv.cursor -= tv.height
+			if tv.cursor < 0 {
+				tv.cursor = 0
+			}
+			tv.adjustViewport()
+		case "page_down":
+			tv.cursor += tv.height
+			if tv.cursor >= len(tv.flattenedTree) {
+				tv.cursor = len(tv.flattenedTree) - 1
+			}
+			tv.adjustViewport()
+		case "home":
+			tv.cursor = 0
+			tv.adjustViewport()
+		case "end":
+			tv.cursor = len(tv.flattenedTree) - 1
+			tv.adjustViewport()
 		case "right", "l":
 			return tv, tv.expandNode()
 		case "left", "h":
