@@ -9,7 +9,7 @@ import (
 func TestPaginationConfig(t *testing.T) {
 	// Test default configuration includes pagination
 	cfg := Default()
-	
+
 	if cfg.Pagination.PageSize != 50 {
 		t.Errorf("Expected default page size to be 50, got %d", cfg.Pagination.PageSize)
 	}
