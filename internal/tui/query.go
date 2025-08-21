@@ -202,13 +202,13 @@ func (qv *QueryView) handleBrowseMode(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			}
 		}
 	case "page_up":
-		qv.cursor -= qv.height - 4 // Account for header space
+		qv.cursor -= qv.height - 8 // Account for header space
 		if qv.cursor < 0 {
 			qv.cursor = 0
 		}
 		qv.adjustViewport()
 	case "page_down":
-		qv.cursor += qv.height - 4
+		qv.cursor += qv.height - 8
 		if qv.cursor >= len(qv.resultLines) {
 			qv.cursor = len(qv.resultLines) - 1
 		}
@@ -437,7 +437,7 @@ func (qv *QueryView) buildResultLines() {
 
 // adjustViewport adjusts the viewport to keep the cursor visible
 func (qv *QueryView) adjustViewport() {
-	visibleHeight := qv.height - 6 // Account for header space
+	visibleHeight := qv.height - 8 // Account for header, query input, and instruction text
 
 	if qv.cursor < qv.viewport {
 		qv.viewport = qv.cursor

@@ -11,17 +11,17 @@ func TestTreeView_ViewportIntegration(t *testing.T) {
 	tv := NewTreeView(client)
 
 	// Test viewport initialization
-	if tv.viewport.Width != 0 || tv.viewport.Height != 0 {
-		t.Error("Viewport should be initialized with zero dimensions")
+	if tv.viewport != 0 {
+		t.Error("Viewport should be initialized to 0")
 	}
 
-	// Test SetSize configures viewport
+	// Test SetSize configures dimensions
 	tv.SetSize(80, 24)
-	if tv.viewport.Width != 80 {
-		t.Errorf("Expected viewport width 80, got %d", tv.viewport.Width)
+	if tv.width != 80 {
+		t.Errorf("Expected width 80, got %d", tv.width)
 	}
-	if tv.viewport.Height != 24 {
-		t.Errorf("Expected viewport height 24, got %d", tv.viewport.Height)
+	if tv.height != 24 {
+		t.Errorf("Expected height 24, got %d", tv.height)
 	}
 
 	// Test that View() returns expected content when loading
@@ -54,15 +54,15 @@ func TestTreeView_ViewportContentUpdate(t *testing.T) {
 	}
 	tv.rebuildFlattenedTree()
 
-	// Test that viewport content is updated
-	content := tv.viewport.View()
-	if content == "" {
-		t.Error("Viewport should have content after rebuilding tree")
+	// Test that view content is updated
+	view := tv.View()
+	if view == "" {
+		t.Error("View should have content after rebuilding tree")
 	}
 
 	// Test cursor movement updates viewport
 	tv.cursor = 0
-	tv.updateViewportForCursor()
+	tv.adjustViewport()
 	// No errors should occur
 }
 
@@ -88,15 +88,15 @@ func TestTreeView_CursorVisibility(t *testing.T) {
 
 	// Test cursor at top
 	tv.cursor = 0
-	tv.updateViewportForCursor()
-	if tv.viewport.YOffset != 0 {
-		t.Errorf("Expected viewport YOffset 0 when cursor at top, got %d", tv.viewport.YOffset)
+	tv.adjustViewport()
+	if tv.viewport != 0 {
+		t.Errorf("Expected viewport 0 when cursor at top, got %d", tv.viewport)
 	}
 
 	// Test cursor past visible area
 	tv.cursor = 15
-	tv.updateViewportForCursor()
-	if tv.viewport.YOffset < 0 {
-		t.Errorf("Viewport YOffset should not be negative, got %d", tv.viewport.YOffset)
+	tv.adjustViewport()
+	if tv.viewport < 0 {
+		t.Errorf("Viewport should not be negative, got %d", tv.viewport)
 	}
 }
