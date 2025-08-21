@@ -271,7 +271,7 @@ func (m *Model) renderHelpBar() string {
 	case ViewModeTree:
 		help += " • [↑↓] navigate • [→] expand • [←] collapse • [enter] view record"
 	case ViewModeRecord:
-		help += " • [↑↓] scroll"
+		help += " • [↑↓] scroll • [c] copy value"
 	case ViewModeQuery:
 		help += " • [enter] execute query • [esc] clear"
 	}
