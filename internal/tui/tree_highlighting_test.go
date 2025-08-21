@@ -2,7 +2,7 @@ package tui
 
 import (
 	"testing"
-	
+
 	"github.com/ericschmar/ldap-cli/internal/ldap"
 )
 
@@ -29,7 +29,7 @@ func TestTreeView_HighlightingConsistency(t *testing.T) {
 
 	// Test highlighting at different cursor positions to verify viewport consistency
 	testCases := []struct {
-		cursor     int
+		cursor      int
 		description string
 	}{
 		{0, "cursor at top"},
@@ -50,10 +50,10 @@ func TestTreeView_HighlightingConsistency(t *testing.T) {
 			if tv.container == nil {
 				contentHeight = tv.height
 			}
-			
+
 			// Verify cursor is within visible range after viewport adjustment
 			if tc.cursor < tv.viewport || tc.cursor >= tv.viewport+contentHeight {
-				t.Errorf("Cursor %d should be visible within viewport %d to %d (content height %d)", 
+				t.Errorf("Cursor %d should be visible within viewport %d to %d (content height %d)",
 					tc.cursor, tv.viewport, tv.viewport+contentHeight-1, contentHeight)
 			}
 
