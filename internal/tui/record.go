@@ -206,7 +206,7 @@ func (rv *RecordView) renderTable() string {
 
 	// Get content dimensions
 	contentWidth, _ := rv.container.GetContentDimensions()
-	
+
 	// Calculate column widths
 	nameWidth := contentWidth / 3
 	if nameWidth < 15 {
@@ -243,7 +243,7 @@ func (rv *RecordView) renderTable() string {
 		Bold(false)
 
 	currentCursor := rv.table.Cursor()
-	
+
 	for i, rowData := range rv.renderedRows {
 		// Create value display
 		var valueText string
@@ -274,7 +274,7 @@ func (rv *RecordView) renderTable() string {
 		// Add clickable zone
 		zoneID := fmt.Sprintf("record-row-%d", i)
 		clickableRow := zone.Mark(zoneID, rowContent)
-		
+
 		rows = append(rows, clickableRow)
 	}
 

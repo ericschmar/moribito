@@ -503,7 +503,7 @@ func (m *Model) handleZoneMessage(msg zone.MsgZoneInBounds) (tea.Model, tea.Cmd)
 			}
 		}
 	}
-	
+
 	// Check for record view row zones
 	if m.currentView == ViewModeRecord && m.recordView != nil {
 		for i := 0; i < len(m.recordView.renderedRows); i++ {
@@ -597,7 +597,7 @@ func (m *Model) handleRecordViewClick(zoneID string) (tea.Model, tea.Cmd) {
 	if m.recordView == nil {
 		return m, nil
 	}
-	
+
 	// Handle attribute row clicks
 	if strings.HasPrefix(zoneID, "record-row-") {
 		// Extract row index

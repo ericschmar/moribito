@@ -294,14 +294,14 @@ func TestRecordView_LineDataMapping(t *testing.T) {
 func TestRecordView_ClickableZones(t *testing.T) {
 	// Initialize bubblezone manager for testing
 	zone.NewGlobal()
-	
+
 	// Test that record view properly renders clickable zones
 	entry := &ldap.Entry{
 		DN: "cn=test user,ou=users,dc=example,dc=com",
 		Attributes: map[string][]string{
-			"cn":          {"test user"},
-			"mail":        {"test@example.com"},
-			"department":  {"Engineering"},
+			"cn":         {"test user"},
+			"mail":       {"test@example.com"},
+			"department": {"Engineering"},
 		},
 	}
 
@@ -348,21 +348,21 @@ func TestRecordView_ClickableZones(t *testing.T) {
 			t.Errorf("Unexpected attribute in renderedRows: %s", rowData.AttributeName)
 			continue
 		}
-		
+
 		// Check that values match
 		if len(rowData.Values) != len(expectedValues) {
-			t.Errorf("Attribute %s: expected %d values, got %d", 
+			t.Errorf("Attribute %s: expected %d values, got %d",
 				rowData.AttributeName, len(expectedValues), len(rowData.Values))
 			continue
 		}
-		
+
 		for i, value := range rowData.Values {
 			if value != expectedValues[i] {
-				t.Errorf("Attribute %s, value %d: expected '%s', got '%s'", 
+				t.Errorf("Attribute %s, value %d: expected '%s', got '%s'",
 					rowData.AttributeName, i, expectedValues[i], value)
 			}
 		}
-		
+
 		// Remove from expected to track what we've seen
 		delete(expectedAttribs, rowData.AttributeName)
 	}
