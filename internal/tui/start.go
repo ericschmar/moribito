@@ -20,6 +20,7 @@ type StartView struct {
 	editing      bool
 	editingField int
 	inputValue   string
+	container    *ViewContainer
 }
 
 // Field indices for editing
@@ -63,7 +64,8 @@ func (sv *StartView) Init() tea.Cmd {
 // SetSize sets the size of the start view
 func (sv *StartView) SetSize(width, height int) {
 	sv.width = width
-	sv.height = height - 16
+	sv.height = height
+	sv.container = NewViewContainer(width, height)
 }
 
 // Update handles input for the start view
@@ -153,13 +155,19 @@ func (sv *StartView) getDisplayValue(field int) string {
 
 // View renders the start view
 func (sv *StartView) View() string {
-	if sv.width < 80 {
+	if sv.container == nil {
+		sv.container = NewViewContainer(sv.width, sv.height)
+	}
+	
+	contentWidth, _ := sv.container.GetContentDimensions()
+	
+	if contentWidth < 80 {
 		// For narrow screens, show a simple message
 		return sv.renderNarrowView()
 	}
 
-	leftWidth := (sv.width - 1) / 2 // Leave space for separator
-	rightWidth := sv.width - leftWidth - 1
+	leftWidth := (contentWidth - 1) / 2 // Leave space for separator
+	rightWidth := contentWidth - leftWidth - 1
 
 	// Create the ASCII art on the left
 	leftContent := sv.renderParthenon(leftWidth)
@@ -175,29 +183,24 @@ func (sv *StartView) View() string {
 	separator := separatorStyle.Render("│")
 
 	// Use lipgloss to combine the panels side by side with separator
-	return lipgloss.JoinHorizontal(
+	content := lipgloss.JoinHorizontal(
 		lipgloss.Top,
 		leftContent,
 		separator,
 		rightContent,
 	)
+	
+	return sv.container.RenderWithPadding(content)
 }
 
 // renderNarrowView renders a simplified view for narrow screens
 func (sv *StartView) renderNarrowView() string {
-	style := lipgloss.NewStyle().
-		Foreground(lipgloss.Color("14")).
-		Bold(true).
-		Padding(1, 2).
-		Border(lipgloss.RoundedBorder()).
-		BorderForeground(lipgloss.Color("12"))
-
 	content := "LDAP CLI Start Page\n\n"
 	content += "Screen too narrow for split view.\n"
 	content += "Please resize your terminal or switch to another view.\n\n"
 	content += "Press [1] for Tree View, [2] for Record View, [3] for Query View"
 
-	return style.Render(content)
+	return sv.container.RenderCentered(content)
 }
 
 // renderParthenon creates ASCII art of the Parthenon
