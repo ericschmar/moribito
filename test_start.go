@@ -7,15 +7,29 @@ import (
 )
 
 func main() {
-	// Create a default config
-	cfg := config.Default()
+	// Create a config with some test values
+	cfg := &config.Config{
+		LDAP: config.LDAPConfig{
+			Host:     "ldap.example.com",
+			Port:     636,
+			BaseDN:   "dc=example,dc=com",
+			UseSSL:   true,
+			UseTLS:   false,
+			BindUser: "cn=admin,dc=example,dc=com",
+			BindPass: "secretpassword",
+		},
+		Pagination: config.PaginationConfig{
+			PageSize: 100,
+		},
+	}
 	
 	// Create the start view
 	sv := tui.NewStartView(cfg)
-	sv.SetSize(120, 40) // Set a reasonable size
+	sv.SetSize(120, 25) // Set a reasonable size
 	
 	// Render the view
+	fmt.Println("=== Start Page Rendering Test (120x25) ===")
 	output := sv.View()
 	fmt.Print(output)
-	fmt.Printf("\n=== Width: %d, Height: %d ===\n", 120, 40)
+	fmt.Printf("\n=== End of Output ===\n")
 }
