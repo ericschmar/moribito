@@ -72,6 +72,9 @@ func NewModelWithPageSize(client *ldap.Client, cfg *config.Config) *Model {
 
 // Init initializes the model
 func (m *Model) Init() tea.Cmd {
+	// Initialize bubblezone global manager
+	zone.NewGlobal()
+
 	var cmds []tea.Cmd
 
 	if m.tree != nil {
