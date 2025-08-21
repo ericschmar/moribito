@@ -6,8 +6,8 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
-	zone "github.com/lrstanley/bubblezone"
 	"github.com/ericschmar/ldap-cli/internal/ldap"
+	zone "github.com/lrstanley/bubblezone"
 )
 
 // TreeView represents the LDAP tree view
@@ -82,8 +82,8 @@ func (tv *TreeView) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				contentHeight = tv.height
 			}
 			tv.cursor += contentHeight
-			if tv.cursor >= len(tv.flattenedTree) {
-				tv.cursor = len(tv.flattenedTree) - 1
+			if tv.cursor >= len(tv.FlattenedTree) {
+				tv.cursor = len(tv.FlattenedTree) - 1
 			}
 			tv.adjustViewport()
 		case "home":
@@ -149,12 +149,12 @@ func (tv *TreeView) View() string {
 
 	for i := visibleStart; i < visibleEnd; i++ {
 		item := tv.FlattenedTree[i]
-		line := tv.renderTreeItem(item, i == tv.cursor)
-		
+		line := tv.renderTreeItem(item, i == tv.cursor, contentWidth)
+
 		// Wrap with clickable zone
 		zoneID := fmt.Sprintf("tree-item-%d", i)
 		line = zone.Mark(zoneID, line)
-		
+
 		lines = append(lines, line)
 	}
 

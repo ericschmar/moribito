@@ -8,8 +8,8 @@ import (
 	"github.com/charmbracelet/bubbles/textarea"
 	"github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
-	zone "github.com/lrstanley/bubblezone"
 	"github.com/ericschmar/ldap-cli/internal/ldap"
+	zone "github.com/lrstanley/bubblezone"
 )
 
 // QueryView provides an interface for LDAP queries
@@ -224,8 +224,8 @@ func (qv *QueryView) handleBrowseMode(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			contentHeight = qv.height
 		}
 		qv.cursor += contentHeight - 8
-		if qv.cursor >= len(qv.resultLines) {
-			qv.cursor = len(qv.resultLines) - 1
+		if qv.cursor >= len(qv.ResultLines) {
+			qv.cursor = len(qv.ResultLines) - 1
 		}
 		qv.adjustViewport()
 
@@ -356,11 +356,11 @@ func (qv *QueryView) renderResults(height int) string {
 		}
 
 		renderedLine := style.Render(line)
-		
+
 		// Wrap with clickable zone
 		zoneID := fmt.Sprintf("query-result-%d", i)
 		renderedLine = zone.Mark(zoneID, renderedLine)
-		
+
 		lines = append(lines, renderedLine)
 	}
 

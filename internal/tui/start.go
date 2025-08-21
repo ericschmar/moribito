@@ -8,8 +8,8 @@ import (
 	"github.com/atotto/clipboard"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
-	zone "github.com/lrstanley/bubblezone"
 	"github.com/ericschmar/ldap-cli/internal/config"
+	zone "github.com/lrstanley/bubblezone"
 )
 
 // StartView provides the start page with ASCII art and config editing
@@ -348,11 +348,11 @@ func (sv *StartView) renderConfigEditor(width int) string {
 		fieldLine := fmt.Sprintf("%s %s", fieldName, fieldValue)
 
 		renderedField := style.Render(fieldLine)
-		
+
 		// Wrap field with clickable zone
 		zoneID := fmt.Sprintf("config-field-%d", i)
 		renderedField = zone.Mark(zoneID, renderedField)
-		
+
 		content.WriteString(renderedField)
 		content.WriteString("\n")
 	}

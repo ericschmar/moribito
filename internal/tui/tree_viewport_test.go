@@ -33,7 +33,7 @@ func TestTreeView_ViewportIntegration(t *testing.T) {
 
 	// Test that View() returns expected content when no entries
 	tv.loading = false
-	tv.flattenedTree = nil
+	tv.FlattenedTree = nil
 	view = tv.View()
 	if view == "" {
 		t.Error("View should return 'No entries found' message when no tree")
@@ -72,9 +72,9 @@ func TestTreeView_CursorVisibility(t *testing.T) {
 	tv.SetSize(80, 10) // Small height to test scrolling
 
 	// Create multiple mock tree items
-	tv.flattenedTree = make([]*TreeItem, 20)
+	tv.FlattenedTree = make([]*TreeItem, 20)
 	for i := 0; i < 20; i++ {
-		tv.flattenedTree[i] = &TreeItem{
+		tv.FlattenedTree[i] = &TreeItem{
 			Node: &ldap.TreeNode{
 				DN:       "test",
 				Name:     "test",
