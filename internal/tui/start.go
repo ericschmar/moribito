@@ -158,9 +158,9 @@ func (sv *StartView) View() string {
 	if sv.container == nil {
 		sv.container = NewViewContainer(sv.width, sv.height)
 	}
-	
+
 	contentWidth, _ := sv.container.GetContentDimensions()
-	
+
 	if contentWidth < 80 {
 		// For narrow screens, show a simple message
 		return sv.renderNarrowView()
@@ -189,7 +189,7 @@ func (sv *StartView) View() string {
 		separator,
 		rightContent,
 	)
-	
+
 	return sv.container.RenderWithPadding(content)
 }
 

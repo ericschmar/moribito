@@ -122,7 +122,7 @@ func (tv *TreeView) View() string {
 	if tv.container == nil {
 		tv.container = NewViewContainer(tv.width, tv.height)
 	}
-	
+
 	if tv.loading {
 		return tv.container.RenderCentered("Loading LDAP tree...")
 	}
@@ -133,7 +133,7 @@ func (tv *TreeView) View() string {
 
 	// Get content dimensions
 	contentWidth, contentHeight := tv.container.GetContentDimensions()
-	
+
 	var lines []string
 	visibleStart := tv.viewport
 	visibleEnd := visibleStart + contentHeight
@@ -285,7 +285,7 @@ func (tv *TreeView) adjustViewport() {
 	if tv.container == nil {
 		contentHeight = tv.height
 	}
-	
+
 	if tv.cursor < tv.viewport {
 		tv.viewport = tv.cursor
 	} else if tv.cursor >= tv.viewport+contentHeight {

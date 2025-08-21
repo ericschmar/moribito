@@ -8,8 +8,8 @@ import (
 
 // ViewContainer provides consistent styling for all views
 type ViewContainer struct {
-	width  int
-	height int
+	width   int
+	height  int
 	padding int
 }
 
@@ -26,13 +26,13 @@ func NewViewContainer(width, height int) *ViewContainer {
 func (vc *ViewContainer) RenderWithPadding(content string) string {
 	// Split content into lines
 	lines := strings.Split(content, "\n")
-	
+
 	// Calculate available content area (accounting for padding)
 	contentWidth := vc.width - (vc.padding * 2)
 	if contentWidth < 1 {
 		contentWidth = 1
 	}
-	
+
 	// Process each line to fit within content width
 	var processedLines []string
 	for _, line := range lines {
@@ -43,7 +43,7 @@ func (vc *ViewContainer) RenderWithPadding(content string) string {
 			processedLines = append(processedLines, line[:contentWidth-3]+"...")
 		}
 	}
-	
+
 	// Ensure we have exactly the right number of lines for the height
 	for len(processedLines) < vc.height {
 		processedLines = append(processedLines, "")
@@ -51,16 +51,16 @@ func (vc *ViewContainer) RenderWithPadding(content string) string {
 	if len(processedLines) > vc.height {
 		processedLines = processedLines[:vc.height]
 	}
-	
+
 	// Create the final content
 	finalContent := strings.Join(processedLines, "\n")
-	
+
 	// Apply consistent styling with padding
 	style := lipgloss.NewStyle().
 		Width(vc.width).
 		Height(vc.height).
 		Padding(0, vc.padding) // Apply horizontal padding
-	
+
 	return style.Render(finalContent)
 }
 
@@ -72,7 +72,7 @@ func (vc *ViewContainer) RenderCentered(content string) string {
 		AlignHorizontal(lipgloss.Center).
 		AlignVertical(lipgloss.Center).
 		Padding(0, vc.padding)
-	
+
 	return style.Render(content)
 }
 

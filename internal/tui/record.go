@@ -124,11 +124,11 @@ func (rv *RecordView) View() string {
 	if rv.container == nil {
 		rv.container = NewViewContainer(rv.width, rv.height)
 	}
-	
+
 	if rv.entry == nil {
 		return rv.container.RenderCentered("No record selected")
 	}
-	
+
 	// Create content with DN header and table
 	content := rv.dnHeader + "\n\n" + rv.table.View()
 	return rv.container.RenderWithPadding(content)

@@ -79,10 +79,10 @@ func (qv *QueryView) SetSize(width, height int) {
 	qv.width = width
 	qv.height = height
 	qv.container = NewViewContainer(width, height)
-	
+
 	// Get content dimensions for textarea sizing
 	contentWidth, _ := qv.container.GetContentDimensions()
-	
+
 	// Set textarea width to fit within the content area
 	qv.textarea.SetWidth(contentWidth - 4) // Account for border and padding
 	// Allow the textarea to be multi-line but limit height reasonably
@@ -250,7 +250,7 @@ func (qv *QueryView) View() string {
 	if qv.container == nil {
 		qv.container = NewViewContainer(qv.width, qv.height)
 	}
-	
+
 	var content strings.Builder
 
 	// Header
