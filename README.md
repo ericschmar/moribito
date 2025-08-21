@@ -109,13 +109,33 @@ pagination:
 
 ### Query View
 - **/** or **Escape** - Focus query input
-- **Enter** - Execute query
+- **Ctrl+Enter** or **Ctrl+J** - Execute query
+- **Ctrl+F** - Format query with proper indentation
 - **Escape** - Clear query
+- **Ctrl+V** - Paste from clipboard
 - **↑/↓** - Navigate results (when not in input mode)
 - **Page Up/Down** - Navigate by page (automatically loads more results)
 - **Enter** - View selected record
 
 > **Note**: The Query View uses automatic pagination to efficiently handle large result sets. When you scroll near the end of loaded results, the next page is automatically fetched from the LDAP server.
+
+#### Query Formatting
+The **Ctrl+F** key combination formats complex LDAP queries with proper indentation for better readability:
+
+```
+# Before formatting:
+(&(objectClass=person)(|(cn=john*)(sn=smith*))(department=engineering))
+
+# After formatting (Ctrl+F):
+(&
+  (objectClass=person)
+  (|
+    (cn=john*)
+    (sn=smith*)
+  )
+  (department=engineering)
+)
+```
 
 ## Authentication Methods
 
@@ -171,6 +191,31 @@ In the Query view, you can execute custom LDAP filters:
 - `(cn=john*)` - Objects with cn starting with "john"
 - `(&(objectClass=person)(mail=*@example.com))` - People with example.com emails
 - `(|(cn=admin)(uid=admin))` - Objects with cn=admin OR uid=admin
+
+### Complex Query Formatting
+
+For complex nested queries, use **Ctrl+F** to automatically format them for better readability:
+
+**Simple queries remain unchanged:**
+```
+(objectClass=person)
+```
+
+**Complex queries are formatted with proper indentation:**
+```
+# Original
+(&(objectClass=person)(|(cn=john*)(sn=smith*))(department=engineering))
+
+# After Ctrl+F
+(&
+  (objectClass=person)
+  (|
+    (cn=john*)
+    (sn=smith*)
+  )
+  (department=engineering)
+)
+```
 
 ## Performance & Pagination
 
