@@ -10,15 +10,15 @@ import (
 func TestViewportConsistency(t *testing.T) {
 	// Test that all views handle viewport dimensions consistently
 	var client *ldap.Client
-	
+
 	// Test TreeView
 	tv := NewTreeView(client)
 	tv.SetSize(80, 24)
-	
+
 	if tv.width != 80 || tv.height != 24 {
 		t.Errorf("TreeView dimensions not set correctly: got %dx%d, want 80x24", tv.width, tv.height)
 	}
-	
+
 	// Create mock tree data for testing scrolling
 	tv.flattenedTree = make([]*TreeItem, 50) // More items than can fit on screen
 	for i := 0; i < 50; i++ {
@@ -33,14 +33,14 @@ func TestViewportConsistency(t *testing.T) {
 			IsLast: i == 49,
 		}
 	}
-	
+
 	// Test viewport adjustment at top
 	tv.cursor = 0
 	tv.adjustViewport()
 	if tv.viewport != 0 {
 		t.Errorf("Viewport should be 0 when cursor at top, got %d", tv.viewport)
 	}
-	
+
 	// Test viewport adjustment when cursor moves beyond visible area
 	tv.cursor = 30 // Move cursor beyond visible area (assuming 24 lines visible)
 	tv.adjustViewport()
@@ -51,15 +51,15 @@ func TestViewportConsistency(t *testing.T) {
 	if tv.viewport < 0 || tv.viewport > tv.cursor {
 		t.Errorf("Viewport should keep cursor visible, cursor=%d, viewport=%d, height=%d", tv.cursor, tv.viewport, tv.height)
 	}
-	
+
 	// Test QueryView
 	qv := NewQueryView(client)
 	qv.SetSize(80, 24)
-	
+
 	if qv.width != 80 || qv.height != 24 {
 		t.Errorf("QueryView dimensions not set correctly: got %dx%d, want 80x24", qv.width, qv.height)
 	}
-	
+
 	// Create mock result data
 	qv.results = make([]*ldap.Entry, 30)
 	for i := 0; i < 30; i++ {
@@ -72,14 +72,14 @@ func TestViewportConsistency(t *testing.T) {
 		}
 	}
 	qv.buildResultLines()
-	
+
 	// Test viewport adjustment
 	qv.cursor = 0
 	qv.adjustViewport()
 	if qv.viewport != 0 {
 		t.Errorf("QueryView viewport should be 0 when cursor at top, got %d", qv.viewport)
 	}
-	
+
 	// Test cursor beyond visible area
 	qv.cursor = len(qv.resultLines) - 1
 	qv.adjustViewport()
@@ -92,7 +92,7 @@ func TestViewportScrolling(t *testing.T) {
 	var client *ldap.Client
 	tv := NewTreeView(client)
 	tv.SetSize(80, 10) // Small height for easier testing
-	
+
 	// Create tree items
 	tv.flattenedTree = make([]*TreeItem, 20)
 	for i := 0; i < 20; i++ {
@@ -107,12 +107,12 @@ func TestViewportScrolling(t *testing.T) {
 			IsLast: i == 19,
 		}
 	}
-	
+
 	// Test scrolling down
 	tv.cursor = 0
 	tv.adjustViewport()
 	initialViewport := tv.viewport
-	
+
 	// Move cursor to middle
 	tv.cursor = 5
 	tv.adjustViewport()
@@ -120,7 +120,7 @@ func TestViewportScrolling(t *testing.T) {
 	if tv.viewport != initialViewport {
 		t.Errorf("Viewport changed unnecessarily when cursor moved to %d: viewport %d -> %d", tv.cursor, initialViewport, tv.viewport)
 	}
-	
+
 	// Move cursor past visible area
 	tv.cursor = 15
 	tv.adjustViewport()
@@ -128,7 +128,7 @@ func TestViewportScrolling(t *testing.T) {
 	if tv.viewport == initialViewport {
 		t.Errorf("Viewport should have adjusted when cursor moved beyond visible area (cursor=%d, viewport=%d)", tv.cursor, tv.viewport)
 	}
-	
+
 	// Test scrolling up
 	tv.cursor = 5
 	tv.adjustViewport()
@@ -141,7 +141,7 @@ func TestQueryViewNavigation(t *testing.T) {
 	var client *ldap.Client
 	qv := NewQueryView(client)
 	qv.SetSize(80, 20)
-	
+
 	// Create test data
 	qv.results = make([]*ldap.Entry, 5)
 	for i := 0; i < 5; i++ {
@@ -154,22 +154,22 @@ func TestQueryViewNavigation(t *testing.T) {
 	}
 	qv.buildResultLines()
 	qv.inputMode = false // Set to browse mode
-	
+
 	// Test navigation
 	initialCursor := qv.cursor
-	
+
 	// Test down navigation
 	downMsg := tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("j")}
 	_, _ = qv.Update(downMsg)
-	
+
 	if qv.cursor != initialCursor+1 {
 		t.Errorf("Down navigation failed: cursor should be %d, got %d", initialCursor+1, qv.cursor)
 	}
-	
+
 	// Test up navigation
 	upMsg := tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("k")}
 	_, _ = qv.Update(upMsg)
-	
+
 	if qv.cursor != initialCursor {
 		t.Errorf("Up navigation failed: cursor should be %d, got %d", initialCursor, qv.cursor)
 	}
