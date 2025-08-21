@@ -8,6 +8,7 @@ import (
 	"github.com/charmbracelet/bubbles/table"
 	"github.com/charmbracelet/bubbletea"
 	"github.com/ericschmar/ldap-cli/internal/ldap"
+	zone "github.com/lrstanley/bubblezone"
 )
 
 func TestRecordView_buildLines_TableFormat(t *testing.T) {
@@ -286,6 +287,90 @@ func TestRecordView_LineDataMapping(t *testing.T) {
 	for attrName := range entry.Attributes {
 		if !foundAttribs[attrName] {
 			t.Errorf("Expected attribute '%s' to appear in table", attrName)
+		}
+	}
+}
+
+func TestRecordView_ClickableZones(t *testing.T) {
+	// Initialize bubblezone manager for testing
+	zone.NewGlobal()
+	
+	// Test that record view properly renders clickable zones
+	entry := &ldap.Entry{
+		DN: "cn=test user,ou=users,dc=example,dc=com",
+		Attributes: map[string][]string{
+			"cn":          {"test user"},
+			"mail":        {"test@example.com"},
+			"department":  {"Engineering"},
+		},
+	}
+
+	// Create record view and set the entry
+	rv := NewRecordView()
+	rv.SetSize(80, 20)
+	rv.SetEntry(entry)
+
+	// Render the view
+	view := rv.View()
+
+	// The zone markers don't appear as literal text - they're invisible markers
+	// that get processed by zone.Scan(). Check if zones are working by looking
+	// for the zone markers (they appear as special characters at the start of marked content)
+	hasZoneMarkers := false
+	lines := strings.Split(view, "\n")
+	for _, line := range lines {
+		// Zone markers appear at the beginning of clickable content
+		trimmed := strings.TrimSpace(line)
+		if len(trimmed) > 0 && trimmed[0] > 127 { // Zone markers are high ASCII
+			hasZoneMarkers = true
+			break
+		}
+	}
+
+	if !hasZoneMarkers {
+		t.Error("Expected rendered view to contain zone markers")
+	}
+
+	// Check that renderedRows is populated
+	if len(rv.renderedRows) != len(entry.Attributes) {
+		t.Errorf("Expected %d rendered rows, got %d", len(entry.Attributes), len(rv.renderedRows))
+	}
+
+	// Verify renderedRows contain the correct data
+	expectedAttribs := make(map[string][]string)
+	for name, values := range entry.Attributes {
+		expectedAttribs[name] = values
+	}
+
+	for _, rowData := range rv.renderedRows {
+		expectedValues, exists := expectedAttribs[rowData.AttributeName]
+		if !exists {
+			t.Errorf("Unexpected attribute in renderedRows: %s", rowData.AttributeName)
+			continue
+		}
+		
+		// Check that values match
+		if len(rowData.Values) != len(expectedValues) {
+			t.Errorf("Attribute %s: expected %d values, got %d", 
+				rowData.AttributeName, len(expectedValues), len(rowData.Values))
+			continue
+		}
+		
+		for i, value := range rowData.Values {
+			if value != expectedValues[i] {
+				t.Errorf("Attribute %s, value %d: expected '%s', got '%s'", 
+					rowData.AttributeName, i, expectedValues[i], value)
+			}
+		}
+		
+		// Remove from expected to track what we've seen
+		delete(expectedAttribs, rowData.AttributeName)
+	}
+
+	// Check that all attributes were found
+	if len(expectedAttribs) > 0 {
+		for missing := range expectedAttribs {
+			t.Errorf("Attribute '%s' not found in renderedRows", missing)
 		}
 	}
 }
