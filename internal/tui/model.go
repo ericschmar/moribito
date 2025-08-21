@@ -74,6 +74,9 @@ func NewModelWithPageSize(client *ldap.Client, cfg *config.Config) *Model {
 func (m *Model) Init() tea.Cmd {
 	var cmds []tea.Cmd
 
+	// Initialize bubblezone manager for mouse interactions
+	zone.NewGlobal()
+
 	if m.tree != nil {
 		cmds = append(cmds, m.tree.Init())
 	}
