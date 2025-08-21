@@ -597,7 +597,7 @@ func (m *Model) handleQueryViewClick(zoneID string) (tea.Model, tea.Cmd) {
 		resultStr := strings.TrimPrefix(zoneID, "query-result-")
 		if resultIndex, err := strconv.Atoi(resultStr); err == nil {
 			// Set cursor to this result
-			if resultIndex >= 0 && resultIndex < len(m.queryView.resultLines) {
+			if resultIndex >= 0 && resultIndex < len(m.queryView.ResultLines) {
 				m.queryView.cursor = resultIndex
 				m.queryView.adjustViewport()
 				// Simulate Enter key press to view the selected record
