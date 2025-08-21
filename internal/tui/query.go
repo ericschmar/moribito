@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/atotto/clipboard"
+	"github.com/charmbracelet/bubbles/textarea"
 	"github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/ericschmar/ldap-cli/internal/ldap"
@@ -13,7 +14,7 @@ import (
 // QueryView provides an interface for LDAP queries
 type QueryView struct {
 	client      *ldap.Client
-	query       string
+	textarea    textarea.Model
 	cursor      int
 	results     []*ldap.Entry
 	resultLines []string
@@ -33,9 +34,15 @@ type QueryView struct {
 
 // NewQueryView creates a new query view
 func NewQueryView(client *ldap.Client) *QueryView {
+	ta := textarea.New()
+	ta.SetValue("(objectClass=*)")
+	ta.Placeholder = "Enter your LDAP query..."
+	ta.ShowLineNumbers = false
+	ta.Focus()
+
 	return &QueryView{
 		client:    client,
-		query:     "(objectClass=*)",
+		textarea:  ta,
 		inputMode: true,
 		cursor:    0,
 		pageSize:  50, // Default page size
@@ -45,9 +52,15 @@ func NewQueryView(client *ldap.Client) *QueryView {
 
 // NewQueryViewWithPageSize creates a new query view with specified page size
 func NewQueryViewWithPageSize(client *ldap.Client, pageSize uint32) *QueryView {
+	ta := textarea.New()
+	ta.SetValue("(objectClass=*)")
+	ta.Placeholder = "Enter your LDAP query..."
+	ta.ShowLineNumbers = false
+	ta.Focus()
+
 	return &QueryView{
 		client:    client,
-		query:     "(objectClass=*)",
+		textarea:  ta,
 		inputMode: true,
 		cursor:    0,
 		pageSize:  pageSize,
@@ -64,6 +77,10 @@ func (qv *QueryView) Init() tea.Cmd {
 func (qv *QueryView) SetSize(width, height int) {
 	qv.width = width
 	qv.height = height
+	// Set textarea width to fit within the border with some padding
+	qv.textarea.SetWidth(width - 4) // Account for border and padding
+	// Allow the textarea to be multi-line but limit height reasonably
+	qv.textarea.SetHeight(3) // Start with 3 lines, can expand
 }
 
 // IsInputMode returns true if the query view is in input mode
@@ -87,6 +104,7 @@ func (qv *QueryView) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		qv.loading = false
 		qv.error = nil
 		qv.inputMode = false
+		qv.textarea.Blur() // Blur the textarea when browsing results
 		qv.hasMore = false
 		qv.currentCookie = nil
 		qv.buildResultLines()
@@ -108,6 +126,7 @@ func (qv *QueryView) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		qv.loadingNextPage = false
 		qv.error = nil
 		qv.inputMode = false
+		qv.textarea.Blur() // Blur the textarea when browsing results
 		qv.hasMore = msg.Page.HasMore
 		qv.currentCookie = msg.Page.Cookie
 		qv.buildResultLines()
@@ -131,36 +150,31 @@ func (qv *QueryView) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 // handleInputMode handles input when in query input mode
 func (qv *QueryView) handleInputMode(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	switch msg.String() {
-	case "enter":
-		if strings.TrimSpace(qv.query) == "" {
+	case "ctrl+enter", "ctrl+j":
+		// Execute query with Ctrl+Enter or Ctrl+J
+		query := strings.TrimSpace(qv.textarea.Value())
+		if query == "" {
 			return qv, SendError(fmt.Errorf("query cannot be empty"))
 		}
 		return qv, qv.executeQuery()
 	case "escape":
-		qv.query = ""
-		return qv, nil
-	case "backspace":
-		if len(qv.query) > 0 {
-			qv.query = qv.query[:len(qv.query)-1]
-		}
+		qv.textarea.SetValue("")
 		return qv, nil
 	case "ctrl+u":
-		qv.query = ""
+		qv.textarea.SetValue("")
 		return qv, nil
 	case "ctrl+v":
 		// Handle paste from clipboard
 		if clipboardText, err := clipboard.ReadAll(); err == nil {
-			qv.query += clipboardText
+			qv.textarea.InsertString(clipboardText)
 		}
 		return qv, nil
-	default:
-		// Handle regular character input
-		if len(msg.String()) == 1 && msg.String() >= " " {
-			qv.query += msg.String()
-		}
 	}
 
-	return qv, nil
+	// Let textarea handle the input
+	var cmd tea.Cmd
+	qv.textarea, cmd = qv.textarea.Update(msg)
+	return qv, cmd
 }
 
 // handleBrowseMode handles input when browsing results
@@ -204,6 +218,7 @@ func (qv *QueryView) handleBrowseMode(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		qv.inputMode = true
 		qv.cursor = 0
 		qv.viewport = 0
+		qv.textarea.Focus() // Focus the textarea when returning to input mode
 		return qv, nil
 	}
 
@@ -222,7 +237,7 @@ func (qv *QueryView) View() string {
 	content.WriteString(headerStyle.Render("LDAP Query Interface"))
 	content.WriteString("\n\n")
 
-	// Query input
+	// Query input area using textarea
 	queryStyle := lipgloss.NewStyle().
 		Border(lipgloss.RoundedBorder()).
 		Padding(0, 1)
@@ -231,16 +246,22 @@ func (qv *QueryView) View() string {
 		queryStyle = queryStyle.BorderForeground(lipgloss.Color("12"))
 	}
 
-	queryContent := fmt.Sprintf("Query: %s", qv.query)
-	if qv.inputMode {
-		queryContent += "█" // Cursor
-	}
+	// Render the textarea
+	textareaView := qv.textarea.View()
+	content.WriteString(queryStyle.Render(textareaView))
 
-	content.WriteString(queryStyle.Render(queryContent))
+	// Add instruction text
+	if qv.inputMode {
+		instructionStyle := lipgloss.NewStyle().
+			Foreground(lipgloss.Color("8")).
+			Italic(true)
+		content.WriteString("\n")
+		content.WriteString(instructionStyle.Render("Press Ctrl+Enter to execute query, Escape to clear, / to return to search"))
+	}
 	content.WriteString("\n\n")
 
 	// Status/Results area
-	remainingHeight := qv.height - 6 // Account for header and query input
+	remainingHeight := qv.height - 8 // Account for header, query input, and instruction
 
 	if qv.loading {
 		statusContent := lipgloss.NewStyle().
@@ -256,7 +277,7 @@ func (qv *QueryView) View() string {
 	} else if len(qv.results) > 0 {
 		content.WriteString(qv.renderResults(remainingHeight))
 	} else if qv.inputMode {
-		content.WriteString("Enter your LDAP query above and press Enter to execute")
+		content.WriteString("Enter your LDAP query above and press Ctrl+Enter to execute")
 	}
 
 	return content.String()
@@ -322,8 +343,10 @@ func (qv *QueryView) executeQuery() tea.Cmd {
 	qv.results = nil
 	qv.resultLines = nil
 
+	query := strings.TrimSpace(qv.textarea.Value())
+
 	return func() tea.Msg {
-		page, err := qv.client.CustomSearchPaged(qv.query, qv.pageSize, nil)
+		page, err := qv.client.CustomSearchPaged(query, qv.pageSize, nil)
 		if err != nil {
 			return ErrorMsg{Err: err}
 		}
@@ -338,9 +361,10 @@ func (qv *QueryView) loadNextPage() tea.Cmd {
 	}
 
 	qv.loadingNextPage = true
+	query := strings.TrimSpace(qv.textarea.Value())
 
 	return func() tea.Msg {
-		page, err := qv.client.CustomSearchPaged(qv.query, qv.pageSize, qv.currentCookie)
+		page, err := qv.client.CustomSearchPaged(query, qv.pageSize, qv.currentCookie)
 		if err != nil {
 			return ErrorMsg{Err: err}
 		}
