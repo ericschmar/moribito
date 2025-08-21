@@ -12,6 +12,7 @@ import (
 	"github.com/ericschmar/ldap-cli/internal/config"
 	"github.com/ericschmar/ldap-cli/internal/ldap"
 	"github.com/ericschmar/ldap-cli/internal/tui"
+	"github.com/ericschmar/ldap-cli/internal/version"
 )
 
 func main() {
@@ -26,9 +27,15 @@ func main() {
 		bindPass   = flag.String("password", "", "Bind password")
 		pageSize   = flag.Uint("page-size", 0, "Number of entries per page (0 for default)")
 		help       = flag.Bool("help", false, "Show help")
+		showVersion = flag.Bool("version", false, "Show version information")
 	)
 
 	flag.Parse()
+
+	if *showVersion {
+		fmt.Println(version.Get().String())
+		return
+	}
 
 	if *help {
 		printHelp()
@@ -143,6 +150,7 @@ func printHelp() {
 	fmt.Println("  -user string       Bind user DN")
 	fmt.Println("  -password string   Bind password (will prompt if user provided but password not)")
 	fmt.Println("  -page-size int     Number of entries per page for paginated queries (default: 50)")
+	fmt.Println("  -version           Show version information")
 	fmt.Println("  -help              Show this help message")
 	fmt.Println()
 	fmt.Println("Configuration file example:")

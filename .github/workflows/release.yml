@@ -36,15 +36,17 @@ jobs:
     - name: Download dependencies
       run: go mod download
 
-    - name: Run tests and build
-      run: make fmt test build
-
-    - name: Build for all platforms
-      run: make build-all
-
-    - name: Get tag name
+    - name: Get tag name and version
       id: tag
-      run: echo "tag=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+      run: |
+        echo "tag=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+        echo "version=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+
+    - name: Run tests and build with version
+      run: make fmt test build VERSION=${{ steps.tag.outputs.version }}
+
+    - name: Build for all platforms with version
+      run: make build-all VERSION=${{ steps.tag.outputs.version }}
 
     - name: Create checksums
       run: |

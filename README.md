@@ -298,6 +298,10 @@ This project uses GitHub Actions for CI/CD:
 - [go-ldap](https://github.com/go-ldap/ldap) - LDAP client
 - [golang.org/x/term](https://golang.org/x/term) - Terminal utilities
 
+### Versioning
+
+This project follows [Semantic Versioning](https://semver.org/). See [docs/versioning.md](docs/versioning.md) for details on the release process.
+
 ## Contributing
 
 1. Fork the repository
