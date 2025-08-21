@@ -169,6 +169,12 @@ func (qv *QueryView) handleInputMode(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			qv.textarea.InsertString(clipboardText)
 		}
 		return qv, nil
+	case "ctrl+f":
+		// Format the current query
+		currentQuery := qv.textarea.Value()
+		formattedQuery := qv.formatLdapQuery(currentQuery)
+		qv.textarea.SetValue(formattedQuery)
+		return qv, nil
 	}
 
 	// Let textarea handle the input
@@ -256,7 +262,7 @@ func (qv *QueryView) View() string {
 			Foreground(lipgloss.Color("8")).
 			Italic(true)
 		content.WriteString("\n")
-		content.WriteString(instructionStyle.Render("Press Ctrl+Enter to execute query, Escape to clear, / to return to search"))
+		content.WriteString(instructionStyle.Render("Press Ctrl+Enter to execute query, Ctrl+F to format, Escape to clear, / to return to search"))
 	}
 	content.WriteString("\n\n")
 
@@ -442,6 +448,123 @@ func (qv *QueryView) adjustViewport() {
 	if qv.viewport < 0 {
 		qv.viewport = 0
 	}
+}
+
+// formatLdapQuery formats an LDAP query with proper indentation
+func (qv *QueryView) formatLdapQuery(query string) string {
+	query = strings.TrimSpace(query)
+	if query == "" {
+		return query
+	}
+
+	return formatLdapFilter(query, 0)
+}
+
+// formatLdapFilter recursively formats LDAP filter expressions
+func formatLdapFilter(filter string, indentLevel int) string {
+	filter = strings.TrimSpace(filter)
+	if filter == "" {
+		return filter
+	}
+
+	// If it doesn't start with '(', it's not a valid LDAP filter
+	if !strings.HasPrefix(filter, "(") || !strings.HasSuffix(filter, ")") {
+		return filter
+	}
+
+	// Remove outer parentheses
+	inner := filter[1 : len(filter)-1]
+
+	// Check if this is a simple attribute=value filter
+	if !strings.ContainsAny(inner, "&|!") {
+		return filter // Return as-is for simple filters
+	}
+
+	// Handle complex filters with operators
+	if len(inner) == 0 {
+		return filter
+	}
+
+	operator := inner[0]
+	if operator != '&' && operator != '|' && operator != '!' {
+		return filter // Not a logical operator
+	}
+
+	// Parse the operands
+	operands := parseFilterOperands(inner[1:])
+	if len(operands) == 0 {
+		return filter
+	}
+
+	indent := strings.Repeat("  ", indentLevel)
+	childIndent := strings.Repeat("  ", indentLevel+1)
+
+	var result strings.Builder
+	result.WriteString("(" + string(operator))
+
+	for _, operand := range operands {
+		result.WriteString("\n")
+		result.WriteString(childIndent)
+		result.WriteString(formatLdapFilter(operand, indentLevel+1))
+	}
+
+	result.WriteString("\n")
+	result.WriteString(indent)
+	result.WriteString(")")
+
+	return result.String()
+}
+
+// parseFilterOperands parses the operands of a logical filter
+func parseFilterOperands(content string) []string {
+	var operands []string
+	var current strings.Builder
+	depth := 0
+
+	for i, char := range content {
+		if char == '(' {
+			if depth == 0 && current.Len() > 0 {
+				// This shouldn't happen in valid filters, but handle gracefully
+				operands = append(operands, strings.TrimSpace(current.String()))
+				current.Reset()
+			}
+			current.WriteRune(char)
+			depth++
+		} else if char == ')' {
+			current.WriteRune(char)
+			depth--
+			if depth == 0 {
+				// Complete operand found
+				operand := strings.TrimSpace(current.String())
+				if operand != "" {
+					operands = append(operands, operand)
+				}
+				current.Reset()
+			}
+		} else {
+			current.WriteRune(char)
+		}
+
+		// Safety check for malformed filters
+		if depth < 0 {
+			// Malformed filter, return what we have
+			remaining := content[i:]
+			if remaining != "" {
+				operands = append(operands, current.String()+remaining)
+			}
+			break
+		}
+	}
+
+	// Handle any remaining content
+	if current.Len() > 0 {
+		remaining := strings.TrimSpace(current.String())
+		if remaining != "" {
+			operands = append(operands, remaining)
+		}
+	}
+
+	return operands
 }
 
 // QueryResultsMsg represents query results

@@ -222,3 +222,116 @@ func TestQueryView_TextareaKeyBindings(t *testing.T) {
 		t.Error("Ctrl+J should trigger query execution")
 	}
 }
+
+func TestQueryView_FormatLdapQuery(t *testing.T) {
+	var client *ldap.Client
+	qv := NewQueryView(client)
+
+	testCases := []struct {
+		name     string
+		input    string
+		expected string
+	}{
+		{
+			name:     "Simple filter - no formatting needed",
+			input:    "(objectClass=person)",
+			expected: "(objectClass=person)",
+		},
+		{
+			name:     "Empty query",
+			input:    "",
+			expected: "",
+		},
+		{
+			name:     "Whitespace only",
+			input:    "   ",
+			expected: "",
+		},
+		{
+			name:     "Simple AND filter",
+			input:    "(&(objectClass=person)(cn=john))",
+			expected: "(&\n  (objectClass=person)\n  (cn=john)\n)",
+		},
+		{
+			name:     "Simple OR filter",
+			input:    "(|(cn=john)(sn=smith))",
+			expected: "(|\n  (cn=john)\n  (sn=smith)\n)",
+		},
+		{
+			name:     "Complex nested filter",
+			input:    "(&(objectClass=person)(|(cn=john*)(sn=smith*))(department=engineering))",
+			expected: "(&\n  (objectClass=person)\n  (|\n    (cn=john*)\n    (sn=smith*)\n  )\n  (department=engineering)\n)",
+		},
+		{
+			name:     "NOT filter",
+			input:    "(!((objectClass=computer)))",
+			expected: "(!\n  ((objectClass=computer))\n)",
+		},
+		{
+			name:     "Invalid filter - no parentheses",
+			input:    "objectClass=person",
+			expected: "objectClass=person",
+		},
+		{
+			name:     "Malformed filter - return as-is",
+			input:    "(&(objectClass=person",
+			expected: "(&(objectClass=person",
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			result := qv.formatLdapQuery(tc.input)
+			if result != tc.expected {
+				t.Errorf("Expected:\n%s\nGot:\n%s", tc.expected, result)
+			}
+		})
+	}
+}
+
+func TestQueryView_FormatKeyBinding(t *testing.T) {
+	var client *ldap.Client
+	qv := NewQueryView(client)
+
+	// Set a complex query
+	complexQuery := "(&(objectClass=person)(|(cn=john*)(sn=smith*))(department=engineering))"
+	qv.textarea.SetValue(complexQuery)
+
+	// Create ctrl+f key message
+	ctrlFMsg := tea.KeyMsg{Type: tea.KeyCtrlF}
+
+	// Handle the key
+	_, _ = qv.handleInputMode(ctrlFMsg)
+
+	// Check that the query was formatted
+	expected := "(&\n  (objectClass=person)\n  (|\n    (cn=john*)\n    (sn=smith*)\n  )\n  (department=engineering)\n)"
+	if qv.textarea.Value() != expected {
+		t.Errorf("Expected formatted query:\n%s\nGot:\n%s", expected, qv.textarea.Value())
+	}
+}
+
+func TestQueryView_FormatPreservesSimpleQueries(t *testing.T) {
+	var client *ldap.Client
+	qv := NewQueryView(client)
+
+	simpleQueries := []string{
+		"(objectClass=person)",
+		"(cn=john)",
+		"(mail=*@example.com)",
+	}
+
+	for _, query := range simpleQueries {
+		qv.textarea.SetValue(query)
+
+		// Create ctrl+f key message
+		ctrlFMsg := tea.KeyMsg{Type: tea.KeyCtrlF}
+
+		// Handle the key
+		_, _ = qv.handleInputMode(ctrlFMsg)
+
+		// Simple queries should remain unchanged
+		if qv.textarea.Value() != query {
+			t.Errorf("Simple query '%s' should remain unchanged, got '%s'", query, qv.textarea.Value())
+		}
+	}
+}
