@@ -6,6 +6,7 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+	zone "github.com/lrstanley/bubblezone"
 	"github.com/ericschmar/ldap-cli/internal/ldap"
 )
 
@@ -13,7 +14,7 @@ import (
 type TreeView struct {
 	client        *ldap.Client
 	root          *ldap.TreeNode
-	flattenedTree []*TreeItem
+	FlattenedTree []*TreeItem
 	cursor        int
 	viewport      int
 	width         int
@@ -61,7 +62,7 @@ func (tv *TreeView) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				tv.adjustViewport()
 			}
 		case "down", "j":
-			if tv.cursor < len(tv.flattenedTree)-1 {
+			if tv.cursor < len(tv.FlattenedTree)-1 {
 				tv.cursor++
 				tv.adjustViewport()
 			}
@@ -89,7 +90,7 @@ func (tv *TreeView) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			tv.cursor = 0
 			tv.adjustViewport()
 		case "end":
-			tv.cursor = len(tv.flattenedTree) - 1
+			tv.cursor = len(tv.FlattenedTree) - 1
 			tv.adjustViewport()
 		case "right", "l":
 			return tv, tv.expandNode()
@@ -127,8 +128,13 @@ func (tv *TreeView) View() string {
 		return tv.container.RenderCentered("Loading LDAP tree...")
 	}
 
-	if len(tv.flattenedTree) == 0 {
-		return tv.container.RenderCentered("No entries found")
+	if len(tv.FlattenedTree) == 0 {
+		return lipgloss.NewStyle().
+			Width(tv.width).
+			Height(tv.height).
+			AlignHorizontal(lipgloss.Center).
+			AlignVertical(lipgloss.Center).
+			Render("No entries found")
 	}
 
 	// Get content dimensions
@@ -136,14 +142,19 @@ func (tv *TreeView) View() string {
 
 	var lines []string
 	visibleStart := tv.viewport
-	visibleEnd := visibleStart + contentHeight
-	if visibleEnd > len(tv.flattenedTree) {
-		visibleEnd = len(tv.flattenedTree)
+	visibleEnd := visibleStart + tv.height
+	if visibleEnd > len(tv.FlattenedTree) {
+		visibleEnd = len(tv.FlattenedTree)
 	}
 
 	for i := visibleStart; i < visibleEnd; i++ {
-		item := tv.flattenedTree[i]
-		line := tv.renderTreeItem(item, i == tv.cursor, contentWidth)
+		item := tv.FlattenedTree[i]
+		line := tv.renderTreeItem(item, i == tv.cursor)
+		
+		// Wrap with clickable zone
+		zoneID := fmt.Sprintf("tree-item-%d", i)
+		line = zone.Mark(zoneID, line)
+		
 		lines = append(lines, line)
 	}
 
@@ -207,11 +218,11 @@ func (tv *TreeView) loadRootNode() tea.Cmd {
 
 // expandNode expands the current node
 func (tv *TreeView) expandNode() tea.Cmd {
-	if tv.cursor >= len(tv.flattenedTree) {
+	if tv.cursor >= len(tv.FlattenedTree) {
 		return nil
 	}
 
-	item := tv.flattenedTree[tv.cursor]
+	item := tv.FlattenedTree[tv.cursor]
 	node := item.Node
 
 	if node.IsLoaded && len(node.Children) == 0 {
@@ -234,11 +245,11 @@ func (tv *TreeView) expandNode() tea.Cmd {
 
 // collapseNode collapses the current node
 func (tv *TreeView) collapseNode() tea.Cmd {
-	if tv.cursor >= len(tv.flattenedTree) {
+	if tv.cursor >= len(tv.FlattenedTree) {
 		return nil
 	}
 
-	item := tv.flattenedTree[tv.cursor]
+	item := tv.FlattenedTree[tv.cursor]
 	node := item.Node
 
 	if !node.IsLoaded || len(node.Children) == 0 {
@@ -254,11 +265,11 @@ func (tv *TreeView) collapseNode() tea.Cmd {
 
 // viewRecord shows the record for the current node
 func (tv *TreeView) viewRecord() tea.Cmd {
-	if tv.cursor >= len(tv.flattenedTree) {
+	if tv.cursor >= len(tv.FlattenedTree) {
 		return nil
 	}
 
-	item := tv.flattenedTree[tv.cursor]
+	item := tv.FlattenedTree[tv.cursor]
 	node := item.Node
 
 	return func() tea.Msg {
@@ -272,7 +283,7 @@ func (tv *TreeView) viewRecord() tea.Cmd {
 
 // rebuildFlattenedTree rebuilds the flattened tree for display
 func (tv *TreeView) rebuildFlattenedTree() {
-	tv.flattenedTree = nil
+	tv.FlattenedTree = nil
 	if tv.root != nil {
 		tv.flattenTreeNode(tv.root, 0, true)
 	}
@@ -304,7 +315,7 @@ func (tv *TreeView) flattenTreeNode(node *ldap.TreeNode, level int, isLast bool)
 		Level:  level,
 		IsLast: isLast,
 	}
-	tv.flattenedTree = append(tv.flattenedTree, item)
+	tv.FlattenedTree = append(tv.FlattenedTree, item)
 
 	if node.IsLoaded && node.Children != nil {
 		for i, child := range node.Children {

@@ -8,6 +8,7 @@ import (
 	"github.com/charmbracelet/bubbles/textarea"
 	"github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+	zone "github.com/lrstanley/bubblezone"
 	"github.com/ericschmar/ldap-cli/internal/ldap"
 )
 
@@ -17,7 +18,7 @@ type QueryView struct {
 	textarea    textarea.Model
 	cursor      int
 	results     []*ldap.Entry
-	resultLines []string
+	ResultLines []string
 	viewport    int
 	width       int
 	height      int
@@ -198,7 +199,7 @@ func (qv *QueryView) handleBrowseMode(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			qv.adjustViewport()
 		}
 	case "down", "j":
-		if qv.cursor < len(qv.resultLines)-1 {
+		if qv.cursor < len(qv.ResultLines)-1 {
 			qv.cursor++
 			qv.adjustViewport()
 
@@ -310,7 +311,7 @@ func (qv *QueryView) View() string {
 
 // renderResults renders the query results
 func (qv *QueryView) renderResults(height int) string {
-	if len(qv.resultLines) == 0 {
+	if len(qv.ResultLines) == 0 {
 		return ""
 	}
 
@@ -337,12 +338,12 @@ func (qv *QueryView) renderResults(height int) string {
 	// Add result lines
 	visibleStart := qv.viewport
 	visibleEnd := visibleStart + height - 2 // Account for header
-	if visibleEnd > len(qv.resultLines) {
-		visibleEnd = len(qv.resultLines)
+	if visibleEnd > len(qv.ResultLines) {
+		visibleEnd = len(qv.ResultLines)
 	}
 
 	for i := visibleStart; i < visibleEnd; i++ {
-		line := qv.resultLines[i]
+		line := qv.ResultLines[i]
 		style := lipgloss.NewStyle()
 
 		if i == qv.cursor {
@@ -354,7 +355,13 @@ func (qv *QueryView) renderResults(height int) string {
 			line = line[:qv.width-5] + "..."
 		}
 
-		lines = append(lines, style.Render(line))
+		renderedLine := style.Render(line)
+		
+		// Wrap with clickable zone
+		zoneID := fmt.Sprintf("query-result-%d", i)
+		renderedLine = zone.Mark(zoneID, renderedLine)
+		
+		lines = append(lines, renderedLine)
 	}
 
 	return strings.Join(lines, "\n")
@@ -366,7 +373,7 @@ func (qv *QueryView) executeQuery() tea.Cmd {
 	qv.hasMore = false
 	qv.currentCookie = nil
 	qv.results = nil
-	qv.resultLines = nil
+	qv.ResultLines = nil
 
 	query := strings.TrimSpace(qv.textarea.Value())
 
@@ -424,7 +431,7 @@ func (qv *QueryView) viewSelectedRecord() tea.Cmd {
 
 // buildResultLines builds display lines from the results
 func (qv *QueryView) buildResultLines() {
-	qv.resultLines = nil
+	qv.ResultLines = nil
 
 	for _, entry := range qv.results {
 		// Add DN
@@ -432,7 +439,7 @@ func (qv *QueryView) buildResultLines() {
 			Foreground(lipgloss.Color("11")).
 			Bold(true)
 
-		qv.resultLines = append(qv.resultLines, dnStyle.Render(entry.DN))
+		qv.ResultLines = append(qv.ResultLines, dnStyle.Render(entry.DN))
 
 		// Add a few key attributes for preview
 		previewAttrs := []string{"cn", "ou", "objectClass", "name", "displayName"}
@@ -442,15 +449,15 @@ func (qv *QueryView) buildResultLines() {
 				if len(values) > 1 {
 					value += fmt.Sprintf(" (+%d more)", len(values)-1)
 				}
-				qv.resultLines = append(qv.resultLines, fmt.Sprintf("  %s: %s", attr, value))
+				qv.ResultLines = append(qv.ResultLines, fmt.Sprintf("  %s: %s", attr, value))
 			}
 		}
-		qv.resultLines = append(qv.resultLines, "")
+		qv.ResultLines = append(qv.ResultLines, "")
 	}
 
 	// Remove trailing empty line
-	if len(qv.resultLines) > 0 && qv.resultLines[len(qv.resultLines)-1] == "" {
-		qv.resultLines = qv.resultLines[:len(qv.resultLines)-1]
+	if len(qv.ResultLines) > 0 && qv.ResultLines[len(qv.ResultLines)-1] == "" {
+		qv.ResultLines = qv.ResultLines[:len(qv.ResultLines)-1]
 	}
 }
 
