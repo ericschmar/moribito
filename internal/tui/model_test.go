@@ -106,3 +106,81 @@ func TestModel_NavigationKeysInOtherViews(t *testing.T) {
 		}
 	}
 }
+
+func TestModel_TreeLoadingHandledRegardlessOfCurrentView(t *testing.T) {
+	// Create a model with a mock client
+	var client *ldap.Client
+	model := NewModel(client)
+
+	// Ensure tree exists and is in loading state initially
+	if model.tree == nil {
+		t.Fatal("Tree should exist")
+	}
+
+	// Set tree to loading state
+	model.tree.loading = true
+
+	// Switch to a different view (not tree view)
+	model.currentView = ViewModeRecord
+
+	// Simulate RootNodeLoadedMsg arriving while not on tree view
+	mockTreeNode := &ldap.TreeNode{
+		DN:       "dc=example,dc=com",
+		Name:     "example.com",
+		Children: nil,
+		IsLoaded: false,
+	}
+	rootLoadedMsg := RootNodeLoadedMsg{Node: mockTreeNode}
+
+	// Update the model with the message
+	_, _ = model.Update(rootLoadedMsg)
+
+	// Tree should have received and processed the message even though we're not on tree view
+	if model.tree.loading {
+		t.Error("Tree should not be in loading state after RootNodeLoadedMsg")
+	}
+
+	if model.tree.root != mockTreeNode {
+		t.Error("Tree root should have been set to the loaded node")
+	}
+
+	// Switch to tree view to verify it displays properly
+	model.currentView = ViewModeTree
+	view := model.tree.View()
+
+	// Should not show loading or "No entries found" since root was loaded
+	if view == "Loading LDAP tree..." {
+		t.Error("Tree should not show loading message after root was loaded")
+	}
+}
+
+func TestModel_NodeChildrenLoadingHandledRegardlessOfCurrentView(t *testing.T) {
+	// Create a model with a mock client
+	var client *ldap.Client
+	model := NewModel(client)
+
+	// Set tree to loading state
+	model.tree.loading = true
+
+	// Switch to a different view (not tree view)
+	model.currentView = ViewModeStart
+
+	// Create a mock tree structure
+	mockTreeNode := &ldap.TreeNode{
+		DN:       "ou=users,dc=example,dc=com",
+		Name:     "users",
+		Children: nil,
+		IsLoaded: true,
+	}
+
+	// Simulate NodeChildrenLoadedMsg arriving while not on tree view
+	childrenLoadedMsg := NodeChildrenLoadedMsg{Node: mockTreeNode}
+
+	// Update the model with the message
+	_, _ = model.Update(childrenLoadedMsg)
+
+	// Tree should have processed the message even though we're not on tree view
+	if model.tree.loading {
+		t.Error("Tree should not be in loading state after NodeChildrenLoadedMsg")
+	}
+}
