@@ -6,6 +6,7 @@ A terminal-based LDAP server explorer built with Go and BubbleTea, providing an 
 
 - 🌲 **Interactive Tree Navigation**: Browse LDAP directory structure with keyboard/mouse
 - 📄 **Record Viewer**: View detailed LDAP entry attributes
+- 📋 **Clipboard Integration**: Copy attribute values to system clipboard
 - 🔍 **Custom Query Interface**: Execute custom LDAP queries with real-time results
 - 📖 **Paginated Results**: Efficient pagination for large result sets with automatic loading
 - ⚙️ **Flexible Configuration**: Support for config files and command-line options
@@ -104,6 +105,7 @@ pagination:
 - **↑/↓** or **k/j** - Scroll up/down
 - **Page Up/Down** - Scroll by page
 - **Home/End** - Jump to top/bottom
+- **c** - Copy current attribute value to clipboard
 
 ### Query View
 - **/** or **Escape** - Focus query input

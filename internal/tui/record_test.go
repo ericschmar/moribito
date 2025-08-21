@@ -4,6 +4,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/atotto/clipboard"
+	"github.com/charmbracelet/bubbletea"
 	"github.com/ericschmar/ldap-cli/internal/ldap"
 )
 
@@ -197,5 +199,183 @@ func TestWrapText(t *testing.T) {
 				}
 			}
 		})
+	}
+}
+
+func TestRecordView_CopyFunctionality(t *testing.T) {
+	// Create a test entry
+	entry := &ldap.Entry{
+		DN: "cn=test user,ou=users,dc=example,dc=com",
+		Attributes: map[string][]string{
+			"cn":   {"test user"},
+			"mail": {"test@example.com"},
+		},
+	}
+
+	// Create record view and set the entry
+	rv := NewRecordView()
+	rv.SetSize(80, 20)
+	rv.SetEntry(entry)
+
+	// Test copying DN (cursor position 0)
+	rv.cursor = 0
+	cmd := rv.copyCurrentValue()
+	if cmd == nil {
+		t.Error("Expected copy command to be returned")
+	}
+
+	// Check clipboard content for DN
+	clipContent, err := clipboard.ReadAll()
+	if err != nil {
+		t.Skipf("Clipboard not available in test environment: %v", err)
+	}
+	if clipContent != entry.DN {
+		t.Errorf("Expected DN in clipboard, got: %s", clipContent)
+	}
+
+	// Find a line with attribute data (skip borders and headers)
+	var dataLineIndex = -1
+	for i, lineData := range rv.lineData {
+		if !lineData.IsBorder && !lineData.IsHeader && lineData.AttributeName != "dn" {
+			dataLineIndex = i
+			break
+		}
+	}
+
+	if dataLineIndex == -1 {
+		t.Fatal("Could not find a data line to test")
+	}
+
+	// Test copying attribute value
+	rv.cursor = dataLineIndex
+	cmd = rv.copyCurrentValue()
+	if cmd == nil {
+		t.Error("Expected copy command to be returned")
+	}
+
+	// Verify clipboard content for attribute
+	clipContent, err = clipboard.ReadAll()
+	if err != nil {
+		t.Skipf("Clipboard not available in test environment: %v", err)
+	}
+
+	expectedValue := rv.lineData[dataLineIndex].Value
+	if clipContent != expectedValue {
+		t.Errorf("Expected '%s' in clipboard, got: '%s'", expectedValue, clipContent)
+	}
+}
+
+func TestRecordView_CopyKeyBinding(t *testing.T) {
+	// Create a test entry
+	entry := &ldap.Entry{
+		DN: "cn=test user,ou=users,dc=example,dc=com",
+		Attributes: map[string][]string{
+			"cn": {"test user"},
+		},
+	}
+
+	// Create record view and set the entry
+	rv := NewRecordView()
+	rv.SetSize(80, 20)
+	rv.SetEntry(entry)
+
+	// Test 'c' key binding
+	rv.cursor = 0
+	model, cmd := rv.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'c'}})
+	if model != rv {
+		t.Error("Expected model to be returned unchanged")
+	}
+	if cmd == nil {
+		t.Error("Expected copy command to be returned")
+	}
+
+	// Test 'C' key binding
+	model, cmd = rv.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'C'}})
+	if model != rv {
+		t.Error("Expected model to be returned unchanged")
+	}
+	if cmd == nil {
+		t.Error("Expected copy command to be returned")
+	}
+}
+
+func TestRecordView_CopyBorderLines(t *testing.T) {
+	// Create a test entry
+	entry := &ldap.Entry{
+		DN: "cn=test user,ou=users,dc=example,dc=com",
+		Attributes: map[string][]string{
+			"cn": {"test user"},
+		},
+	}
+
+	// Create record view and set the entry
+	rv := NewRecordView()
+	rv.SetSize(80, 20)
+	rv.SetEntry(entry)
+
+	// Find a border line
+	var borderLineIndex = -1
+	for i, lineData := range rv.lineData {
+		if lineData.IsBorder {
+			borderLineIndex = i
+			break
+		}
+	}
+
+	if borderLineIndex == -1 {
+		t.Fatal("Could not find a border line to test")
+	}
+
+	// Test copying from border line - should return status message
+	rv.cursor = borderLineIndex
+	cmd := rv.copyCurrentValue()
+	if cmd == nil {
+		t.Error("Expected status command to be returned for border line")
+	}
+}
+
+func TestRecordView_LineDataMapping(t *testing.T) {
+	// Create a test entry with multiple attributes
+	entry := &ldap.Entry{
+		DN: "cn=test user,ou=users,dc=example,dc=com",
+		Attributes: map[string][]string{
+			"cn":          {"test user"},
+			"objectClass": {"person", "organizationalPerson"},
+			"mail":        {"test@example.com"},
+		},
+	}
+
+	// Create record view and set the entry
+	rv := NewRecordView()
+	rv.SetSize(80, 20)
+	rv.SetEntry(entry)
+
+	// Verify that we have line data for all lines
+	if len(rv.lines) != len(rv.lineData) {
+		t.Errorf("Expected equal number of lines and line data entries. Lines: %d, LineData: %d", len(rv.lines), len(rv.lineData))
+	}
+
+	// Check that DN line data is correct
+	dnLineData := rv.lineData[0]
+	if dnLineData.AttributeName != "dn" {
+		t.Errorf("Expected DN line data to have attribute name 'dn', got: %s", dnLineData.AttributeName)
+	}
+	if dnLineData.Value != entry.DN {
+		t.Errorf("Expected DN line data value to be '%s', got: %s", entry.DN, dnLineData.Value)
+	}
+
+	// Count attribute data lines (non-border, non-header lines)
+	var attrDataCount int
+	for _, lineData := range rv.lineData {
+		if !lineData.IsBorder && !lineData.IsHeader {
+			attrDataCount++
+		}
+	}
+
+	// Should have DN line + all attribute lines (including wrapped lines)
+	// At minimum: DN + cn + objectClass + mail = 4 lines
+	// But objectClass has multiple values so might be on same line, so we expect at least 3
+	if attrDataCount < 3 {
+		t.Errorf("Expected at least 3 attribute data lines, got: %d", attrDataCount)
 	}
 }

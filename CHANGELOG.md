@@ -11,6 +11,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - GitHub Actions workflows for CI/CD and automated releases
 - Multi-platform builds (Linux amd64/arm64, macOS amd64/arm64, Windows amd64)
 - Automated binary releases on GitHub
+- Clipboard integration for copying attribute values in Record View
+- 'c' key binding in Record View to copy current line's attribute value to clipboard
+- Status feedback when copy operations succeed or fail
+- Cross-platform clipboard support using github.com/atotto/clipboard
 
 ### Changed
 
