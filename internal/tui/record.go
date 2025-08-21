@@ -101,19 +101,13 @@ func (rv *RecordView) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 func (rv *RecordView) View() string {
 	if rv.entry == nil {
 		return lipgloss.NewStyle().
-			Width(rv.width).
-			Height(rv.height).
 			AlignHorizontal(lipgloss.Center).
-			AlignVertical(lipgloss.Center).
 			Render("No record selected")
 	}
 
 	if len(rv.lines) == 0 {
 		return lipgloss.NewStyle().
-			Width(rv.width).
-			Height(rv.height).
 			AlignHorizontal(lipgloss.Center).
-			AlignVertical(lipgloss.Center).
 			Render("Record is empty")
 	}
 

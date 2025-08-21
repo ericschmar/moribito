@@ -110,19 +110,13 @@ func (tv *TreeView) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 func (tv *TreeView) View() string {
 	if tv.loading {
 		return lipgloss.NewStyle().
-			Width(tv.width).
-			Height(tv.height).
 			AlignHorizontal(lipgloss.Center).
-			AlignVertical(lipgloss.Center).
 			Render("Loading LDAP tree...")
 	}
 
 	if len(tv.flattenedTree) == 0 {
 		return lipgloss.NewStyle().
-			Width(tv.width).
-			Height(tv.height).
 			AlignHorizontal(lipgloss.Center).
-			AlignVertical(lipgloss.Center).
 			Render("No entries found")
 	}
 
@@ -139,7 +133,7 @@ func (tv *TreeView) View() string {
 		lines = append(lines, line)
 	}
 
-	// Fill remaining space
+	// Fill remaining space - but respect the allocated height
 	for len(lines) < tv.height {
 		lines = append(lines, "")
 	}
