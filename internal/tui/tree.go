@@ -20,6 +20,7 @@ type TreeView struct {
 	width         int
 	height        int
 	loading       bool
+	container     *ViewContainer
 }
 
 // TreeItem represents a flattened tree item for display
@@ -46,7 +47,8 @@ func (tv *TreeView) Init() tea.Cmd {
 // SetSize sets the size of the tree view
 func (tv *TreeView) SetSize(width, height int) {
 	tv.width = width
-	tv.height = height - 16
+	tv.height = height
+	tv.container = NewViewContainer(width, height)
 }
 
 // Update handles messages for the tree view
@@ -65,15 +67,23 @@ func (tv *TreeView) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				tv.adjustViewport()
 			}
 		case "page_up":
-			tv.cursor -= tv.height
+			_, contentHeight := tv.container.GetContentDimensions()
+			if tv.container == nil {
+				contentHeight = tv.height
+			}
+			tv.cursor -= contentHeight
 			if tv.cursor < 0 {
 				tv.cursor = 0
 			}
 			tv.adjustViewport()
 		case "page_down":
-			tv.cursor += tv.height
-			if tv.cursor >= len(tv.FlattenedTree) {
-				tv.cursor = len(tv.FlattenedTree) - 1
+			_, contentHeight := tv.container.GetContentDimensions()
+			if tv.container == nil {
+				contentHeight = tv.height
+			}
+			tv.cursor += contentHeight
+			if tv.cursor >= len(tv.flattenedTree) {
+				tv.cursor = len(tv.flattenedTree) - 1
 			}
 			tv.adjustViewport()
 		case "home":
@@ -110,13 +120,12 @@ func (tv *TreeView) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 // View renders the tree view
 func (tv *TreeView) View() string {
+	if tv.container == nil {
+		tv.container = NewViewContainer(tv.width, tv.height)
+	}
+
 	if tv.loading {
-		return lipgloss.NewStyle().
-			Width(tv.width).
-			Height(tv.height).
-			AlignHorizontal(lipgloss.Center).
-			AlignVertical(lipgloss.Center).
-			Render("Loading LDAP tree...")
+		return tv.container.RenderCentered("Loading LDAP tree...")
 	}
 
 	if len(tv.FlattenedTree) == 0 {
@@ -127,6 +136,9 @@ func (tv *TreeView) View() string {
 			AlignVertical(lipgloss.Center).
 			Render("No entries found")
 	}
+
+	// Get content dimensions
+	contentWidth, contentHeight := tv.container.GetContentDimensions()
 
 	var lines []string
 	visibleStart := tv.viewport
@@ -147,15 +159,16 @@ func (tv *TreeView) View() string {
 	}
 
 	// Fill remaining space
-	for len(lines) < tv.height {
+	for len(lines) < contentHeight {
 		lines = append(lines, "")
 	}
 
-	return strings.Join(lines, "\n")
+	content := strings.Join(lines, "\n")
+	return tv.container.RenderWithPadding(content)
 }
 
 // renderTreeItem renders a single tree item
-func (tv *TreeView) renderTreeItem(item *TreeItem, isCursor bool) string {
+func (tv *TreeView) renderTreeItem(item *TreeItem, isCursor bool, contentWidth int) string {
 	indent := strings.Repeat("  ", item.Level)
 
 	var prefix string
@@ -184,11 +197,11 @@ func (tv *TreeView) renderTreeItem(item *TreeItem, isCursor bool) string {
 	}
 
 	// Truncate if too long
-	if tv.width > 5 && len(content) > tv.width-2 {
-		content = content[:tv.width-5] + "..."
+	if contentWidth > 5 && len(content) > contentWidth-2 {
+		content = content[:contentWidth-5] + "..."
 	}
 
-	return style.Width(tv.width).Render(content)
+	return style.Width(contentWidth).Render(content)
 }
 
 // loadRootNode loads the root node of the tree
@@ -278,10 +291,16 @@ func (tv *TreeView) rebuildFlattenedTree() {
 
 // adjustViewport adjusts the viewport to keep the cursor visible
 func (tv *TreeView) adjustViewport() {
+	// Use content height for viewport calculations
+	_, contentHeight := tv.container.GetContentDimensions()
+	if tv.container == nil {
+		contentHeight = tv.height
+	}
+
 	if tv.cursor < tv.viewport {
 		tv.viewport = tv.cursor
-	} else if tv.cursor >= tv.viewport+tv.height {
-		tv.viewport = tv.cursor - tv.height + 1
+	} else if tv.cursor >= tv.viewport+contentHeight {
+		tv.viewport = tv.cursor - contentHeight + 1
 	}
 
 	if tv.viewport < 0 {
