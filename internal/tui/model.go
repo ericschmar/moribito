@@ -82,14 +82,20 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, tea.Quit
 		case "tab":
 			return m.switchView(), nil
-		case "1":
-			m.currentView = ViewModeTree
-			return m, nil
-		case "2":
-			m.currentView = ViewModeRecord
-			return m, nil
-		case "3":
-			m.currentView = ViewModeQuery
+		case "1", "2", "3":
+			// Skip global navigation keys if we're in query view input mode
+			if m.currentView == ViewModeQuery && m.queryView != nil && m.queryView.IsInputMode() {
+				break // Let the query view handle the input
+			}
+			// Handle navigation keys for view switching
+			switch msg.String() {
+			case "1":
+				m.currentView = ViewModeTree
+			case "2":
+				m.currentView = ViewModeRecord
+			case "3":
+				m.currentView = ViewModeQuery
+			}
 			return m, nil
 		}
 

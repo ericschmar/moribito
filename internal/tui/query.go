@@ -65,6 +65,11 @@ func (qv *QueryView) SetSize(width, height int) {
 	qv.height = height
 }
 
+// IsInputMode returns true if the query view is in input mode
+func (qv *QueryView) IsInputMode() bool {
+	return qv.inputMode
+}
+
 // Update handles messages for the query view
 func (qv *QueryView) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
