@@ -6,8 +6,8 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
-	zone "github.com/lrstanley/bubblezone"
 	"github.com/ericschmar/ldap-cli/internal/ldap"
+	zone "github.com/lrstanley/bubblezone"
 )
 
 // TreeView represents the LDAP tree view
@@ -150,11 +150,11 @@ func (tv *TreeView) View() string {
 	for i := visibleStart; i < visibleEnd; i++ {
 		item := tv.FlattenedTree[i]
 		line := tv.renderTreeItem(item, i == tv.cursor, contentWidth)
-		
+
 		// Wrap with clickable zone
 		zoneID := fmt.Sprintf("tree-item-%d", i)
 		line = zone.Mark(zoneID, line)
-		
+
 		lines = append(lines, line)
 	}
 

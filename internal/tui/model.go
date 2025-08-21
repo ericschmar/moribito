@@ -7,9 +7,9 @@ import (
 
 	"github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
-	zone "github.com/lrstanley/bubblezone"
 	"github.com/ericschmar/ldap-cli/internal/config"
 	"github.com/ericschmar/ldap-cli/internal/ldap"
+	zone "github.com/lrstanley/bubblezone"
 )
 
 // ViewMode represents the current view mode
@@ -235,7 +235,7 @@ func (m *Model) View() string {
 	help := m.renderHelpBar()
 
 	finalView := tabBar + "\n" + content + "\n" + status + "\n" + help
-	
+
 	// Scan the final view with bubblezone
 	return zone.Scan(finalView)
 }
@@ -403,7 +403,7 @@ func (m *Model) renderTabBar() string {
 		}
 
 		renderedTab := style.Render(tabName)
-		
+
 		// Wrap tab with clickable zone if available
 		if isAvailable {
 			var zoneID string
@@ -464,13 +464,13 @@ func (m *Model) renderHelpBar() string {
 func (m *Model) handleZoneMessage(msg zone.MsgZoneInBounds) (tea.Model, tea.Cmd) {
 	// Check each possible zone to see which one was clicked
 	tabZones := []string{"tab-start", "tab-tree", "tab-record", "tab-query"}
-	
+
 	for _, zoneID := range tabZones {
 		if zoneInfo := zone.Get(zoneID); zoneInfo != nil && zoneInfo.InBounds(msg.Event) {
 			return m.handleZoneClick(zoneID)
 		}
 	}
-	
+
 	// Check for start view config field zones
 	if m.currentView == ViewModeStart {
 		for i := 0; i < 8; i++ { // FieldCount is 8
@@ -480,7 +480,7 @@ func (m *Model) handleZoneMessage(msg zone.MsgZoneInBounds) (tea.Model, tea.Cmd)
 			}
 		}
 	}
-	
+
 	// Check for tree view item zones
 	if m.currentView == ViewModeTree && m.tree != nil {
 		for i := 0; i < len(m.tree.FlattenedTree); i++ {
@@ -490,7 +490,7 @@ func (m *Model) handleZoneMessage(msg zone.MsgZoneInBounds) (tea.Model, tea.Cmd)
 			}
 		}
 	}
-	
+
 	// Check for query view result zones
 	if m.currentView == ViewModeQuery && m.queryView != nil {
 		for i := 0; i < len(m.queryView.ResultLines); i++ {
@@ -500,7 +500,7 @@ func (m *Model) handleZoneMessage(msg zone.MsgZoneInBounds) (tea.Model, tea.Cmd)
 			}
 		}
 	}
-	
+
 	// If no zones matched, let the current view handle it
 	return m, nil
 }
@@ -561,7 +561,7 @@ func (m *Model) handleTreeViewClick(zoneID string) (tea.Model, tea.Cmd) {
 	if m.tree == nil {
 		return m, nil
 	}
-	
+
 	// Handle tree item clicks
 	if strings.HasPrefix(zoneID, "tree-item-") {
 		// Extract item index
@@ -590,7 +590,7 @@ func (m *Model) handleQueryViewClick(zoneID string) (tea.Model, tea.Cmd) {
 	if m.queryView == nil {
 		return m, nil
 	}
-	
+
 	// Handle query result clicks
 	if strings.HasPrefix(zoneID, "query-result-") {
 		// Extract result index
