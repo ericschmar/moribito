@@ -224,8 +224,8 @@ func (qv *QueryView) handleBrowseMode(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			contentHeight = qv.height
 		}
 		qv.cursor += contentHeight - 8
-		if qv.cursor >= len(qv.resultLines) {
-			qv.cursor = len(qv.resultLines) - 1
+		if qv.cursor >= len(qv.ResultLines) {
+			qv.cursor = len(qv.ResultLines) - 1
 		}
 		qv.adjustViewport()
 
