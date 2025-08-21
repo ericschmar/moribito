@@ -142,7 +142,7 @@ func (tv *TreeView) View() string {
 
 	var lines []string
 	visibleStart := tv.viewport
-	visibleEnd := visibleStart + tv.height
+	visibleEnd := visibleStart + contentHeight
 	if visibleEnd > len(tv.FlattenedTree) {
 		visibleEnd = len(tv.FlattenedTree)
 	}
