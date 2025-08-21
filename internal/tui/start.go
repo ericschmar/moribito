@@ -5,6 +5,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/atotto/clipboard"
 	"github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/ericschmar/ldap-cli/internal/config"
@@ -349,6 +350,12 @@ func (sv *StartView) handleEditMode(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	case "backspace":
 		if len(sv.inputValue) > 0 {
 			sv.inputValue = sv.inputValue[:len(sv.inputValue)-1]
+		}
+
+	case "ctrl+v":
+		// Handle paste from clipboard
+		if clipboardText, err := clipboard.ReadAll(); err == nil {
+			sv.inputValue += clipboardText
 		}
 
 	default:
