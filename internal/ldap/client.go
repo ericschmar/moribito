@@ -2,8 +2,11 @@ package ldap
 
 import (
 	"crypto/tls"
+	"errors"
 	"fmt"
+	"net"
 	"strings"
+	"time"
 
 	"github.com/go-ldap/ldap/v3"
 )
@@ -12,17 +15,22 @@ import (
 type Client struct {
 	conn   *ldap.Conn
 	baseDN string
+	config Config // Store the configuration for reconnection
 }
 
 // Config contains LDAP connection parameters
 type Config struct {
-	Host     string
-	Port     int
-	BaseDN   string
-	UseSSL   bool
-	UseTLS   bool
-	BindUser string
-	BindPass string
+	Host           string
+	Port           int
+	BaseDN         string
+	UseSSL         bool
+	UseTLS         bool
+	BindUser       string
+	BindPass       string
+	RetryEnabled   bool
+	MaxRetries     int
+	InitialDelayMs int
+	MaxDelayMs     int
 }
 
 // Entry represents an LDAP entry with its attributes
@@ -76,6 +84,7 @@ func NewClient(config Config) (*Client, error) {
 	client := &Client{
 		conn:   conn,
 		baseDN: config.BaseDN,
+		config: config, // Store config for reconnection
 	}
 
 	// Bind with provided credentials
@@ -90,6 +99,138 @@ func NewClient(config Config) (*Client, error) {
 	return client, nil
 }
 
+// isRetryableError checks if an error is retryable (connection-related)
+func (c *Client) isRetryableError(err error) bool {
+	if err == nil {
+		return false
+	}
+
+	// Check for common connection errors
+	var netErr net.Error
+	if errors.As(err, &netErr) {
+		return true // Network errors are retryable
+	}
+
+	// Check for LDAP-specific connection errors
+	if ldapErr, ok := err.(*ldap.Error); ok {
+		switch ldapErr.ResultCode {
+		case ldap.LDAPResultServerDown,
+			ldap.LDAPResultConnectError,
+			ldap.LDAPResultUnavailable,
+			ldap.LDAPResultUnwillingToPerform:
+			return true
+		}
+	}
+
+	// Check for common error strings that indicate connection issues
+	errStr := strings.ToLower(err.Error())
+	retryableErrors := []string{
+		"connection closed",
+		"connection reset",
+		"broken pipe",
+		"connection refused",
+		"network is unreachable",
+		"timeout",
+		"server down",
+		"ldap: connection closed",
+	}
+
+	for _, retryErr := range retryableErrors {
+		if strings.Contains(errStr, retryErr) {
+			return true
+		}
+	}
+
+	return false
+}
+
+// reconnect attempts to re-establish the LDAP connection
+func (c *Client) reconnect() error {
+	// Close existing connection if any
+	if c.conn != nil {
+		c.conn.Close()
+	}
+
+	// Re-establish connection using stored config
+	var conn *ldap.Conn
+	var err error
+
+	address := fmt.Sprintf("%s:%d", c.config.Host, c.config.Port)
+
+	if c.config.UseSSL {
+		conn, err = ldap.DialTLS("tcp", address, &tls.Config{InsecureSkipVerify: true})
+	} else {
+		conn, err = ldap.Dial("tcp", address)
+	}
+
+	if err != nil {
+		return fmt.Errorf("failed to reconnect to LDAP server: %w", err)
+	}
+
+	if c.config.UseTLS && !c.config.UseSSL {
+		err = conn.StartTLS(&tls.Config{InsecureSkipVerify: true})
+		if err != nil {
+			conn.Close()
+			return fmt.Errorf("failed to start TLS on reconnect: %w", err)
+		}
+	}
+
+	// Re-bind with credentials if needed
+	if c.config.BindUser != "" {
+		err = conn.Bind(c.config.BindUser, c.config.BindPass)
+		if err != nil {
+			conn.Close()
+			return fmt.Errorf("failed to bind on reconnect: %w", err)
+		}
+	}
+
+	c.conn = conn
+	return nil
+}
+
+// withRetry executes an operation with retry logic
+func (c *Client) withRetry(operation func() error) error {
+	if !c.config.RetryEnabled {
+		return operation()
+	}
+
+	var lastErr error
+	delay := time.Duration(c.config.InitialDelayMs) * time.Millisecond
+	maxDelay := time.Duration(c.config.MaxDelayMs) * time.Millisecond
+
+	for attempt := 0; attempt <= c.config.MaxRetries; attempt++ {
+		err := operation()
+		if err == nil {
+			return nil // Success
+		}
+
+		lastErr = err
+
+		// Don't retry if it's the last attempt or error is not retryable
+		if attempt == c.config.MaxRetries || !c.isRetryableError(err) {
+			break
+		}
+
+		// Try to reconnect for retryable errors
+		if reconnectErr := c.reconnect(); reconnectErr != nil {
+			// If reconnection fails, continue with the original error
+			// but don't attempt more retries
+			break
+		}
+
+		// Wait before retrying
+		time.Sleep(delay)
+
+		// Exponential backoff with jitter (double the delay, cap at maxDelay)
+		delay *= 2
+		if delay > maxDelay {
+			delay = maxDelay
+		}
+	}
+
+	return lastErr
+}
+
 // Close closes the LDAP connection
 func (c *Client) Close() {
 	if c.conn != nil {
@@ -99,101 +240,120 @@ func (c *Client) Close() {
 
 // Search performs an LDAP search
 func (c *Client) Search(baseDN, filter string, scope int, attributes []string) ([]*Entry, error) {
-	searchRequest := ldap.NewSearchRequest(
-		baseDN,
-		scope,
-		ldap.NeverDerefAliases,
-		0, // No size limit
-		0, // No time limit
-		false,
-		filter,
-		attributes,
-		nil,
-	)
+	var result *ldap.SearchResult
+	var entries []*Entry
 
-	result, err := c.conn.Search(searchRequest)
-	if err != nil {
-		return nil, fmt.Errorf("search failed: %w", err)
-	}
+	err := c.withRetry(func() error {
+		searchRequest := ldap.NewSearchRequest(
+			baseDN,
+			scope,
+			ldap.NeverDerefAliases,
+			0, // No size limit
+			0, // No time limit
+			false,
+			filter,
+			attributes,
+			nil,
+		)
 
-	entries := make([]*Entry, 0, len(result.Entries))
-	for _, entry := range result.Entries {
-		e := &Entry{
-			DN:         entry.DN,
-			Attributes: make(map[string][]string),
+		var err error
+		result, err = c.conn.Search(searchRequest)
+		if err != nil {
+			return fmt.Errorf("search failed: %w", err)
 		}
 
-		for _, attr := range entry.Attributes {
-			e.Attributes[attr.Name] = attr.Values
+		// Process results inside the retry function to ensure consistency
+		entries = make([]*Entry, 0, len(result.Entries))
+		for _, entry := range result.Entries {
+			e := &Entry{
+				DN:         entry.DN,
+				Attributes: make(map[string][]string),
+			}
+
+			for _, attr := range entry.Attributes {
+				e.Attributes[attr.Name] = attr.Values
+			}
+
+			entries = append(entries, e)
 		}
 
-		entries = append(entries, e)
-	}
+		return nil
+	})
 
-	return entries, nil
+	return entries, err
 }
 
 // SearchPaged performs a paginated LDAP search
 func (c *Client) SearchPaged(baseDN, filter string, scope int, attributes []string, pageSize uint32, cookie []byte) (*SearchPage, error) {
-	// Create paging control
-	pagingControl := ldap.NewControlPaging(pageSize)
-	if cookie != nil {
-		pagingControl.SetCookie(cookie)
-	}
+	var result *ldap.SearchResult
+	var searchPage *SearchPage
 
-	searchRequest := ldap.NewSearchRequest(
-		baseDN,
-		scope,
-		ldap.NeverDerefAliases,
-		0, // No size limit - controlled by paging
-		0, // No time limit
-		false,
-		filter,
-		attributes,
-		[]ldap.Control{pagingControl},
-	)
-
-	result, err := c.conn.Search(searchRequest)
-	if err != nil {
-		return nil, fmt.Errorf("paged search failed: %w", err)
-	}
-
-	// Parse entries
-	entries := make([]*Entry, 0, len(result.Entries))
-	for _, entry := range result.Entries {
-		e := &Entry{
-			DN:         entry.DN,
-			Attributes: make(map[string][]string),
+	err := c.withRetry(func() error {
+		// Create paging control
+		pagingControl := ldap.NewControlPaging(pageSize)
+		if cookie != nil {
+			pagingControl.SetCookie(cookie)
 		}
 
-		for _, attr := range entry.Attributes {
-			e.Attributes[attr.Name] = attr.Values
+		searchRequest := ldap.NewSearchRequest(
+			baseDN,
+			scope,
+			ldap.NeverDerefAliases,
+			0, // No size limit - controlled by paging
+			0, // No time limit
+			false,
+			filter,
+			attributes,
+			[]ldap.Control{pagingControl},
+		)
+
+		var err error
+		result, err = c.conn.Search(searchRequest)
+		if err != nil {
+			return fmt.Errorf("paged search failed: %w", err)
 		}
 
-		entries = append(entries, e)
-	}
-
-	// Extract paging control from response
-	var nextCookie []byte
-	hasMore := false
-
-	for _, control := range result.Controls {
-		if control.GetControlType() == ldap.ControlTypePaging {
-			if pagingResult, ok := control.(*ldap.ControlPaging); ok {
-				nextCookie = pagingResult.Cookie
-				hasMore = len(nextCookie) > 0
+		// Parse entries inside the retry function
+		entries := make([]*Entry, 0, len(result.Entries))
+		for _, entry := range result.Entries {
+			e := &Entry{
+				DN:         entry.DN,
+				Attributes: make(map[string][]string),
 			}
-			break
-		}
-	}
 
-	return &SearchPage{
-		Entries:    entries,
-		HasMore:    hasMore,
-		Cookie:     nextCookie,
-		PageSize:   pageSize,
-		TotalCount: -1, // LDAP doesn't provide total count
-	}, nil
+			for _, attr := range entry.Attributes {
+				e.Attributes[attr.Name] = attr.Values
+			}
+
+			entries = append(entries, e)
+		}
+
+		// Extract paging control from response
+		var nextCookie []byte
+		hasMore := false
+
+		for _, control := range result.Controls {
+			if control.GetControlType() == ldap.ControlTypePaging {
+				if pagingResult, ok := control.(*ldap.ControlPaging); ok {
+					nextCookie = pagingResult.Cookie
+					hasMore = len(nextCookie) > 0
+				}
+				break
+			}
+		}
+
+		searchPage = &SearchPage{
+			Entries:    entries,
+			HasMore:    hasMore,
+			Cookie:     nextCookie,
+			PageSize:   pageSize,
+			TotalCount: -1, // LDAP doesn't provide total count
+		}
+
+		return nil
+	})
+
+	return searchPage, err
 }
 
 // GetChildren returns immediate children of a DN

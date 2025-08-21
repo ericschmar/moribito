@@ -106,13 +106,17 @@ func main() {
 
 	// Try to create LDAP client
 	ldapConfig := ldap.Config{
-		Host:     cfg.LDAP.Host,
-		Port:     cfg.LDAP.Port,
-		BaseDN:   cfg.LDAP.BaseDN,
-		UseSSL:   cfg.LDAP.UseSSL,
-		UseTLS:   cfg.LDAP.UseTLS,
-		BindUser: cfg.LDAP.BindUser,
-		BindPass: cfg.LDAP.BindPass,
+		Host:           cfg.LDAP.Host,
+		Port:           cfg.LDAP.Port,
+		BaseDN:         cfg.LDAP.BaseDN,
+		UseSSL:         cfg.LDAP.UseSSL,
+		UseTLS:         cfg.LDAP.UseTLS,
+		BindUser:       cfg.LDAP.BindUser,
+		BindPass:       cfg.LDAP.BindPass,
+		RetryEnabled:   cfg.Retry.Enabled,
+		MaxRetries:     cfg.Retry.MaxAttempts,
+		InitialDelayMs: cfg.Retry.InitialDelayMs,
+		MaxDelayMs:     cfg.Retry.MaxDelayMs,
 	}
 
 	client, err := ldap.NewClient(ldapConfig)
@@ -164,6 +168,11 @@ func printHelp() {
 	fmt.Println("    bind_pass: password")
 	fmt.Println("  pagination:")
 	fmt.Println("    page_size: 50")
+	fmt.Println("  retry:")
+	fmt.Println("    enabled: true")
+	fmt.Println("    max_attempts: 3")
+	fmt.Println("    initial_delay_ms: 500")
+	fmt.Println("    max_delay_ms: 5000")
 	fmt.Println()
 	fmt.Println("Navigation:")
 	fmt.Println("  Tab        - Switch between views")

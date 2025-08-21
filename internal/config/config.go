@@ -12,6 +12,7 @@ import (
 type Config struct {
 	LDAP       LDAPConfig       `yaml:"ldap"`
 	Pagination PaginationConfig `yaml:"pagination"`
+	Retry      RetryConfig      `yaml:"retry"`
 }
 
 // LDAPConfig contains LDAP connection settings
@@ -28,6 +29,14 @@ type LDAPConfig struct {
 // PaginationConfig contains pagination settings
 type PaginationConfig struct {
 	PageSize uint32 `yaml:"page_size"`
+}
+
+// RetryConfig contains retry settings for LDAP operations
+type RetryConfig struct {
+	MaxAttempts    int  `yaml:"max_attempts"`     // Maximum number of retry attempts
+	InitialDelayMs int  `yaml:"initial_delay_ms"` // Initial delay in milliseconds
+	MaxDelayMs     int  `yaml:"max_delay_ms"`     // Maximum delay in milliseconds
+	Enabled        bool `yaml:"enabled"`          // Whether retries are enabled
 }
 
 // Load loads configuration from a YAML file
@@ -59,6 +68,24 @@ func Load(configPath string) (*Config, error) {
 	// Set pagination defaults
 	if config.Pagination.PageSize == 0 {
 		config.Pagination.PageSize = 50
+	}
+
+	// Set retry defaults
+	if !config.Retry.Enabled && config.Retry.MaxAttempts == 0 && config.Retry.InitialDelayMs == 0 {
+		// If retry section is completely unset, enable with defaults
+		config.Retry.Enabled = true
+		config.Retry.MaxAttempts = 3
+		config.Retry.InitialDelayMs = 500
+		config.Retry.MaxDelayMs = 5000
+	}
+	if config.Retry.MaxAttempts <= 0 {
+		config.Retry.MaxAttempts = 3
+	}
+	if config.Retry.InitialDelayMs <= 0 {
+		config.Retry.InitialDelayMs = 500
+	}
+	if config.Retry.MaxDelayMs <= 0 {
+		config.Retry.MaxDelayMs = 5000
 	}
 
 	return &config, nil
@@ -111,6 +138,12 @@ func Default() *Config {
 		},
 		Pagination: PaginationConfig{
 			PageSize: 50,
+		},
+		Retry: RetryConfig{
+			Enabled:        true,
+			MaxAttempts:    3,
+			InitialDelayMs: 500,
+			MaxDelayMs:     5000,
 		},
 	}
 }
