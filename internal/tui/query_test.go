@@ -101,3 +101,30 @@ func TestQueryView_PasteInQueryMode(t *testing.T) {
 		t.Errorf("Expected query to be '%s' after paste, got '%s'", expected, qv.query)
 	}
 }
+
+func TestQueryView_ExistingFunctionalityPreserved(t *testing.T) {
+	var client *ldap.Client
+	qv := NewQueryView(client)
+	qv.query = "test"
+
+	// Test that backspace still works
+	keyMsg := tea.KeyMsg{Type: tea.KeyBackspace}
+	_, _ = qv.handleInputMode(keyMsg)
+	if qv.query != "tes" {
+		t.Errorf("Expected query to be 'tes' after backspace, got '%s'", qv.query)
+	}
+
+	// Test that ctrl+u still works
+	keyMsg = tea.KeyMsg{Type: tea.KeyCtrlU}
+	_, _ = qv.handleInputMode(keyMsg)
+	if qv.query != "" {
+		t.Errorf("Expected query to be empty after ctrl+u, got '%s'", qv.query)
+	}
+
+	// Test that regular character input still works
+	keyMsg = tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'a'}}
+	_, _ = qv.handleInputMode(keyMsg)
+	if qv.query != "a" {
+		t.Errorf("Expected query to be 'a' after character input, got '%s'", qv.query)
+	}
+}
