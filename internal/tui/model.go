@@ -89,14 +89,15 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.width = msg.Width
 		m.height = msg.Height
 
-		// Update child views
-		m.startView.SetSize(msg.Width, msg.Height-3) // Reserve space for status and help
+		// Update child views - reserve space for tab bar (3 lines), status bar (1 line) and help bar (1 line)
+		contentHeight := msg.Height - 5
+		m.startView.SetSize(msg.Width, contentHeight)
 		if m.tree != nil {
-			m.tree.SetSize(msg.Width, msg.Height-3)
+			m.tree.SetSize(msg.Width, contentHeight)
 		}
-		m.recordView.SetSize(msg.Width, msg.Height-3)
+		m.recordView.SetSize(msg.Width, contentHeight)
 		if m.queryView != nil {
-			m.queryView.SetSize(msg.Width, msg.Height-3)
+			m.queryView.SetSize(msg.Width, contentHeight)
 		}
 
 	case tea.KeyMsg:
@@ -187,6 +188,9 @@ func (m *Model) View() string {
 		return "Goodbye!\n"
 	}
 
+	// Tab bar at the top
+	tabBar := m.renderTabBar()
+
 	var content string
 
 	switch m.currentView {
@@ -214,7 +218,7 @@ func (m *Model) View() string {
 	// Help bar
 	help := m.renderHelpBar()
 
-	return content + "\n" + status + "\n" + help
+	return tabBar + "\n" + content + "\n" + status + "\n" + help
 }
 
 func (m *Model) switchView() *Model {
@@ -260,12 +264,107 @@ func (m *Model) renderStatusBar() string {
 		status += fmt.Sprintf(" | Error: %s", m.err.Error())
 	}
 
+	// Use a more colorful status bar
+	bgColor := "240"
+	if m.err != nil {
+		bgColor = "196" // Red background for errors
+	} else if m.statusMsg != "" {
+		bgColor = "28" // Green background for status messages
+	}
+
 	return lipgloss.NewStyle().
-		Background(lipgloss.Color("240")).
+		Background(lipgloss.Color(bgColor)).
 		Foreground(lipgloss.Color("15")).
 		Width(m.width).
 		Padding(0, 1).
 		Render(status)
+}
+
+func (m *Model) renderTabBar() string {
+	// Define fun colors for the tabs
+	activeColors := map[ViewMode]string{
+		ViewModeStart:  "99",  // Purple
+		ViewModeTree:   "40",  // Green
+		ViewModeRecord: "33",  // Blue
+		ViewModeQuery:  "208", // Orange
+	}
+
+	// Tab names
+	tabs := map[ViewMode]string{
+		ViewModeStart:  "🏠 Start",
+		ViewModeTree:   "🌳 Tree",
+		ViewModeRecord: "📄 Record",
+		ViewModeQuery:  "🔍 Query",
+	}
+
+	var tabButtons []string
+
+	// Create each tab button
+	for _, viewMode := range []ViewMode{ViewModeStart, ViewModeTree, ViewModeRecord, ViewModeQuery} {
+		isActive := m.currentView == viewMode
+		tabName := tabs[viewMode]
+		isAvailable := true
+
+		// Check availability
+		if viewMode == ViewModeTree && m.tree == nil {
+			isAvailable = false
+			tabName = "🌳 Tree (N/A)"
+		}
+		if viewMode == ViewModeQuery && m.queryView == nil {
+			isAvailable = false
+			tabName = "🔍 Query (N/A)"
+		}
+
+		var style lipgloss.Style
+		if isActive {
+			// Active tab: bright colors, bold, underlined
+			style = lipgloss.NewStyle().
+				Background(lipgloss.Color(activeColors[viewMode])).
+				Foreground(lipgloss.Color("15")).
+				Bold(true).
+				Underline(true).
+				Padding(0, 2).
+				Border(lipgloss.RoundedBorder()).
+				BorderForeground(lipgloss.Color(activeColors[viewMode])).
+				BorderTop(true).
+				BorderBottom(false).
+				BorderLeft(true).
+				BorderRight(true)
+		} else if !isAvailable {
+			// Unavailable tab: grayed out
+			style = lipgloss.NewStyle().
+				Background(lipgloss.Color("233")).
+				Foreground(lipgloss.Color("240")).
+				Padding(0, 2).
+				Border(lipgloss.RoundedBorder()).
+				BorderForeground(lipgloss.Color("237"))
+		} else {
+			// Inactive but available tab: muted colors
+			style = lipgloss.NewStyle().
+				Background(lipgloss.Color("236")).
+				Foreground(lipgloss.Color("252")).
+				Padding(0, 2).
+				Border(lipgloss.RoundedBorder()).
+				BorderForeground(lipgloss.Color("240"))
+		}
+
+		tabButtons = append(tabButtons, style.Render(tabName))
+	}
+
+	// Join tabs with some spacing
+	tabBar := lipgloss.JoinHorizontal(lipgloss.Top, tabButtons...)
+
+	// Create the container for the tab bar with a fun gradient background
+	tabContainer := lipgloss.NewStyle().
+		Width(m.width).
+		Padding(1, 2).
+		Background(lipgloss.Color("235")).
+		Border(lipgloss.NormalBorder()).
+		BorderBottom(true).
+		BorderForeground(lipgloss.Color("99")).
+		Render(tabBar)
+
+	return tabContainer
 }
 
 func (m *Model) renderHelpBar() string {
