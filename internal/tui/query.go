@@ -200,7 +200,7 @@ func (qv *QueryView) handleBrowseMode(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		}
 	case "enter":
 		return qv, qv.viewSelectedRecord()
-	case "escape", "/":
+	case "esc", "/":
 		qv.inputMode = true
 		qv.cursor = 0
 		qv.viewport = 0

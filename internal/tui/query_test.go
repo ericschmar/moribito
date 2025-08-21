@@ -128,3 +128,52 @@ func TestQueryView_ExistingFunctionalityPreserved(t *testing.T) {
 		t.Errorf("Expected query to be 'a' after character input, got '%s'", qv.query)
 	}
 }
+
+func TestQueryView_ReturnToInputModeFromBrowseMode(t *testing.T) {
+	var client *ldap.Client
+	qv := NewQueryView(client)
+
+	// Start in input mode
+	if !qv.IsInputMode() {
+		t.Fatal("QueryView should start in input mode")
+	}
+
+	// Simulate query execution by switching to browse mode (like the Update method does)
+	qv.inputMode = false
+	qv.results = []*ldap.Entry{{DN: "test=example,dc=test"}}
+	qv.buildResultLines()
+
+	// Verify we're in browse mode
+	if qv.IsInputMode() {
+		t.Fatal("Should be in browse mode after simulating query execution")
+	}
+
+	// Test escape key to return to input mode
+	escapeMsg := tea.KeyMsg{Type: tea.KeyEscape}
+	_, _ = qv.handleBrowseMode(escapeMsg)
+
+	if !qv.IsInputMode() {
+		t.Error("Should be back in input mode after pressing escape")
+	}
+
+	// Test slash key to return to input mode
+	qv.inputMode = false // Set back to browse mode
+	slashMsg := tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'/'}}
+	_, _ = qv.handleBrowseMode(slashMsg)
+
+	if !qv.IsInputMode() {
+		t.Error("Should be back in input mode after pressing '/'")
+	}
+
+	// Test that we can type in the search box after returning to input mode
+	qv.query = ""
+	testMsg := tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'t', 'e', 's', 't'}}
+	for _, r := range testMsg.Runes {
+		charMsg := tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{r}}
+		_, _ = qv.handleInputMode(charMsg)
+	}
+
+	if qv.query != "test" {
+		t.Errorf("Should be able to type in search box after returning to input mode, got '%s'", qv.query)
+	}
+}
