@@ -8,6 +8,7 @@ import (
 	"github.com/atotto/clipboard"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+	zone "github.com/lrstanley/bubblezone"
 	"github.com/ericschmar/ldap-cli/internal/config"
 )
 
@@ -145,6 +146,29 @@ func (sv *StartView) getDisplayValue(field int) string {
 			return "[not set]"
 		}
 		return "********"
+	case FieldPageSize:
+		return strconv.Itoa(int(sv.config.Pagination.PageSize))
+	}
+	return ""
+}
+
+// getFieldValue gets the actual value for a specific field (for editing)
+func (sv *StartView) getFieldValue(field int) string {
+	switch field {
+	case FieldHost:
+		return sv.config.LDAP.Host
+	case FieldPort:
+		return strconv.Itoa(sv.config.LDAP.Port)
+	case FieldBaseDN:
+		return sv.config.LDAP.BaseDN
+	case FieldUseSSL:
+		return strconv.FormatBool(sv.config.LDAP.UseSSL)
+	case FieldUseTLS:
+		return strconv.FormatBool(sv.config.LDAP.UseTLS)
+	case FieldBindUser:
+		return sv.config.LDAP.BindUser
+	case FieldBindPass:
+		return sv.config.LDAP.BindPass
 	case FieldPageSize:
 		return strconv.Itoa(int(sv.config.Pagination.PageSize))
 	}
@@ -320,7 +344,13 @@ func (sv *StartView) renderConfigEditor(width int) string {
 		fieldName := fmt.Sprintf("%-13s:", fieldNames[i])
 		fieldLine := fmt.Sprintf("%s %s", fieldName, fieldValue)
 
-		content.WriteString(style.Render(fieldLine))
+		renderedField := style.Render(fieldLine)
+		
+		// Wrap field with clickable zone
+		zoneID := fmt.Sprintf("config-field-%d", i)
+		renderedField = zone.Mark(zoneID, renderedField)
+		
+		content.WriteString(renderedField)
 		content.WriteString("\n")
 	}
 

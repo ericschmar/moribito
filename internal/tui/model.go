@@ -2,6 +2,8 @@ package tui
 
 import (
 	"fmt"
+	"strconv"
+	"strings"
 
 	"github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
@@ -426,15 +428,45 @@ func (m *Model) renderHelpBar() string {
 // handleZoneMessage handles zone click messages
 func (m *Model) handleZoneMessage(msg zone.MsgZoneInBounds) (tea.Model, tea.Cmd) {
 	// Check each possible zone to see which one was clicked
-	zones := []string{"tab-start", "tab-tree", "tab-record", "tab-query"}
+	tabZones := []string{"tab-start", "tab-tree", "tab-record", "tab-query"}
 	
-	for _, zoneID := range zones {
+	for _, zoneID := range tabZones {
 		if zoneInfo := zone.Get(zoneID); zoneInfo != nil && zoneInfo.InBounds(msg.Event) {
 			return m.handleZoneClick(zoneID)
 		}
 	}
 	
-	// If no tab zones matched, let the current view handle it
+	// Check for start view config field zones
+	if m.currentView == ViewModeStart {
+		for i := 0; i < 8; i++ { // FieldCount is 8
+			zoneID := fmt.Sprintf("config-field-%d", i)
+			if zoneInfo := zone.Get(zoneID); zoneInfo != nil && zoneInfo.InBounds(msg.Event) {
+				return m.handleStartViewClick(zoneID)
+			}
+		}
+	}
+	
+	// Check for tree view item zones
+	if m.currentView == ViewModeTree && m.tree != nil {
+		for i := 0; i < len(m.tree.FlattenedTree); i++ {
+			zoneID := fmt.Sprintf("tree-item-%d", i)
+			if zoneInfo := zone.Get(zoneID); zoneInfo != nil && zoneInfo.InBounds(msg.Event) {
+				return m.handleTreeViewClick(zoneID)
+			}
+		}
+	}
+	
+	// Check for query view result zones
+	if m.currentView == ViewModeQuery && m.queryView != nil {
+		for i := 0; i < len(m.queryView.ResultLines); i++ {
+			zoneID := fmt.Sprintf("query-result-%d", i)
+			if zoneInfo := zone.Get(zoneID); zoneInfo != nil && zoneInfo.InBounds(msg.Event) {
+				return m.handleQueryViewClick(zoneID)
+			}
+		}
+	}
+	
+	// If no zones matched, let the current view handle it
 	return m, nil
 }
 func (m *Model) handleZoneClick(zoneID string) (tea.Model, tea.Cmd) {
@@ -473,7 +505,19 @@ func (m *Model) handleZoneClick(zoneID string) (tea.Model, tea.Cmd) {
 
 // handleStartViewClick handles clicks specific to start view
 func (m *Model) handleStartViewClick(zoneID string) (tea.Model, tea.Cmd) {
-	// Handle config field clicks - will be implemented when we add zones to StartView
+	// Handle config field clicks
+	if strings.HasPrefix(zoneID, "config-field-") {
+		// Extract field number
+		fieldStr := strings.TrimPrefix(zoneID, "config-field-")
+		if fieldNum, err := strconv.Atoi(fieldStr); err == nil {
+			// Simulate clicking on this field by setting cursor and entering edit mode
+			m.startView.cursor = fieldNum
+			m.startView.editing = true
+			m.startView.editingField = fieldNum
+			m.startView.inputValue = m.startView.getFieldValue(fieldNum)
+			return m, nil
+		}
+	}
 	return m, nil
 }
 
@@ -482,7 +526,21 @@ func (m *Model) handleTreeViewClick(zoneID string) (tea.Model, tea.Cmd) {
 	if m.tree == nil {
 		return m, nil
 	}
-	// Handle tree node expansion/selection - will be implemented when we add zones to TreeView
+	
+	// Handle tree item clicks
+	if strings.HasPrefix(zoneID, "tree-item-") {
+		// Extract item index
+		itemStr := strings.TrimPrefix(zoneID, "tree-item-")
+		if itemIndex, err := strconv.Atoi(itemStr); err == nil {
+			// Set cursor to this item
+			if itemIndex >= 0 && itemIndex < len(m.tree.FlattenedTree) {
+				m.tree.cursor = itemIndex
+				m.tree.adjustViewport()
+				// Simulate Enter key press to expand/view
+				return m.tree.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'\r'}})
+			}
+		}
+	}
 	return m, nil
 }
 
@@ -497,7 +555,21 @@ func (m *Model) handleQueryViewClick(zoneID string) (tea.Model, tea.Cmd) {
 	if m.queryView == nil {
 		return m, nil
 	}
-	// Handle query input/result clicks - will be implemented when we add zones to QueryView
+	
+	// Handle query result clicks
+	if strings.HasPrefix(zoneID, "query-result-") {
+		// Extract result index
+		resultStr := strings.TrimPrefix(zoneID, "query-result-")
+		if resultIndex, err := strconv.Atoi(resultStr); err == nil {
+			// Set cursor to this result
+			if resultIndex >= 0 && resultIndex < len(m.queryView.resultLines) {
+				m.queryView.cursor = resultIndex
+				m.queryView.adjustViewport()
+				// Simulate Enter key press to view the selected record
+				return m.queryView.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'\r'}})
+			}
+		}
+	}
 	return m, nil
 }
 
