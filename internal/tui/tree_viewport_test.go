@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/ericschmar/ldap-cli/internal/ldap"
+	zone "github.com/lrstanley/bubblezone"
 )
 
 func TestTreeView_ViewportIntegration(t *testing.T) {
@@ -41,6 +42,9 @@ func TestTreeView_ViewportIntegration(t *testing.T) {
 }
 
 func TestTreeView_ViewportContentUpdate(t *testing.T) {
+	// Initialize bubblezone for test environment
+	zone.NewGlobal()
+
 	var client *ldap.Client
 	tv := NewTreeView(client)
 	tv.SetSize(80, 24)

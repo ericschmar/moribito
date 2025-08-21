@@ -77,6 +77,9 @@ func (m *Model) Init() tea.Cmd {
 
 	var cmds []tea.Cmd
 
+	// Initialize bubblezone manager for mouse interactions
+	zone.NewGlobal()
+
 	if m.tree != nil {
 		cmds = append(cmds, m.tree.Init())
 	}
@@ -504,6 +507,15 @@ func (m *Model) handleZoneMessage(msg zone.MsgZoneInBounds) (tea.Model, tea.Cmd)
 		}
 	}
 
+	// Check for record view row zones
+	if m.currentView == ViewModeRecord && m.recordView != nil {
+		for i := 0; i < len(m.recordView.renderedRows); i++ {
+			zoneID := fmt.Sprintf("record-row-%d", i)
+			if zoneInfo := zone.Get(zoneID); zoneInfo != nil && zoneInfo.InBounds(msg.Event) {
+				return m.handleRecordViewClick(zoneID)
+			}
+		}
+	}
 	// If no zones matched, let the current view handle it
 	return m, nil
 }
@@ -584,7 +596,24 @@ func (m *Model) handleTreeViewClick(zoneID string) (tea.Model, tea.Cmd) {
 
 // handleRecordViewClick handles clicks specific to record view
 func (m *Model) handleRecordViewClick(zoneID string) (tea.Model, tea.Cmd) {
-	// Handle attribute row clicks - will be implemented when we add zones to RecordView
+	if m.recordView == nil {
+		return m, nil
+	}
+
+	// Handle attribute row clicks
+	if strings.HasPrefix(zoneID, "record-row-") {
+		// Extract row index
+		rowStr := strings.TrimPrefix(zoneID, "record-row-")
+		if rowIndex, err := strconv.Atoi(rowStr); err == nil {
+			// Set table cursor to this row and trigger copy
+			if rowIndex >= 0 && rowIndex < len(m.recordView.renderedRows) {
+				// Move cursor to clicked row
+				m.recordView.table.SetCursor(rowIndex)
+				// Copy the value to clipboard
+				return m, m.recordView.copyCurrentValue()
+			}
+		}
+	}
 	return m, nil
 }
 
