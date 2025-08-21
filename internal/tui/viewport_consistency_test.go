@@ -20,9 +20,9 @@ func TestViewportConsistency(t *testing.T) {
 	}
 
 	// Create mock tree data for testing scrolling
-	tv.flattenedTree = make([]*TreeItem, 50) // More items than can fit on screen
+	tv.FlattenedTree = make([]*TreeItem, 50) // More items than can fit on screen
 	for i := 0; i < 50; i++ {
-		tv.flattenedTree[i] = &TreeItem{
+		tv.FlattenedTree[i] = &TreeItem{
 			Node: &ldap.TreeNode{
 				DN:       "ou=test" + string(rune(i+'0')) + ",dc=example,dc=com",
 				Name:     "test" + string(rune(i+'0')),
@@ -81,7 +81,7 @@ func TestViewportConsistency(t *testing.T) {
 	}
 
 	// Test cursor beyond visible area
-	qv.cursor = len(qv.resultLines) - 1
+	qv.cursor = len(qv.ResultLines) - 1
 	qv.adjustViewport()
 	if qv.viewport < 0 {
 		t.Errorf("QueryView viewport should not be negative, got %d", qv.viewport)
@@ -94,9 +94,9 @@ func TestViewportScrolling(t *testing.T) {
 	tv.SetSize(80, 10) // Small height for easier testing
 
 	// Create tree items
-	tv.flattenedTree = make([]*TreeItem, 20)
+	tv.FlattenedTree = make([]*TreeItem, 20)
 	for i := 0; i < 20; i++ {
-		tv.flattenedTree[i] = &TreeItem{
+		tv.FlattenedTree[i] = &TreeItem{
 			Node: &ldap.TreeNode{
 				DN:       "test",
 				Name:     "test",

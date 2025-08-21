@@ -8,8 +8,8 @@ import (
 	"github.com/charmbracelet/bubbles/textarea"
 	"github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
-	zone "github.com/lrstanley/bubblezone"
 	"github.com/ericschmar/ldap-cli/internal/ldap"
+	zone "github.com/lrstanley/bubblezone"
 )
 
 // QueryView provides an interface for LDAP queries
@@ -87,7 +87,7 @@ func (qv *QueryView) SetSize(width, height int) {
 	// Set textarea width to fit within the content area
 	qv.textarea.SetWidth(contentWidth - 4) // Account for border and padding
 	// Allow the textarea to be multi-line but limit height reasonably
-	qv.textarea.SetHeight(3) // Start with 3 lines, can expand
+	qv.textarea.SetHeight(6) // Start with 6 lines, can expand
 }
 
 // IsInputMode returns true if the query view is in input mode
@@ -224,8 +224,8 @@ func (qv *QueryView) handleBrowseMode(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			contentHeight = qv.height
 		}
 		qv.cursor += contentHeight - 8
-		if qv.cursor >= len(qv.resultLines) {
-			qv.cursor = len(qv.resultLines) - 1
+		if qv.cursor >= len(qv.ResultLines) {
+			qv.cursor = len(qv.ResultLines) - 1
 		}
 		qv.adjustViewport()
 
@@ -342,6 +342,9 @@ func (qv *QueryView) renderResults(height int) string {
 		visibleEnd = len(qv.ResultLines)
 	}
 
+	// Get content dimensions for consistent width handling
+	contentWidth, _ := qv.container.GetContentDimensions()
+
 	for i := visibleStart; i < visibleEnd; i++ {
 		line := qv.ResultLines[i]
 		style := lipgloss.NewStyle()
@@ -350,17 +353,17 @@ func (qv *QueryView) renderResults(height int) string {
 			style = style.Background(lipgloss.Color("240")).Foreground(lipgloss.Color("15"))
 		}
 
-		// Truncate if too long
-		if len(line) > qv.width-2 {
-			line = line[:qv.width-5] + "..."
+		// Truncate if too long, using consistent width calculation
+		if contentWidth > 5 && len(line) > contentWidth-2 {
+			line = line[:contentWidth-5] + "..."
 		}
 
 		renderedLine := style.Render(line)
-		
+
 		// Wrap with clickable zone
 		zoneID := fmt.Sprintf("query-result-%d", i)
 		renderedLine = zone.Mark(zoneID, renderedLine)
-		
+
 		lines = append(lines, renderedLine)
 	}
 
