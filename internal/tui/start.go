@@ -8,6 +8,7 @@ import (
 	"github.com/atotto/clipboard"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+	zone "github.com/lrstanley/bubblezone"
 	"github.com/ericschmar/ldap-cli/internal/config"
 )
 
@@ -20,6 +21,7 @@ type StartView struct {
 	editing      bool
 	editingField int
 	inputValue   string
+	container    *ViewContainer
 }
 
 // Field indices for editing
@@ -64,6 +66,7 @@ func (sv *StartView) Init() tea.Cmd {
 func (sv *StartView) SetSize(width, height int) {
 	sv.width = width
 	sv.height = height
+	sv.container = NewViewContainer(width, height)
 }
 
 // Update handles input for the start view
@@ -151,15 +154,44 @@ func (sv *StartView) getDisplayValue(field int) string {
 	return ""
 }
 
+// getFieldValue gets the actual value for a specific field (for editing)
+func (sv *StartView) getFieldValue(field int) string {
+	switch field {
+	case FieldHost:
+		return sv.config.LDAP.Host
+	case FieldPort:
+		return strconv.Itoa(sv.config.LDAP.Port)
+	case FieldBaseDN:
+		return sv.config.LDAP.BaseDN
+	case FieldUseSSL:
+		return strconv.FormatBool(sv.config.LDAP.UseSSL)
+	case FieldUseTLS:
+		return strconv.FormatBool(sv.config.LDAP.UseTLS)
+	case FieldBindUser:
+		return sv.config.LDAP.BindUser
+	case FieldBindPass:
+		return sv.config.LDAP.BindPass
+	case FieldPageSize:
+		return strconv.Itoa(int(sv.config.Pagination.PageSize))
+	}
+	return ""
+}
+
 // View renders the start view
 func (sv *StartView) View() string {
-	if sv.width < 80 {
+	if sv.container == nil {
+		sv.container = NewViewContainer(sv.width, sv.height)
+	}
+
+	contentWidth, _ := sv.container.GetContentDimensions()
+
+	if contentWidth < 80 {
 		// For narrow screens, show a simple message
 		return sv.renderNarrowView()
 	}
 
-	leftWidth := (sv.width - 1) / 2 // Leave space for separator
-	rightWidth := sv.width - leftWidth - 1
+	leftWidth := (contentWidth - 1) / 2 // Leave space for separator
+	rightWidth := contentWidth - leftWidth - 1
 
 	// Create the ASCII art on the left
 	leftContent := sv.renderParthenon(leftWidth)
@@ -175,29 +207,24 @@ func (sv *StartView) View() string {
 	separator := separatorStyle.Render("│")
 
 	// Use lipgloss to combine the panels side by side with separator
-	return lipgloss.JoinHorizontal(
+	content := lipgloss.JoinHorizontal(
 		lipgloss.Top,
 		leftContent,
 		separator,
 		rightContent,
 	)
+
+	return sv.container.RenderWithPadding(content)
 }
 
 // renderNarrowView renders a simplified view for narrow screens
 func (sv *StartView) renderNarrowView() string {
-	style := lipgloss.NewStyle().
-		Foreground(lipgloss.Color("14")).
-		Bold(true).
-		Padding(1, 2).
-		Border(lipgloss.RoundedBorder()).
-		BorderForeground(lipgloss.Color("12"))
-
 	content := "LDAP CLI Start Page\n\n"
 	content += "Screen too narrow for split view.\n"
 	content += "Please resize your terminal or switch to another view.\n\n"
 	content += "Press [1] for Tree View, [2] for Record View, [3] for Query View"
 
-	return style.Render(content)
+	return sv.container.RenderCentered(content)
 }
 
 // renderParthenon creates ASCII art of the Parthenon
@@ -320,7 +347,13 @@ func (sv *StartView) renderConfigEditor(width int) string {
 		fieldName := fmt.Sprintf("%-13s:", fieldNames[i])
 		fieldLine := fmt.Sprintf("%s %s", fieldName, fieldValue)
 
-		content.WriteString(style.Render(fieldLine))
+		renderedField := style.Render(fieldLine)
+		
+		// Wrap field with clickable zone
+		zoneID := fmt.Sprintf("config-field-%d", i)
+		renderedField = zone.Mark(zoneID, renderedField)
+		
+		content.WriteString(renderedField)
 		content.WriteString("\n")
 	}
 

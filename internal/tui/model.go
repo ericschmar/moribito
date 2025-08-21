@@ -2,9 +2,12 @@ package tui
 
 import (
 	"fmt"
+	"strconv"
+	"strings"
 
 	"github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+	zone "github.com/lrstanley/bubblezone"
 	"github.com/ericschmar/ldap-cli/internal/config"
 	"github.com/ericschmar/ldap-cli/internal/ldap"
 )
@@ -89,14 +92,15 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.width = msg.Width
 		m.height = msg.Height
 
-		// Update child views
-		m.startView.SetSize(msg.Width, msg.Height-3) // Reserve space for status and help
+		// Update child views - reserve space for tab bar (3 lines), status bar (1 line) and help bar (1 line)
+		contentHeight := msg.Height - 5
+		m.startView.SetSize(msg.Width, contentHeight)
 		if m.tree != nil {
-			m.tree.SetSize(msg.Width, msg.Height-3)
+			m.tree.SetSize(msg.Width, contentHeight)
 		}
-		m.recordView.SetSize(msg.Width, msg.Height-3)
+		m.recordView.SetSize(msg.Width, contentHeight)
 		if m.queryView != nil {
-			m.queryView.SetSize(msg.Width, msg.Height-3)
+			m.queryView.SetSize(msg.Width, contentHeight)
 		}
 
 	case tea.KeyMsg:
@@ -126,6 +130,16 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 			return m, nil
 		}
+
+	case tea.MouseMsg:
+		// Handle mouse clicks through bubblezone - this will generate zone messages
+		if msg.Type == tea.MouseLeft {
+			zone.AnyInBounds(m, msg)
+		}
+
+	case zone.MsgZoneInBounds:
+		// Need to figure out which zone was clicked by checking coordinates
+		return m.handleZoneMessage(msg)
 
 	case ErrorMsg:
 		m.err = msg.Err
@@ -187,6 +201,12 @@ func (m *Model) View() string {
 		return "Goodbye!\n"
 	}
 
+	// Reset bubblezone for this frame
+	zone.Clear("")
+
+	// Tab bar at the top
+	tabBar := m.renderTabBar()
+
 	var content string
 
 	switch m.currentView {
@@ -214,7 +234,10 @@ func (m *Model) View() string {
 	// Help bar
 	help := m.renderHelpBar()
 
-	return content + "\n" + status + "\n" + help
+	finalView := tabBar + "\n" + content + "\n" + status + "\n" + help
+	
+	// Scan the final view with bubblezone
+	return zone.Scan(finalView)
 }
 
 func (m *Model) switchView() *Model {
@@ -240,32 +263,180 @@ func (m *Model) switchView() *Model {
 }
 
 func (m *Model) renderStatusBar() string {
-	var viewName string
-	switch m.currentView {
-	case ViewModeStart:
-		viewName = "Start Page"
-	case ViewModeTree:
-		viewName = "Tree Explorer"
-	case ViewModeRecord:
-		viewName = "Record View"
-	case ViewModeQuery:
-		viewName = "Query Interface"
+	// Define emojis and colors for each view
+	viewInfo := map[ViewMode]struct {
+		name  string
+		emoji string
+		color string
+	}{
+		ViewModeStart:  {"Start Page", "🏠", "99"},       // Purple
+		ViewModeTree:   {"Tree Explorer", "🌳", "40"},    // Green
+		ViewModeRecord: {"Record View", "📄", "33"},      // Blue
+		ViewModeQuery:  {"Query Interface", "🔍", "208"}, // Orange
 	}
 
-	status := fmt.Sprintf("View: %s", viewName)
-	if m.statusMsg != "" {
-		status += fmt.Sprintf(" | %s", m.statusMsg)
-	}
-	if m.err != nil {
-		status += fmt.Sprintf(" | Error: %s", m.err.Error())
-	}
+	info := viewInfo[m.currentView]
 
-	return lipgloss.NewStyle().
-		Background(lipgloss.Color("240")).
+	// Create the main view indicator with emoji and styling
+	viewStyle := lipgloss.NewStyle().
+		Background(lipgloss.Color(info.color)).
 		Foreground(lipgloss.Color("15")).
-		Width(m.width).
+		Bold(true).
 		Padding(0, 1).
-		Render(status)
+		Border(lipgloss.RoundedBorder()).
+		BorderForeground(lipgloss.Color(info.color))
+
+	viewIndicator := viewStyle.Render(fmt.Sprintf("%s %s", info.emoji, info.name))
+
+	var statusParts []string
+	statusParts = append(statusParts, viewIndicator)
+
+	// Add status message with its own styling if present
+	if m.statusMsg != "" {
+		statusStyle := lipgloss.NewStyle().
+			Background(lipgloss.Color("28")). // Green background
+			Foreground(lipgloss.Color("15")).
+			Bold(true).
+			Padding(0, 1).
+			Border(lipgloss.RoundedBorder()).
+			BorderForeground(lipgloss.Color("28"))
+
+		statusParts = append(statusParts, statusStyle.Render("ℹ️  "+m.statusMsg))
+	}
+
+	// Add error with dramatic styling if present
+	if m.err != nil {
+		errorStyle := lipgloss.NewStyle().
+			Background(lipgloss.Color("196")). // Red background
+			Foreground(lipgloss.Color("15")).
+			Bold(true).
+			Italic(true).
+			Padding(0, 1).
+			Border(lipgloss.RoundedBorder()).
+			BorderForeground(lipgloss.Color("196"))
+
+		statusParts = append(statusParts, errorStyle.Render("⚠️  "+m.err.Error()))
+	}
+
+	// Join all parts with some spacing
+	statusContent := lipgloss.JoinHorizontal(lipgloss.Center, statusParts...)
+
+	// Create the container with a stylish background and border
+	containerStyle := lipgloss.NewStyle().
+		Width(m.width).
+		Padding(0, 2).
+		Background(lipgloss.Color("235")). // Dark gray background
+		Border(lipgloss.NormalBorder()).
+		BorderTop(true).
+		BorderForeground(lipgloss.Color("241")). // Lighter gray border
+		Align(lipgloss.Left)
+
+	return containerStyle.Render(statusContent)
+}
+
+func (m *Model) renderTabBar() string {
+	// Define fun colors for the tabs
+	activeColors := map[ViewMode]string{
+		ViewModeStart:  "99",  // Purple
+		ViewModeTree:   "40",  // Green
+		ViewModeRecord: "33",  // Blue
+		ViewModeQuery:  "208", // Orange
+	}
+
+	// Tab names
+	tabs := map[ViewMode]string{
+		ViewModeStart:  "🏠 Start",
+		ViewModeTree:   "🌳 Tree",
+		ViewModeRecord: "📄 Record",
+		ViewModeQuery:  "🔍 Query",
+	}
+
+	var tabButtons []string
+
+	// Create each tab button
+	for _, viewMode := range []ViewMode{ViewModeStart, ViewModeTree, ViewModeRecord, ViewModeQuery} {
+		isActive := m.currentView == viewMode
+		tabName := tabs[viewMode]
+		isAvailable := true
+
+		// Check availability
+		if viewMode == ViewModeTree && m.tree == nil {
+			isAvailable = false
+			tabName = "🌳 Tree (N/A)"
+		}
+		if viewMode == ViewModeQuery && m.queryView == nil {
+			isAvailable = false
+			tabName = "🔍 Query (N/A)"
+		}
+
+		var style lipgloss.Style
+		if isActive {
+			// Active tab: bright colors, bold, underlined
+			style = lipgloss.NewStyle().
+				Background(lipgloss.Color(activeColors[viewMode])).
+				Foreground(lipgloss.Color("15")).
+				Bold(true).
+				Underline(true).
+				Padding(0, 2).
+				Border(lipgloss.RoundedBorder()).
+				BorderForeground(lipgloss.Color(activeColors[viewMode])).
+				BorderTop(true).
+				BorderBottom(false).
+				BorderLeft(true).
+				BorderRight(true)
+		} else if !isAvailable {
+			// Unavailable tab: grayed out
+			style = lipgloss.NewStyle().
+				Background(lipgloss.Color("233")).
+				Foreground(lipgloss.Color("240")).
+				Padding(0, 2).
+				Border(lipgloss.RoundedBorder()).
+				BorderForeground(lipgloss.Color("237"))
+		} else {
+			// Inactive but available tab: muted colors
+			style = lipgloss.NewStyle().
+				Background(lipgloss.Color("236")).
+				Foreground(lipgloss.Color("252")).
+				Padding(0, 2).
+				Border(lipgloss.RoundedBorder()).
+				BorderForeground(lipgloss.Color("240"))
+		}
+
+		renderedTab := style.Render(tabName)
+		
+		// Wrap tab with clickable zone if available
+		if isAvailable {
+			var zoneID string
+			switch viewMode {
+			case ViewModeStart:
+				zoneID = "tab-start"
+			case ViewModeTree:
+				zoneID = "tab-tree"
+			case ViewModeRecord:
+				zoneID = "tab-record"
+			case ViewModeQuery:
+				zoneID = "tab-query"
+			}
+			renderedTab = zone.Mark(zoneID, renderedTab)
+		}
+
+		tabButtons = append(tabButtons, renderedTab)
+	}
+
+	// Join tabs with some spacing
+	tabBar := lipgloss.JoinHorizontal(lipgloss.Top, tabButtons...)
+
+	// Create the container for the tab bar with a fun gradient background
+	tabContainer := lipgloss.NewStyle().
+		Width(m.width).
+		Padding(1, 2).
+		Background(lipgloss.Color("235")).
+		Border(lipgloss.NormalBorder()).
+		BorderBottom(true).
+		BorderForeground(lipgloss.Color("99")).
+		Render(tabBar)
+
+	return tabContainer
 }
 
 func (m *Model) renderHelpBar() string {
@@ -287,6 +458,154 @@ func (m *Model) renderHelpBar() string {
 		Width(m.width).
 		Padding(0, 1).
 		Render(help)
+}
+
+// handleZoneMessage handles zone click messages
+func (m *Model) handleZoneMessage(msg zone.MsgZoneInBounds) (tea.Model, tea.Cmd) {
+	// Check each possible zone to see which one was clicked
+	tabZones := []string{"tab-start", "tab-tree", "tab-record", "tab-query"}
+	
+	for _, zoneID := range tabZones {
+		if zoneInfo := zone.Get(zoneID); zoneInfo != nil && zoneInfo.InBounds(msg.Event) {
+			return m.handleZoneClick(zoneID)
+		}
+	}
+	
+	// Check for start view config field zones
+	if m.currentView == ViewModeStart {
+		for i := 0; i < 8; i++ { // FieldCount is 8
+			zoneID := fmt.Sprintf("config-field-%d", i)
+			if zoneInfo := zone.Get(zoneID); zoneInfo != nil && zoneInfo.InBounds(msg.Event) {
+				return m.handleStartViewClick(zoneID)
+			}
+		}
+	}
+	
+	// Check for tree view item zones
+	if m.currentView == ViewModeTree && m.tree != nil {
+		for i := 0; i < len(m.tree.FlattenedTree); i++ {
+			zoneID := fmt.Sprintf("tree-item-%d", i)
+			if zoneInfo := zone.Get(zoneID); zoneInfo != nil && zoneInfo.InBounds(msg.Event) {
+				return m.handleTreeViewClick(zoneID)
+			}
+		}
+	}
+	
+	// Check for query view result zones
+	if m.currentView == ViewModeQuery && m.queryView != nil {
+		for i := 0; i < len(m.queryView.ResultLines); i++ {
+			zoneID := fmt.Sprintf("query-result-%d", i)
+			if zoneInfo := zone.Get(zoneID); zoneInfo != nil && zoneInfo.InBounds(msg.Event) {
+				return m.handleQueryViewClick(zoneID)
+			}
+		}
+	}
+	
+	// If no zones matched, let the current view handle it
+	return m, nil
+}
+func (m *Model) handleZoneClick(zoneID string) (tea.Model, tea.Cmd) {
+	switch zoneID {
+	case "tab-start":
+		m.currentView = ViewModeStart
+		return m, nil
+	case "tab-tree":
+		if m.tree != nil {
+			m.currentView = ViewModeTree
+		}
+		return m, nil
+	case "tab-record":
+		m.currentView = ViewModeRecord
+		return m, nil
+	case "tab-query":
+		if m.queryView != nil {
+			m.currentView = ViewModeQuery
+		}
+		return m, nil
+	default:
+		// Handle view-specific zone clicks by forwarding to current view
+		switch m.currentView {
+		case ViewModeStart:
+			return m.handleStartViewClick(zoneID)
+		case ViewModeTree:
+			return m.handleTreeViewClick(zoneID)
+		case ViewModeRecord:
+			return m.handleRecordViewClick(zoneID)
+		case ViewModeQuery:
+			return m.handleQueryViewClick(zoneID)
+		}
+	}
+	return m, nil
+}
+
+// handleStartViewClick handles clicks specific to start view
+func (m *Model) handleStartViewClick(zoneID string) (tea.Model, tea.Cmd) {
+	// Handle config field clicks
+	if strings.HasPrefix(zoneID, "config-field-") {
+		// Extract field number
+		fieldStr := strings.TrimPrefix(zoneID, "config-field-")
+		if fieldNum, err := strconv.Atoi(fieldStr); err == nil {
+			// Simulate clicking on this field by setting cursor and entering edit mode
+			m.startView.cursor = fieldNum
+			m.startView.editing = true
+			m.startView.editingField = fieldNum
+			m.startView.inputValue = m.startView.getFieldValue(fieldNum)
+			return m, nil
+		}
+	}
+	return m, nil
+}
+
+// handleTreeViewClick handles clicks specific to tree view
+func (m *Model) handleTreeViewClick(zoneID string) (tea.Model, tea.Cmd) {
+	if m.tree == nil {
+		return m, nil
+	}
+	
+	// Handle tree item clicks
+	if strings.HasPrefix(zoneID, "tree-item-") {
+		// Extract item index
+		itemStr := strings.TrimPrefix(zoneID, "tree-item-")
+		if itemIndex, err := strconv.Atoi(itemStr); err == nil {
+			// Set cursor to this item
+			if itemIndex >= 0 && itemIndex < len(m.tree.FlattenedTree) {
+				m.tree.cursor = itemIndex
+				m.tree.adjustViewport()
+				// Simulate Enter key press to expand/view
+				return m.tree.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'\r'}})
+			}
+		}
+	}
+	return m, nil
+}
+
+// handleRecordViewClick handles clicks specific to record view
+func (m *Model) handleRecordViewClick(zoneID string) (tea.Model, tea.Cmd) {
+	// Handle attribute row clicks - will be implemented when we add zones to RecordView
+	return m, nil
+}
+
+// handleQueryViewClick handles clicks specific to query view
+func (m *Model) handleQueryViewClick(zoneID string) (tea.Model, tea.Cmd) {
+	if m.queryView == nil {
+		return m, nil
+	}
+	
+	// Handle query result clicks
+	if strings.HasPrefix(zoneID, "query-result-") {
+		// Extract result index
+		resultStr := strings.TrimPrefix(zoneID, "query-result-")
+		if resultIndex, err := strconv.Atoi(resultStr); err == nil {
+			// Set cursor to this result
+			if resultIndex >= 0 && resultIndex < len(m.queryView.resultLines) {
+				m.queryView.cursor = resultIndex
+				m.queryView.adjustViewport()
+				// Simulate Enter key press to view the selected record
+				return m.queryView.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'\r'}})
+			}
+		}
+	}
+	return m, nil
 }
 
 // Custom messages
