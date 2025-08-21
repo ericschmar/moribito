@@ -63,7 +63,7 @@ func (sv *StartView) Init() tea.Cmd {
 // SetSize sets the size of the start view
 func (sv *StartView) SetSize(width, height int) {
 	sv.width = width
-	sv.height = height
+	sv.height = height - 16
 }
 
 // Update handles input for the start view

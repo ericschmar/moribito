@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/charmbracelet/bubbletea"
+	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/ericschmar/ldap-cli/internal/ldap"
 )
@@ -45,7 +45,7 @@ func (tv *TreeView) Init() tea.Cmd {
 // SetSize sets the size of the tree view
 func (tv *TreeView) SetSize(width, height int) {
 	tv.width = width
-	tv.height = height
+	tv.height = height - 16
 }
 
 // Update handles messages for the tree view
