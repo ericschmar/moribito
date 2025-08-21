@@ -139,6 +139,16 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.recordView.SetEntry(msg.Entry)
 		m.currentView = ViewModeRecord
 		return m, nil
+
+	// Handle tree-specific messages regardless of current view
+	// This ensures tree loading works even when user switches away before completion
+	case RootNodeLoadedMsg, NodeChildrenLoadedMsg:
+		if m.tree != nil {
+			newModel, cmd := m.tree.Update(msg)
+			m.tree = newModel.(*TreeView)
+			cmds = append(cmds, cmd)
+		}
+		return m, tea.Batch(cmds...)
 	}
 
 	// Forward messages to current view
