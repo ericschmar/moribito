@@ -183,28 +183,29 @@ func (sv *StartView) View() string {
 		sv.container = NewViewContainer(sv.width, sv.height)
 	}
 
-	contentWidth, _ := sv.container.GetContentDimensions()
+	contentWidth, contentHeight := sv.container.GetContentDimensions()
 
 	if contentWidth < 80 {
 		// For narrow screens, show a simple message
 		return sv.renderNarrowView()
 	}
 
-	leftWidth := (contentWidth - 1) / 2 // Leave space for separator
-	rightWidth := contentWidth - leftWidth - 1
+	// Calculate panel widths with proper separation
+	separatorWidth := 1
+	availableWidth := contentWidth - separatorWidth
+	leftWidth := availableWidth / 2
+	rightWidth := availableWidth - leftWidth
 
 	// Create the ASCII art on the left
 	leftContent := sv.renderParthenon(leftWidth)
 
 	// Create the config editor on the right
-	rightContent := sv.renderConfigEditor(rightWidth)
+	rightContent := sv.renderConfigEditor(rightWidth, contentHeight)
 
-	// Create a vertical separator
-	separatorStyle := lipgloss.NewStyle().
+	// Create a vertical separator - use Top alignment to match content
+	separator := lipgloss.NewStyle().
 		Foreground(lipgloss.Color("8")). // Gray
-		Height(sv.height)
-
-	separator := separatorStyle.Render("│")
+		Render("│")
 
 	// Use lipgloss to combine the panels side by side with separator
 	content := lipgloss.JoinHorizontal(
@@ -297,8 +298,14 @@ func (sv *StartView) renderParthenon(width int) string {
 }
 
 // renderConfigEditor creates the configuration editing interface
-func (sv *StartView) renderConfigEditor(width int) string {
+func (sv *StartView) renderConfigEditor(width, contentHeight int) string {
 	var content strings.Builder
+
+	// Calculate available width for content (accounting for border)
+	availableWidth := width - 4 // Account for border (2) and padding (2)
+	if availableWidth < 20 {
+		availableWidth = 20
+	}
 
 	// Title
 	titleStyle := lipgloss.NewStyle().
@@ -306,7 +313,7 @@ func (sv *StartView) renderConfigEditor(width int) string {
 		Background(lipgloss.Color("12")).
 		Bold(true).
 		Align(lipgloss.Center).
-		Width(width-6). // Account for border and padding
+		Width(availableWidth).
 		Padding(1, 0)
 
 	content.WriteString(titleStyle.Render("🔧 LDAP Configuration 🔧"))
@@ -343,9 +350,19 @@ func (sv *StartView) renderConfigEditor(width int) string {
 				Padding(0, 1)
 		}
 
-		// Format field with better alignment
+		// Format field with proper alignment - ensure field name is right-padded
 		fieldName := fmt.Sprintf("%-13s:", fieldNames[i])
 		fieldLine := fmt.Sprintf("%s %s", fieldName, fieldValue)
+
+		// Ensure the field line fits within available width
+		if len(fieldLine) > availableWidth-2 {
+			// Truncate field value if too long, keeping field name intact
+			maxValueLen := availableWidth - len(fieldName) - 3 // account for ": " and padding
+			if maxValueLen > 0 && len(fieldValue) > maxValueLen {
+				fieldValue = fieldValue[:maxValueLen-3] + "..."
+				fieldLine = fmt.Sprintf("%s %s", fieldName, fieldValue)
+			}
+		}
 
 		renderedField := style.Render(fieldLine)
 
@@ -369,13 +386,12 @@ func (sv *StartView) renderConfigEditor(width int) string {
 		content.WriteString(instructionStyle.Render("Press [↑↓] to navigate, [Enter] to edit"))
 	}
 
-	// Add border
+	// Add border - let lipgloss handle the height automatically based on content
 	borderStyle := lipgloss.NewStyle().
 		Border(lipgloss.RoundedBorder()).
 		BorderForeground(lipgloss.Color("9")). // Bright red
 		Padding(1, 1).
-		Width(width).
-		Height(sv.height - 2)
+		Width(width)
 
 	return borderStyle.Render(content.String())
 }

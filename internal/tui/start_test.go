@@ -1,6 +1,7 @@
 package tui
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/atotto/clipboard"
@@ -71,5 +72,62 @@ func TestStartView_ExistingFunctionalityPreserved(t *testing.T) {
 	_, _ = sv.handleEditMode(keyMsg)
 	if sv.inputValue != "test" {
 		t.Errorf("Expected inputValue to be 'test' after character input, got '%s'", sv.inputValue)
+	}
+}
+
+func TestStartView_LayoutAndAlignment(t *testing.T) {
+	cfg := &config.Config{
+		LDAP: config.LDAPConfig{
+			Host:     "ldap.example.com",
+			Port:     636,
+			BaseDN:   "dc=example,dc=com",
+			UseSSL:   true,
+			UseTLS:   false,
+			BindUser: "cn=admin,dc=example,dc=com",
+			BindPass: "secretpassword",
+		},
+		Pagination: config.PaginationConfig{
+			PageSize: 100,
+		},
+	}
+
+	sv := NewStartView(cfg)
+	sv.SetSize(120, 25)
+
+	// Test that all fields are present in the output
+	output := sv.View()
+	
+	// Should contain all field names
+	expectedFields := []string{
+		"Host:", "Port:", "Base DN:", "Use SSL:", "Use TLS:", 
+		"Bind User:", "Bind Password:", "Page Size:",
+	}
+	
+	for _, field := range expectedFields {
+		if !strings.Contains(output, field) {
+			t.Errorf("Expected field '%s' to be present in output", field)
+		}
+	}
+
+	// Should contain the configuration values
+	expectedValues := []string{
+		"ldap.example.com", "636", "dc=example,dc=com", 
+		"true", "false", "cn=admin,dc=example,dc=com", "********", "100",
+	}
+	
+	for _, value := range expectedValues {
+		if !strings.Contains(output, value) {
+			t.Errorf("Expected value '%s' to be present in output", value)
+		}
+	}
+
+	// Check that title is present
+	if !strings.Contains(output, "🔧 LDAP Configuration 🔧") {
+		t.Error("Expected configuration title to be present in output")
+	}
+
+	// Check that instructions are present
+	if !strings.Contains(output, "Press [↑↓] to navigate, [Enter] to edit") {
+		t.Error("Expected navigation instructions to be present in output")
 	}
 }

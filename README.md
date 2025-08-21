@@ -84,6 +84,11 @@ ldap:
   bind_pass: "your-password"
 pagination:
   page_size: 50  # Number of entries per page
+retry:
+  enabled: true  # Connection retries (default: true)
+  max_attempts: 3  # Retry attempts (default: 3)
+  initial_delay_ms: 500  # Initial delay (default: 500)
+  max_delay_ms: 5000  # Max delay cap (default: 5000)
 ```
 
 ## Navigation
@@ -241,6 +246,47 @@ pagination:
 - **Smaller page sizes** (10-25) for slower networks or limited LDAP servers
 - **Larger page sizes** (100-200) for fast networks and powerful LDAP servers
 - **Use specific queries** to reduce result sets instead of browsing all entries
+
+## Connection Reliability & Retries
+
+LDAP CLI includes automatic retry functionality to handle connection failures gracefully:
+
+### Automatic Retries
+- **Default**: Enabled with 3 retry attempts
+- **Exponential Backoff**: Delay doubles between attempts (500ms → 1s → 2s → ...)
+- **Connection Recovery**: Automatically re-establishes broken connections
+- **Smart Detection**: Only retries connection-related errors, not authentication failures
+
+### Configuration Examples
+```bash
+# Default retry settings (automatically applied)
+# No configuration needed - retries work out of the box
+```
+
+```yaml
+# Custom retry configuration
+retry:
+  enabled: true
+  max_attempts: 5           # Maximum retry attempts (default: 3)
+  initial_delay_ms: 1000    # Initial delay in milliseconds (default: 500)
+  max_delay_ms: 10000       # Maximum delay cap (default: 5000)
+```
+
+```yaml
+# Disable retries if needed
+retry:
+  enabled: false
+```
+
+### Retryable Conditions
+The system automatically retries for:
+- **Network timeouts** and connection drops
+- **Connection refused** errors
+- **Server unavailable** responses  
+- **Connection reset** by peer
+- **LDAP server down** errors
+
+Authentication errors, invalid queries, and permission issues are **not** retried.
 
 ## Development
 

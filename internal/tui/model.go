@@ -72,6 +72,9 @@ func NewModelWithPageSize(client *ldap.Client, cfg *config.Config) *Model {
 
 // Init initializes the model
 func (m *Model) Init() tea.Cmd {
+	// Initialize bubblezone global manager
+	zone.NewGlobal()
+
 	var cmds []tea.Cmd
 
 	// Initialize bubblezone manager for mouse interactions
@@ -513,7 +516,6 @@ func (m *Model) handleZoneMessage(msg zone.MsgZoneInBounds) (tea.Model, tea.Cmd)
 			}
 		}
 	}
-
 	// If no zones matched, let the current view handle it
 	return m, nil
 }

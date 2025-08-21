@@ -37,3 +37,4 @@ Thumbs.db
 # Config files with secrets (keep sample configs)
 config/local.yaml
 config/production.yaml
+config/config.yaml
