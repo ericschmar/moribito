@@ -91,37 +91,31 @@ func main() {
 		cfg.LDAP.BindPass = string(password)
 	}
 
-	// Validate configuration - allow empty for demo mode
-	// if cfg.LDAP.Host == "" {
-	// 	log.Fatal("LDAP host is required")
-	// }
-	// if cfg.LDAP.BaseDN == "" {
-	// 	log.Fatal("Base DN is required")
-	// }
+	// Validate configuration (but allow for start page testing)
+	if cfg.LDAP.Host == "" || cfg.LDAP.BaseDN == "" {
+		fmt.Println("Warning: LDAP host and/or Base DN not configured.")
+		fmt.Println("You can configure these in the start page.")
+	}
 
-	// Create LDAP client - allow nil for start page demo mode
-	var client *ldap.Client
-	if cfg.LDAP.Host != "" && cfg.LDAP.BaseDN != "" {
-		ldapConfig := ldap.Config{
-			Host:     cfg.LDAP.Host,
-			Port:     cfg.LDAP.Port,
-			BaseDN:   cfg.LDAP.BaseDN,
-			UseSSL:   cfg.LDAP.UseSSL,
-			UseTLS:   cfg.LDAP.UseTLS,
-			BindUser: cfg.LDAP.BindUser,
-			BindPass: cfg.LDAP.BindPass,
-		}
+	// Try to create LDAP client
+	ldapConfig := ldap.Config{
+		Host:     cfg.LDAP.Host,
+		Port:     cfg.LDAP.Port,
+		BaseDN:   cfg.LDAP.BaseDN,
+		UseSSL:   cfg.LDAP.UseSSL,
+		UseTLS:   cfg.LDAP.UseTLS,
+		BindUser: cfg.LDAP.BindUser,
+		BindPass: cfg.LDAP.BindPass,
+	}
 
-		var err error
-		client, err = ldap.NewClient(ldapConfig)
-		if err != nil {
-			// For demo purposes, allow starting without connection
-			// log.Fatalf("Failed to connect to LDAP server: %v", err)
-			client = nil
-		}
-		if client != nil {
-			defer client.Close()
-		}
+	client, err := ldap.NewClient(ldapConfig)
+	if err != nil {
+		// Don't fail - allow the app to start with just the start view
+		fmt.Printf("Warning: Failed to connect to LDAP server: %v\n", err)
+		fmt.Println("Starting in configuration mode...")
+	}
+	if client != nil {
+		defer client.Close()
 	}
 
 	// Create and run the TUI

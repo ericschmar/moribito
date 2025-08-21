@@ -35,21 +35,14 @@ type Model struct {
 }
 
 // NewModel creates a new TUI model
-func NewModel(client *ldap.Client, cfg *config.Config) *Model {
-	var tree *TreeView
-	var queryView *QueryView
-
-	if client != nil {
-		tree = NewTreeView(client)
-		queryView = NewQueryView(client)
-	}
-
+func NewModel(client *ldap.Client) *Model {
+	cfg := config.Default() // Use default config
 	return &Model{
 		client:      client,
 		startView:   NewStartView(cfg),
-		tree:        tree,
+		tree:        NewTreeView(client),
 		recordView:  NewRecordView(),
-		queryView:   queryView,
+		queryView:   NewQueryView(client),
 		currentView: ViewModeStart,
 	}
 }
@@ -116,16 +109,19 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "0":
 			m.currentView = ViewModeStart
 			return m, nil
-		case "1":
-			if m.tree != nil {
-				m.currentView = ViewModeTree
+		case "1", "2", "3":
+			// Skip global navigation keys if we're in query view input mode
+			if m.currentView == ViewModeQuery && m.queryView != nil && m.queryView.IsInputMode() {
+				break // Let the query view handle the input
 			}
-			return m, nil
-		case "2":
-			m.currentView = ViewModeRecord
-			return m, nil
-		case "3":
-			if m.queryView != nil {
+			// Handle navigation keys for view switching
+			switch msg.String() {
+			case "1":
+				m.currentView = ViewModeTree
+			case "2":
+				m.currentView = ViewModeRecord
+			case "3":
+
 				m.currentView = ViewModeQuery
 			}
 			return m, nil
@@ -143,6 +139,16 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.recordView.SetEntry(msg.Entry)
 		m.currentView = ViewModeRecord
 		return m, nil
+
+	// Handle tree-specific messages regardless of current view
+	// This ensures tree loading works even when user switches away before completion
+	case RootNodeLoadedMsg, NodeChildrenLoadedMsg:
+		if m.tree != nil {
+			newModel, cmd := m.tree.Update(msg)
+			m.tree = newModel.(*TreeView)
+			cmds = append(cmds, cmd)
+		}
+		return m, tea.Batch(cmds...)
 	}
 
 	// Forward messages to current view
@@ -190,7 +196,7 @@ func (m *Model) View() string {
 		if m.tree != nil {
 			content = m.tree.View()
 		} else {
-			content = "Tree view requires LDAP connection"
+			content = "Tree view not available without LDAP connection"
 		}
 	case ViewModeRecord:
 		content = m.recordView.View()
@@ -198,7 +204,7 @@ func (m *Model) View() string {
 		if m.queryView != nil {
 			content = m.queryView.View()
 		} else {
-			content = "Query view requires LDAP connection"
+			content = "Query view not available without LDAP connection"
 		}
 	}
 

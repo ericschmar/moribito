@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/atotto/clipboard"
 	"github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/ericschmar/ldap-cli/internal/ldap"
@@ -63,6 +64,11 @@ func (qv *QueryView) Init() tea.Cmd {
 func (qv *QueryView) SetSize(width, height int) {
 	qv.width = width
 	qv.height = height
+}
+
+// IsInputMode returns true if the query view is in input mode
+func (qv *QueryView) IsInputMode() bool {
+	return qv.inputMode
 }
 
 // Update handles messages for the query view
@@ -141,6 +147,12 @@ func (qv *QueryView) handleInputMode(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	case "ctrl+u":
 		qv.query = ""
 		return qv, nil
+	case "ctrl+v":
+		// Handle paste from clipboard
+		if clipboardText, err := clipboard.ReadAll(); err == nil {
+			qv.query += clipboardText
+		}
+		return qv, nil
 	default:
 		// Handle regular character input
 		if len(msg.String()) == 1 && msg.String() >= " " {
@@ -188,7 +200,7 @@ func (qv *QueryView) handleBrowseMode(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		}
 	case "enter":
 		return qv, qv.viewSelectedRecord()
-	case "escape", "/":
+	case "esc", "/":
 		qv.inputMode = true
 		qv.cursor = 0
 		qv.viewport = 0
