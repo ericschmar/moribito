@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/charmbracelet/bubbles/viewport"
 	"github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/ericschmar/ldap-cli/internal/ldap"
@@ -17,7 +18,7 @@ type TreeView struct {
 	cursor        int
 	width         int
 	height        int
-	viewport      int
+	viewport      viewport.Model
 	loading       bool
 }
 
@@ -31,8 +32,9 @@ type TreeItem struct {
 // NewTreeView creates a new tree view
 func NewTreeView(client *ldap.Client) *TreeView {
 	return &TreeView{
-		client: client,
-		cursor: 0,
+		client:   client,
+		cursor:   0,
+		viewport: viewport.New(0, 0),
 	}
 }
 
@@ -45,58 +47,68 @@ func (tv *TreeView) Init() tea.Cmd {
 func (tv *TreeView) SetSize(width, height int) {
 	tv.width = width
 	tv.height = height
+	tv.viewport.Width = width
+	tv.viewport.Height = height
 }
 
 // Update handles messages for the tree view
 func (tv *TreeView) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	var cmd tea.Cmd
+
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		switch msg.String() {
 		case "up", "k":
 			if tv.cursor > 0 {
 				tv.cursor--
-				tv.adjustViewport()
+				tv.updateViewportForCursor()
 			}
 		case "down", "j":
 			if tv.cursor < len(tv.flattenedTree)-1 {
 				tv.cursor++
-				tv.adjustViewport()
+				tv.updateViewportForCursor()
 			}
 		case "page_up":
 			tv.cursor -= tv.height
 			if tv.cursor < 0 {
 				tv.cursor = 0
 			}
-			tv.adjustViewport()
+			tv.updateViewportForCursor()
 		case "page_down":
 			tv.cursor += tv.height
 			if tv.cursor >= len(tv.flattenedTree) {
 				tv.cursor = len(tv.flattenedTree) - 1
 			}
-			tv.adjustViewport()
+			tv.updateViewportForCursor()
 		case "home":
 			tv.cursor = 0
-			tv.adjustViewport()
+			tv.updateViewportForCursor()
 		case "end":
 			tv.cursor = len(tv.flattenedTree) - 1
-			tv.adjustViewport()
+			tv.updateViewportForCursor()
 		case "right", "l":
 			return tv, tv.expandNode()
 		case "left", "h":
 			return tv, tv.collapseNode()
 		case "enter":
 			return tv, tv.viewRecord()
+		default:
+			// Let viewport handle other keys (like mouse wheel)
+			tv.viewport, cmd = tv.viewport.Update(msg)
+			return tv, cmd
 		}
 
 	case RootNodeLoadedMsg:
 		tv.root = msg.Node
 		tv.loading = false
 		tv.rebuildFlattenedTree()
+		tv.updateViewportContent()
 		return tv, SendStatus("Tree loaded")
 
 	case NodeChildrenLoadedMsg:
 		tv.rebuildFlattenedTree()
 		tv.loading = false
+		tv.updateViewportContent()
 		return tv, SendStatus(fmt.Sprintf("Loaded children for %s", msg.Node.Name))
 
 	case tea.Msg:
@@ -126,25 +138,7 @@ func (tv *TreeView) View() string {
 			Render("No entries found")
 	}
 
-	var lines []string
-	visibleStart := tv.viewport
-	visibleEnd := visibleStart + tv.height
-	if visibleEnd > len(tv.flattenedTree) {
-		visibleEnd = len(tv.flattenedTree)
-	}
-
-	for i := visibleStart; i < visibleEnd; i++ {
-		item := tv.flattenedTree[i]
-		line := tv.renderTreeItem(item, i == tv.cursor)
-		lines = append(lines, line)
-	}
-
-	// Fill remaining space
-	for len(lines) < tv.height {
-		lines = append(lines, "")
-	}
-
-	return strings.Join(lines, "\n")
+	return tv.viewport.View()
 }
 
 // renderTreeItem renders a single tree item
@@ -177,7 +171,7 @@ func (tv *TreeView) renderTreeItem(item *TreeItem, isCursor bool) string {
 	}
 
 	// Truncate if too long
-	if len(content) > tv.width-2 {
+	if tv.width > 5 && len(content) > tv.width-2 {
 		content = content[:tv.width-5] + "..."
 	}
 
@@ -267,6 +261,40 @@ func (tv *TreeView) rebuildFlattenedTree() {
 	if tv.root != nil {
 		tv.flattenTreeNode(tv.root, 0, true)
 	}
+	tv.updateViewportContent()
+}
+
+// updateViewportContent updates the viewport with current tree content
+func (tv *TreeView) updateViewportContent() {
+	if len(tv.flattenedTree) == 0 {
+		tv.viewport.SetContent("")
+		return
+	}
+
+	var lines []string
+	for i, item := range tv.flattenedTree {
+		line := tv.renderTreeItem(item, i == tv.cursor)
+		lines = append(lines, line)
+	}
+
+	content := strings.Join(lines, "\n")
+	tv.viewport.SetContent(content)
+}
+
+// updateViewportForCursor updates viewport content and ensures cursor is visible
+func (tv *TreeView) updateViewportForCursor() {
+	tv.updateViewportContent()
+
+	// Ensure cursor is visible by scrolling viewport if needed
+	if tv.cursor < tv.viewport.YOffset {
+		tv.viewport.YOffset = tv.cursor
+	} else if tv.cursor >= tv.viewport.YOffset+tv.viewport.Height {
+		tv.viewport.YOffset = tv.cursor - tv.viewport.Height + 1
+	}
+
+	if tv.viewport.YOffset < 0 {
+		tv.viewport.YOffset = 0
+	}
 }
 
 // flattenTreeNode recursively flattens the tree structure
@@ -283,19 +311,6 @@ func (tv *TreeView) flattenTreeNode(node *ldap.TreeNode, level int, isLast bool)
 			isLastChild := i == len(node.Children)-1
 			tv.flattenTreeNode(child, level+1, isLastChild)
 		}
-	}
-}
-
-// adjustViewport adjusts the viewport to keep the cursor visible
-func (tv *TreeView) adjustViewport() {
-	if tv.cursor < tv.viewport {
-		tv.viewport = tv.cursor
-	} else if tv.cursor >= tv.viewport+tv.height {
-		tv.viewport = tv.cursor - tv.height + 1
-	}
-
-	if tv.viewport < 0 {
-		tv.viewport = 0
 	}
 }
 
