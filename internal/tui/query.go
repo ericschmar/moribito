@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/atotto/clipboard"
 	"github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/ericschmar/ldap-cli/internal/ldap"
@@ -145,6 +146,12 @@ func (qv *QueryView) handleInputMode(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return qv, nil
 	case "ctrl+u":
 		qv.query = ""
+		return qv, nil
+	case "ctrl+v":
+		// Handle paste from clipboard
+		if clipboardText, err := clipboard.ReadAll(); err == nil {
+			qv.query += clipboardText
+		}
 		return qv, nil
 	default:
 		// Handle regular character input

@@ -3,6 +3,7 @@ package tui
 import (
 	"testing"
 
+	"github.com/atotto/clipboard"
 	"github.com/charmbracelet/bubbletea"
 	"github.com/ericschmar/ldap-cli/internal/ldap"
 )
@@ -74,5 +75,29 @@ func TestQueryView_NumberKeysInBrowseMode(t *testing.T) {
 
 	if qv.query != originalQuery {
 		t.Error("Query should not be modified by number keys in browse mode")
+	}
+}
+
+func TestQueryView_PasteInQueryMode(t *testing.T) {
+	var client *ldap.Client
+	qv := NewQueryView(client)
+	qv.query = "(objectClass="
+
+	// Set clipboard content for testing
+	testContent := "person)"
+	err := clipboard.WriteAll(testContent)
+	if err != nil {
+		t.Skipf("Clipboard not available in test environment: %v", err)
+	}
+
+	// Create ctrl+v key message
+	keyMsg := tea.KeyMsg{Type: tea.KeyCtrlV}
+
+	// Update should handle the paste
+	_, _ = qv.handleInputMode(keyMsg)
+
+	expected := "(objectClass=person)"
+	if qv.query != expected {
+		t.Errorf("Expected query to be '%s' after paste, got '%s'", expected, qv.query)
 	}
 }
