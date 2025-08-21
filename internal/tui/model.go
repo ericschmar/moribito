@@ -244,40 +244,75 @@ func (m *Model) switchView() *Model {
 }
 
 func (m *Model) renderStatusBar() string {
-	var viewName string
-	switch m.currentView {
-	case ViewModeStart:
-		viewName = "Start Page"
-	case ViewModeTree:
-		viewName = "Tree Explorer"
-	case ViewModeRecord:
-		viewName = "Record View"
-	case ViewModeQuery:
-		viewName = "Query Interface"
+	// Define emojis and colors for each view
+	viewInfo := map[ViewMode]struct {
+		name  string
+		emoji string
+		color string
+	}{
+		ViewModeStart:  {"Start Page", "🏠", "99"},       // Purple
+		ViewModeTree:   {"Tree Explorer", "🌳", "40"},    // Green
+		ViewModeRecord: {"Record View", "📄", "33"},      // Blue
+		ViewModeQuery:  {"Query Interface", "🔍", "208"}, // Orange
 	}
 
-	status := fmt.Sprintf("View: %s", viewName)
-	if m.statusMsg != "" {
-		status += fmt.Sprintf(" | %s", m.statusMsg)
-	}
-	if m.err != nil {
-		status += fmt.Sprintf(" | Error: %s", m.err.Error())
-	}
+	info := viewInfo[m.currentView]
 
-	// Use a more colorful status bar
-	bgColor := "240"
-	if m.err != nil {
-		bgColor = "196" // Red background for errors
-	} else if m.statusMsg != "" {
-		bgColor = "28" // Green background for status messages
-	}
-
-	return lipgloss.NewStyle().
-		Background(lipgloss.Color(bgColor)).
+	// Create the main view indicator with emoji and styling
+	viewStyle := lipgloss.NewStyle().
+		Background(lipgloss.Color(info.color)).
 		Foreground(lipgloss.Color("15")).
-		Width(m.width).
+		Bold(true).
 		Padding(0, 1).
-		Render(status)
+		Border(lipgloss.RoundedBorder()).
+		BorderForeground(lipgloss.Color(info.color))
+
+	viewIndicator := viewStyle.Render(fmt.Sprintf("%s %s", info.emoji, info.name))
+
+	var statusParts []string
+	statusParts = append(statusParts, viewIndicator)
+
+	// Add status message with its own styling if present
+	if m.statusMsg != "" {
+		statusStyle := lipgloss.NewStyle().
+			Background(lipgloss.Color("28")). // Green background
+			Foreground(lipgloss.Color("15")).
+			Bold(true).
+			Padding(0, 1).
+			Border(lipgloss.RoundedBorder()).
+			BorderForeground(lipgloss.Color("28"))
+
+		statusParts = append(statusParts, statusStyle.Render("ℹ️  "+m.statusMsg))
+	}
+
+	// Add error with dramatic styling if present
+	if m.err != nil {
+		errorStyle := lipgloss.NewStyle().
+			Background(lipgloss.Color("196")). // Red background
+			Foreground(lipgloss.Color("15")).
+			Bold(true).
+			Italic(true).
+			Padding(0, 1).
+			Border(lipgloss.RoundedBorder()).
+			BorderForeground(lipgloss.Color("196"))
+
+		statusParts = append(statusParts, errorStyle.Render("⚠️  "+m.err.Error()))
+	}
+
+	// Join all parts with some spacing
+	statusContent := lipgloss.JoinHorizontal(lipgloss.Center, statusParts...)
+
+	// Create the container with a stylish background and border
+	containerStyle := lipgloss.NewStyle().
+		Width(m.width).
+		Padding(0, 2).
+		Background(lipgloss.Color("235")). // Dark gray background
+		Border(lipgloss.NormalBorder()).
+		BorderTop(true).
+		BorderForeground(lipgloss.Color("241")). // Lighter gray border
+		Align(lipgloss.Left)
+
+	return containerStyle.Render(statusContent)
 }
 
 func (m *Model) renderTabBar() string {
