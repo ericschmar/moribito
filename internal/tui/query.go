@@ -6,11 +6,21 @@ import (
 
 	"github.com/atotto/clipboard"
 	"github.com/charmbracelet/bubbles/textarea"
-	"github.com/charmbracelet/bubbletea"
+	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/ericschmar/ldap-cli/internal/ldap"
 	zone "github.com/lrstanley/bubblezone"
 )
+
+// Message types for query results
+type QueryResultsMsg struct {
+	Results []*ldap.Entry
+}
+
+type QueryPageMsg struct {
+	Page        *ldap.SearchPage
+	IsFirstPage bool
+}
 
 // QueryView provides an interface for LDAP queries
 type QueryView struct {
@@ -48,11 +58,10 @@ func NewQueryView(client *ldap.Client) *QueryView {
 		inputMode: true,
 		cursor:    0,
 		pageSize:  50, // Default page size
-		hasMore:   false,
 	}
 }
 
-// NewQueryViewWithPageSize creates a new query view with specified page size
+// NewQueryViewWithPageSize creates a new query view with custom page size
 func NewQueryViewWithPageSize(client *ldap.Client, pageSize uint32) *QueryView {
 	ta := textarea.New()
 	ta.SetValue("(objectClass=*)")
@@ -66,8 +75,12 @@ func NewQueryViewWithPageSize(client *ldap.Client, pageSize uint32) *QueryView {
 		inputMode: true,
 		cursor:    0,
 		pageSize:  pageSize,
-		hasMore:   false,
 	}
+}
+
+// IsInputMode returns whether the query view is in input mode
+func (qv *QueryView) IsInputMode() bool {
+	return qv.inputMode
 }
 
 // Init initializes the query view
@@ -87,16 +100,13 @@ func (qv *QueryView) SetSize(width, height int) {
 	// Set textarea width to fit within the content area
 	qv.textarea.SetWidth(contentWidth - 4) // Account for border and padding
 	// Allow the textarea to be multi-line but limit height reasonably
-	qv.textarea.SetHeight(6) // Start with 6 lines, can expand
+	qv.textarea.SetHeight(3)
 }
 
-// IsInputMode returns true if the query view is in input mode
-func (qv *QueryView) IsInputMode() bool {
-	return qv.inputMode
-}
-
-// Update handles messages for the query view
+// Update handles input for the query view
 func (qv *QueryView) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	var cmd tea.Cmd
+
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		if qv.inputMode {
@@ -129,16 +139,20 @@ func (qv *QueryView) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			qv.results = append(qv.results, msg.Page.Entries...)
 		}
 
+		// Update pagination state
+		qv.hasMore = msg.Page.HasMore
+		qv.currentCookie = msg.Page.Cookie
 		qv.loading = false
 		qv.loadingNextPage = false
 		qv.error = nil
 		qv.inputMode = false
-		qv.textarea.Blur() // Blur the textarea when browsing results
-		qv.hasMore = msg.Page.HasMore
-		qv.currentCookie = msg.Page.Cookie
-		qv.buildResultLines()
+		qv.textarea.Blur()
 
-		statusMsg := fmt.Sprintf("Loaded %d results", len(qv.results))
+		qv.buildResultLines()
+		qv.adjustViewport()
+
+		totalResults := len(qv.results)
+		statusMsg := fmt.Sprintf("Found %d results", totalResults)
 		if qv.hasMore {
 			statusMsg += " (more available)"
 		}
@@ -151,41 +165,58 @@ func (qv *QueryView) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return qv, nil
 	}
 
-	return qv, nil
+	return qv, cmd
 }
 
-// handleInputMode handles input when in query input mode
+// handleInputMode handles input when the textarea is focused
 func (qv *QueryView) handleInputMode(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+	var cmd tea.Cmd
+
 	switch msg.String() {
-	case "ctrl+enter", "ctrl+j":
-		// Execute query with Ctrl+Enter or Ctrl+J
-		query := strings.TrimSpace(qv.textarea.Value())
-		if query == "" {
-			return qv, SendError(fmt.Errorf("query cannot be empty"))
+	case "enter":
+		if !qv.loading {
+			qv.loading = true
+			qv.error = nil
+			return qv, qv.executeQuery()
 		}
-		return qv, qv.executeQuery()
-	case "escape":
-		qv.textarea.SetValue("")
 		return qv, nil
-	case "ctrl+u":
-		qv.textarea.SetValue("")
+
+	case "esc":
+		if qv.loading {
+			qv.loading = false
+			return qv, nil
+		}
+		// Clear results and reset to input mode
+		qv.results = nil
+		qv.ResultLines = nil
+		qv.cursor = 0
+		qv.viewport = 0
+		qv.hasMore = false
+		qv.currentCookie = nil
+		qv.inputMode = true
+		qv.textarea.Focus()
 		return qv, nil
+
+	case "ctrl+c":
+		return qv, tea.Quit
+
+	case "tab":
+		// Switch to browse mode if we have results
+		if len(qv.results) > 0 {
+			qv.inputMode = false
+			qv.textarea.Blur()
+		}
+		return qv, nil
+
 	case "ctrl+v":
-		// Handle paste from clipboard
+		// Handle paste
 		if clipboardText, err := clipboard.ReadAll(); err == nil {
-			qv.textarea.InsertString(clipboardText)
+			qv.textarea.SetValue(qv.textarea.Value() + clipboardText)
 		}
-		return qv, nil
-	case "ctrl+f":
-		// Format the current query
-		currentQuery := qv.textarea.Value()
-		formattedQuery := qv.formatLdapQuery(currentQuery)
-		qv.textarea.SetValue(formattedQuery)
 		return qv, nil
 	}
 
-	// Let textarea handle the input
-	var cmd tea.Cmd
+	// Forward to textarea
 	qv.textarea, cmd = qv.textarea.Update(msg)
 	return qv, cmd
 }
@@ -202,11 +233,6 @@ func (qv *QueryView) handleBrowseMode(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		if qv.cursor < len(qv.ResultLines)-1 {
 			qv.cursor++
 			qv.adjustViewport()
-
-			// Check if we need to load next page
-			if cmd := qv.checkLoadNextPage(); cmd != nil {
-				return qv, cmd
-			}
 		}
 	case "page_up":
 		_, contentHeight := qv.container.GetContentDimensions()
@@ -228,19 +254,28 @@ func (qv *QueryView) handleBrowseMode(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			qv.cursor = len(qv.ResultLines) - 1
 		}
 		qv.adjustViewport()
-
-		// Check if we need to load next page
-		if cmd := qv.checkLoadNextPage(); cmd != nil {
-			return qv, cmd
-		}
-	case "enter":
-		return qv, qv.viewSelectedRecord()
-	case "esc", "/":
-		qv.inputMode = true
+	case "home":
 		qv.cursor = 0
-		qv.viewport = 0
-		qv.textarea.Focus() // Focus the textarea when returning to input mode
+		qv.adjustViewport()
+	case "end":
+		qv.cursor = len(qv.ResultLines) - 1
+		qv.adjustViewport()
+	case "enter", " ":
+		// Show record details for selected entry
+		if qv.cursor < len(qv.results) {
+			return qv, ShowRecord(qv.results[qv.cursor])
+		}
+	case "esc":
+		// Return to input mode
+		qv.inputMode = true
+		qv.textarea.Focus()
 		return qv, nil
+	case "n":
+		// Load next page if available
+		if qv.hasMore && !qv.loadingNextPage {
+			qv.loadingNextPage = true
+			return qv, qv.loadNextPage()
+		}
 	}
 
 	return qv, nil
@@ -252,113 +287,134 @@ func (qv *QueryView) View() string {
 		qv.container = NewViewContainer(qv.width, qv.height)
 	}
 
-	var content strings.Builder
+	var sections []string
 
-	// Header
-	headerStyle := lipgloss.NewStyle().
-		Foreground(lipgloss.Color("12")).
-		Bold(true)
+	// Title
+	titleStyle := lipgloss.NewStyle().
+		Foreground(lipgloss.Color("15")).
+		Background(lipgloss.Color("13")).
+		Bold(true).
+		Padding(1, 2).
+		Margin(0, 0, 1, 0)
 
-	content.WriteString(headerStyle.Render("LDAP Query Interface"))
-	content.WriteString("\n\n")
+	title := titleStyle.Render("🔍 LDAP Query Interface")
+	sections = append(sections, title)
 
-	// Query input area using textarea
-	queryStyle := lipgloss.NewStyle().
+	// Query input area
+	queryHeader := lipgloss.NewStyle().
+		Foreground(lipgloss.Color("14")).
+		Bold(true).
+		Render("Query:")
+
+	sections = append(sections, queryHeader)
+
+	// Textarea with border
+	textareaStyle := lipgloss.NewStyle().
 		Border(lipgloss.RoundedBorder()).
+		BorderForeground(lipgloss.Color("6")).
 		Padding(0, 1)
 
-	if qv.inputMode {
-		queryStyle = queryStyle.BorderForeground(lipgloss.Color("12"))
-	}
+	textareaContent := textareaStyle.Render(qv.textarea.View())
+	sections = append(sections, textareaContent)
 
-	// Render the textarea
-	textareaView := qv.textarea.View()
-	content.WriteString(queryStyle.Render(textareaView))
-
-	// Add instruction text
-	if qv.inputMode {
-		instructionStyle := lipgloss.NewStyle().
-			Foreground(lipgloss.Color("8")).
-			Italic(true)
-		content.WriteString("\n")
-		content.WriteString(instructionStyle.Render("Press Ctrl+Enter to execute query, Ctrl+F to format, Escape to clear, / to return to search"))
-	}
-	content.WriteString("\n\n")
-
-	// Get content dimensions for results area
-	_, contentHeight := qv.container.GetContentDimensions()
-	remainingHeight := contentHeight - 8 // Account for header, query input, and instruction
-
+	// Status/loading information
 	if qv.loading {
-		statusContent := lipgloss.NewStyle().
-			AlignHorizontal(lipgloss.Center).
-			Render("Executing query...")
-		content.WriteString(statusContent)
+		loadingStyle := lipgloss.NewStyle().
+			Foreground(lipgloss.Color("11")).
+			Italic(true)
+		sections = append(sections, loadingStyle.Render("⏳ Executing query..."))
+	} else if qv.loadingNextPage {
+		loadingStyle := lipgloss.NewStyle().
+			Foreground(lipgloss.Color("11")).
+			Italic(true)
+		sections = append(sections, loadingStyle.Render("⏳ Loading next page..."))
 	} else if qv.error != nil {
 		errorStyle := lipgloss.NewStyle().
-			Foreground(lipgloss.Color("9"))
-		content.WriteString(errorStyle.Render(fmt.Sprintf("Error: %s", qv.error.Error())))
-	} else if len(qv.results) == 0 && !qv.inputMode {
-		content.WriteString("No results found")
-	} else if len(qv.results) > 0 {
-		content.WriteString(qv.renderResults(remainingHeight))
-	} else if qv.inputMode {
-		content.WriteString("Enter your LDAP query above and press Ctrl+Enter to execute")
+			Foreground(lipgloss.Color("9")).
+			Bold(true)
+		sections = append(sections, errorStyle.Render(fmt.Sprintf("❌ Error: %s", qv.error.Error())))
 	}
 
-	return qv.container.RenderWithPadding(content.String())
+	// Results area
+	if len(qv.results) > 0 {
+		resultsHeader := lipgloss.NewStyle().
+			Foreground(lipgloss.Color("14")).
+			Bold(true).
+			Margin(1, 0, 0, 0).
+			Render("Results:")
+		sections = append(sections, resultsHeader)
+
+		// Get content dimensions for results area
+		_, contentHeight := qv.container.GetContentDimensions()
+		remainingHeight := contentHeight - 8 // Account for header, query input, and instruction
+
+		if remainingHeight > 0 {
+			resultsContent := qv.renderResults(remainingHeight)
+			sections = append(sections, resultsContent)
+		}
+	}
+
+	// Instructions
+	var instructions string
+	if qv.inputMode {
+		instructions = "Press [Enter] to execute • [Esc] to clear • [Tab] to browse results"
+		if len(qv.results) > 0 {
+			instructions += " • [Ctrl+V] to paste"
+		}
+	} else {
+		instructions = "Press [↑↓] to navigate • [Enter/Space] to view record • [Esc] to edit query"
+		if qv.hasMore {
+			instructions += " • [N] for next page"
+		}
+	}
+
+	instructionStyle := lipgloss.NewStyle().
+		Foreground(lipgloss.Color("8")).
+		Italic(true).
+		Margin(1, 0, 0, 0)
+	sections = append(sections, instructionStyle.Render(instructions))
+
+	content := strings.Join(sections, "\n")
+
+	return qv.container.RenderWithPadding(content)
 }
 
-// renderResults renders the query results
-func (qv *QueryView) renderResults(height int) string {
+// renderResults renders the results list
+func (qv *QueryView) renderResults(maxHeight int) string {
 	if len(qv.ResultLines) == 0 {
-		return ""
+		return "No results"
 	}
 
-	var lines []string
-
-	// Add results header with pagination info
-	headerStyle := lipgloss.NewStyle().
-		Foreground(lipgloss.Color("10")).
-		Bold(true)
-
-	headerText := fmt.Sprintf("Results (%d entries", len(qv.results))
-	if qv.hasMore {
-		headerText += ", more available"
-	}
-	headerText += "):"
-
-	if qv.loadingNextPage {
-		headerText += " [Loading next page...]"
-	}
-
-	lines = append(lines, headerStyle.Render(headerText))
-	lines = append(lines, "")
-
-	// Add result lines
+	// Calculate visible range
 	visibleStart := qv.viewport
-	visibleEnd := visibleStart + height - 2 // Account for header
+	visibleEnd := visibleStart + maxHeight
 	if visibleEnd > len(qv.ResultLines) {
 		visibleEnd = len(qv.ResultLines)
 	}
+
+	var lines []string
 
 	// Get content dimensions for consistent width handling
 	contentWidth, _ := qv.container.GetContentDimensions()
 
 	for i := visibleStart; i < visibleEnd; i++ {
 		line := qv.ResultLines[i]
-		style := lipgloss.NewStyle()
+		isSelected := i == qv.cursor
 
-		if i == qv.cursor {
-			style = style.Background(lipgloss.Color("240")).Foreground(lipgloss.Color("15"))
+		var renderedLine string
+		if isSelected {
+			style := lipgloss.NewStyle().
+				Foreground(lipgloss.Color("0")).
+				Background(lipgloss.Color("4")).
+				Bold(true).
+				Width(contentWidth - 4) // Account for padding
+			renderedLine = style.Render(line)
+		} else {
+			style := lipgloss.NewStyle().
+				Foreground(lipgloss.Color("15")).
+				Width(contentWidth - 4)
+			renderedLine = style.Render(line)
 		}
-
-		// Truncate if too long, using consistent width calculation
-		if contentWidth > 5 && len(line) > contentWidth-2 {
-			line = line[:contentWidth-5] + "..."
-		}
-
-		renderedLine := style.Render(line)
 
 		// Wrap with clickable zone
 		zoneID := fmt.Sprintf("query-result-%d", i)
@@ -367,18 +423,26 @@ func (qv *QueryView) renderResults(height int) string {
 		lines = append(lines, renderedLine)
 	}
 
-	return strings.Join(lines, "\n")
+	result := strings.Join(lines, "\n")
+
+	// Add pagination info if applicable
+	if qv.hasMore {
+		paginationInfo := lipgloss.NewStyle().
+			Foreground(lipgloss.Color("8")).
+			Italic(true).
+			Render(fmt.Sprintf("Page info: Showing %d-%d of %d+ results", visibleStart+1, visibleEnd, len(qv.ResultLines)))
+		result += "\n" + paginationInfo
+	}
+
+	return result
 }
 
-// executeQuery executes the LDAP query using pagination
+// executeQuery executes the current query
 func (qv *QueryView) executeQuery() tea.Cmd {
-	qv.loading = true
-	qv.hasMore = false
-	qv.currentCookie = nil
-	qv.results = nil
-	qv.ResultLines = nil
-
 	query := strings.TrimSpace(qv.textarea.Value())
+	if query == "" {
+		return SendError(fmt.Errorf("query cannot be empty"))
+	}
 
 	return func() tea.Msg {
 		page, err := qv.client.CustomSearchPaged(query, qv.pageSize, nil)
@@ -391,12 +455,10 @@ func (qv *QueryView) executeQuery() tea.Cmd {
 
 // loadNextPage loads the next page of results
 func (qv *QueryView) loadNextPage() tea.Cmd {
-	if !qv.hasMore || qv.loadingNextPage || qv.currentCookie == nil {
-		return nil
-	}
-
-	qv.loadingNextPage = true
 	query := strings.TrimSpace(qv.textarea.Value())
+	if query == "" {
+		return SendError(fmt.Errorf("query cannot be empty"))
+	}
 
 	return func() tea.Msg {
 		page, err := qv.client.CustomSearchPaged(query, qv.pageSize, qv.currentCookie)
@@ -407,55 +469,26 @@ func (qv *QueryView) loadNextPage() tea.Cmd {
 	}
 }
 
-// checkLoadNextPage checks if we need to load the next page based on cursor position
-func (qv *QueryView) checkLoadNextPage() tea.Cmd {
-	if !qv.hasMore || qv.loadingNextPage {
-		return nil
-	}
-
-	// Load next page when we're within 5 entries of the end
-	entriesFromEnd := len(qv.results) - (qv.cursor / 4) // Approximate cursor to entry mapping
-	if entriesFromEnd <= 5 {
-		return qv.loadNextPage()
-	}
-
-	return nil
-}
-
-// viewSelectedRecord shows the selected record
-func (qv *QueryView) viewSelectedRecord() tea.Cmd {
-	if qv.cursor >= len(qv.results) {
-		return nil
-	}
-
-	entry := qv.results[qv.cursor]
-	return ShowRecord(entry)
-}
-
-// buildResultLines builds display lines from the results
+// buildResultLines builds the display lines from results
 func (qv *QueryView) buildResultLines() {
-	qv.ResultLines = nil
+	qv.ResultLines = qv.ResultLines[:0] // Clear but keep capacity
 
 	for _, entry := range qv.results {
-		// Add DN
-		dnStyle := lipgloss.NewStyle().
-			Foreground(lipgloss.Color("11")).
-			Bold(true)
-
-		qv.ResultLines = append(qv.ResultLines, dnStyle.Render(entry.DN))
+		// Format entry for display
+		line := fmt.Sprintf("DN: %s", entry.DN)
+		qv.ResultLines = append(qv.ResultLines, line)
 
 		// Add a few key attributes for preview
-		previewAttrs := []string{"cn", "ou", "objectClass", "name", "displayName"}
-		for _, attr := range previewAttrs {
-			if values, exists := entry.Attributes[attr]; exists && len(values) > 0 {
-				value := values[0]
-				if len(values) > 1 {
-					value += fmt.Sprintf(" (+%d more)", len(values)-1)
+		for attrName, attrValues := range entry.Attributes {
+			if len(attrValues) > 0 {
+				line = fmt.Sprintf("  %s: %s", attrName, attrValues[0])
+				if len(attrValues) > 1 {
+					line += fmt.Sprintf(" (+%d more)", len(attrValues)-1)
 				}
-				qv.ResultLines = append(qv.ResultLines, fmt.Sprintf("  %s: %s", attr, value))
+				qv.ResultLines = append(qv.ResultLines, line)
 			}
 		}
-		qv.ResultLines = append(qv.ResultLines, "")
+		qv.ResultLines = append(qv.ResultLines, "") // Empty line between entries
 	}
 
 	// Remove trailing empty line
@@ -482,132 +515,4 @@ func (qv *QueryView) adjustViewport() {
 	if qv.viewport < 0 {
 		qv.viewport = 0
 	}
-}
-
-// formatLdapQuery formats an LDAP query with proper indentation
-func (qv *QueryView) formatLdapQuery(query string) string {
-	query = strings.TrimSpace(query)
-	if query == "" {
-		return query
-	}
-
-	return formatLdapFilter(query, 0)
-}
-
-// formatLdapFilter recursively formats LDAP filter expressions
-func formatLdapFilter(filter string, indentLevel int) string {
-	filter = strings.TrimSpace(filter)
-	if filter == "" {
-		return filter
-	}
-
-	// If it doesn't start with '(', it's not a valid LDAP filter
-	if !strings.HasPrefix(filter, "(") || !strings.HasSuffix(filter, ")") {
-		return filter
-	}
-
-	// Remove outer parentheses
-	inner := filter[1 : len(filter)-1]
-
-	// Check if this is a simple attribute=value filter
-	if !strings.ContainsAny(inner, "&|!") {
-		return filter // Return as-is for simple filters
-	}
-
-	// Handle complex filters with operators
-	if len(inner) == 0 {
-		return filter
-	}
-
-	operator := inner[0]
-	if operator != '&' && operator != '|' && operator != '!' {
-		return filter // Not a logical operator
-	}
-
-	// Parse the operands
-	operands := parseFilterOperands(inner[1:])
-	if len(operands) == 0 {
-		return filter
-	}
-
-	indent := strings.Repeat("  ", indentLevel)
-	childIndent := strings.Repeat("  ", indentLevel+1)
-
-	var result strings.Builder
-	result.WriteString("(" + string(operator))
-
-	for _, operand := range operands {
-		result.WriteString("\n")
-		result.WriteString(childIndent)
-		result.WriteString(formatLdapFilter(operand, indentLevel+1))
-	}
-
-	result.WriteString("\n")
-	result.WriteString(indent)
-	result.WriteString(")")
-
-	return result.String()
-}
-
-// parseFilterOperands parses the operands of a logical filter
-func parseFilterOperands(content string) []string {
-	var operands []string
-	var current strings.Builder
-	depth := 0
-
-	for i, char := range content {
-		if char == '(' {
-			if depth == 0 && current.Len() > 0 {
-				// This shouldn't happen in valid filters, but handle gracefully
-				operands = append(operands, strings.TrimSpace(current.String()))
-				current.Reset()
-			}
-			current.WriteRune(char)
-			depth++
-		} else if char == ')' {
-			current.WriteRune(char)
-			depth--
-			if depth == 0 {
-				// Complete operand found
-				operand := strings.TrimSpace(current.String())
-				if operand != "" {
-					operands = append(operands, operand)
-				}
-				current.Reset()
-			}
-		} else {
-			current.WriteRune(char)
-		}
-
-		// Safety check for malformed filters
-		if depth < 0 {
-			// Malformed filter, return what we have
-			remaining := content[i:]
-			if remaining != "" {
-				operands = append(operands, current.String()+remaining)
-			}
-			break
-		}
-	}
-
-	// Handle any remaining content
-	if current.Len() > 0 {
-		remaining := strings.TrimSpace(current.String())
-		if remaining != "" {
-			operands = append(operands, remaining)
-		}
-	}
-
-	return operands
-}
-
-// QueryResultsMsg represents query results
-type QueryResultsMsg struct {
-	Results []*ldap.Entry
-}
-
-// QueryPageMsg represents a page of query results
-type QueryPageMsg struct {
-	Page        *ldap.SearchPage
-	IsFirstPage bool
 }

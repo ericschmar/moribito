@@ -7,7 +7,7 @@ import (
 
 	"github.com/atotto/clipboard"
 	"github.com/charmbracelet/bubbles/table"
-	"github.com/charmbracelet/bubbletea"
+	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/ericschmar/ldap-cli/internal/ldap"
 	zone "github.com/lrstanley/bubblezone"
@@ -127,8 +127,6 @@ func (rv *RecordView) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	rv.table, cmd = rv.table.Update(msg)
 	return rv, cmd
 }
-
-// View renders the record view
 func (rv *RecordView) View() string {
 	if rv.container == nil {
 		rv.container = NewViewContainer(rv.width, rv.height)
@@ -142,6 +140,7 @@ func (rv *RecordView) View() string {
 	content := rv.dnHeader + "\n\n" + rv.renderTable()
 	return rv.container.RenderWithPadding(content)
 }
+
 
 // buildTable builds the table data from the entry
 func (rv *RecordView) buildTable() {
