@@ -5,6 +5,7 @@ import (
 
 	"github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+	"github.com/ericschmar/ldap-cli/internal/config"
 	"github.com/ericschmar/ldap-cli/internal/ldap"
 )
 
@@ -12,7 +13,8 @@ import (
 type ViewMode int
 
 const (
-	ViewModeTree ViewMode = iota
+	ViewModeStart ViewMode = iota
+	ViewModeTree
 	ViewModeRecord
 	ViewModeQuery
 )
@@ -20,6 +22,7 @@ const (
 // Model represents the main TUI model
 type Model struct {
 	client      *ldap.Client
+	startView   *StartView
 	tree        *TreeView
 	recordView  *RecordView
 	queryView   *QueryView
@@ -33,32 +36,48 @@ type Model struct {
 
 // NewModel creates a new TUI model
 func NewModel(client *ldap.Client) *Model {
+	cfg := config.Default() // Use default config
 	return &Model{
 		client:      client,
+		startView:   NewStartView(cfg),
 		tree:        NewTreeView(client),
 		recordView:  NewRecordView(),
 		queryView:   NewQueryView(client),
-		currentView: ViewModeTree,
+		currentView: ViewModeStart,
 	}
 }
 
 // NewModelWithPageSize creates a new TUI model with specified page size for queries
-func NewModelWithPageSize(client *ldap.Client, pageSize uint32) *Model {
+func NewModelWithPageSize(client *ldap.Client, cfg *config.Config) *Model {
+	var tree *TreeView
+	var queryView *QueryView
+
+	if client != nil {
+		tree = NewTreeView(client)
+		queryView = NewQueryViewWithPageSize(client, cfg.Pagination.PageSize)
+	}
+
 	return &Model{
 		client:      client,
-		tree:        NewTreeView(client),
+		startView:   NewStartView(cfg),
+		tree:        tree,
 		recordView:  NewRecordView(),
-		queryView:   NewQueryViewWithPageSize(client, pageSize),
-		currentView: ViewModeTree,
+		queryView:   queryView,
+		currentView: ViewModeStart,
 	}
 }
 
 // Init initializes the model
 func (m *Model) Init() tea.Cmd {
-	return tea.Batch(
-		m.tree.Init(),
-		tea.EnterAltScreen,
-	)
+	var cmds []tea.Cmd
+
+	if m.tree != nil {
+		cmds = append(cmds, m.tree.Init())
+	}
+
+	cmds = append(cmds, tea.EnterAltScreen)
+
+	return tea.Batch(cmds...)
 }
 
 // Update handles messages
@@ -71,9 +90,14 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.height = msg.Height
 
 		// Update child views
-		m.tree.SetSize(msg.Width, msg.Height-3) // Reserve space for status and help
+		m.startView.SetSize(msg.Width, msg.Height-3) // Reserve space for status and help
+		if m.tree != nil {
+			m.tree.SetSize(msg.Width, msg.Height-3)
+		}
 		m.recordView.SetSize(msg.Width, msg.Height-3)
-		m.queryView.SetSize(msg.Width, msg.Height-3)
+		if m.queryView != nil {
+			m.queryView.SetSize(msg.Width, msg.Height-3)
+		}
 
 	case tea.KeyMsg:
 		switch msg.String() {
@@ -82,6 +106,9 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, tea.Quit
 		case "tab":
 			return m.switchView(), nil
+		case "0":
+			m.currentView = ViewModeStart
+			return m, nil
 		case "1", "2", "3":
 			// Skip global navigation keys if we're in query view input mode
 			if m.currentView == ViewModeQuery && m.queryView != nil && m.queryView.IsInputMode() {
@@ -94,6 +121,7 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			case "2":
 				m.currentView = ViewModeRecord
 			case "3":
+
 				m.currentView = ViewModeQuery
 			}
 			return m, nil
@@ -115,10 +143,17 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	// Forward messages to current view
 	switch m.currentView {
-	case ViewModeTree:
-		newModel, cmd := m.tree.Update(msg)
-		m.tree = newModel.(*TreeView)
+	case ViewModeStart:
+		newModel, cmd := m.startView.Update(msg)
+		m.startView = newModel.(*StartView)
 		cmds = append(cmds, cmd)
+
+	case ViewModeTree:
+		if m.tree != nil {
+			newModel, cmd := m.tree.Update(msg)
+			m.tree = newModel.(*TreeView)
+			cmds = append(cmds, cmd)
+		}
 
 	case ViewModeRecord:
 		newModel, cmd := m.recordView.Update(msg)
@@ -126,9 +161,11 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		cmds = append(cmds, cmd)
 
 	case ViewModeQuery:
-		newModel, cmd := m.queryView.Update(msg)
-		m.queryView = newModel.(*QueryView)
-		cmds = append(cmds, cmd)
+		if m.queryView != nil {
+			newModel, cmd := m.queryView.Update(msg)
+			m.queryView = newModel.(*QueryView)
+			cmds = append(cmds, cmd)
+		}
 	}
 
 	return m, tea.Batch(cmds...)
@@ -143,12 +180,22 @@ func (m *Model) View() string {
 	var content string
 
 	switch m.currentView {
+	case ViewModeStart:
+		content = m.startView.View()
 	case ViewModeTree:
-		content = m.tree.View()
+		if m.tree != nil {
+			content = m.tree.View()
+		} else {
+			content = "Tree view not available without LDAP connection"
+		}
 	case ViewModeRecord:
 		content = m.recordView.View()
 	case ViewModeQuery:
-		content = m.queryView.View()
+		if m.queryView != nil {
+			content = m.queryView.View()
+		} else {
+			content = "Query view not available without LDAP connection"
+		}
 	}
 
 	// Status bar
@@ -162,12 +209,22 @@ func (m *Model) View() string {
 
 func (m *Model) switchView() *Model {
 	switch m.currentView {
+	case ViewModeStart:
+		if m.tree != nil {
+			m.currentView = ViewModeTree
+		} else {
+			m.currentView = ViewModeRecord
+		}
 	case ViewModeTree:
 		m.currentView = ViewModeRecord
 	case ViewModeRecord:
-		m.currentView = ViewModeQuery
+		if m.queryView != nil {
+			m.currentView = ViewModeQuery
+		} else {
+			m.currentView = ViewModeStart
+		}
 	case ViewModeQuery:
-		m.currentView = ViewModeTree
+		m.currentView = ViewModeStart
 	}
 	return m
 }
@@ -175,6 +232,8 @@ func (m *Model) switchView() *Model {
 func (m *Model) renderStatusBar() string {
 	var viewName string
 	switch m.currentView {
+	case ViewModeStart:
+		viewName = "Start Page"
 	case ViewModeTree:
 		viewName = "Tree Explorer"
 	case ViewModeRecord:
@@ -200,9 +259,11 @@ func (m *Model) renderStatusBar() string {
 }
 
 func (m *Model) renderHelpBar() string {
-	help := "Keys: [q]uit • [tab] switch view • [1]tree [2]record [3]query"
+	help := "Keys: [q]uit • [tab] switch view • [0]start [1]tree [2]record [3]query"
 
 	switch m.currentView {
+	case ViewModeStart:
+		help += " • [↑↓] navigate • [enter] edit • [esc] cancel"
 	case ViewModeTree:
 		help += " • [↑↓] navigate • [→] expand • [←] collapse • [enter] view record"
 	case ViewModeRecord:
