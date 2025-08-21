@@ -28,3 +28,4 @@ This is a Go based repository with a Ruby client for certain API endpoints. It i
 3. Use dependency injection patterns where appropriate
 4. Write unit tests for new functionality. Use table-driven unit tests when possible.
 5. Document public APIs and complex logic. Suggest changes to the `docs/` folder when appropriate
+6. Follow semver semantics on commits
