@@ -118,7 +118,6 @@ func (tv *TreeView) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return tv, nil
 }
 
-// View renders the tree view
 func (tv *TreeView) View() string {
 	if tv.container == nil {
 		tv.container = NewViewContainer(tv.width, tv.height)
@@ -129,12 +128,7 @@ func (tv *TreeView) View() string {
 	}
 
 	if len(tv.FlattenedTree) == 0 {
-		return lipgloss.NewStyle().
-			Width(tv.width).
-			Height(tv.height).
-			AlignHorizontal(lipgloss.Center).
-			AlignVertical(lipgloss.Center).
-			Render("No entries found")
+		return tv.container.RenderCentered("No entries found")
 	}
 
 	// Get content dimensions
@@ -158,11 +152,7 @@ func (tv *TreeView) View() string {
 		lines = append(lines, line)
 	}
 
-	// Fill remaining space
-	for len(lines) < contentHeight {
-		lines = append(lines, "")
-	}
-
+	// Don't fill remaining space - let the ViewContainer handle height constraints
 	content := strings.Join(lines, "\n")
 	return tv.container.RenderWithPadding(content)
 }
