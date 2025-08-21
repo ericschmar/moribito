@@ -14,11 +14,12 @@ import (
 
 // RecordView displays detailed information about an LDAP entry
 type RecordView struct {
-	entry    *ldap.Entry
-	table    table.Model
-	dnHeader string
-	width    int
-	height   int
+	entry     *ldap.Entry
+	table     table.Model
+	dnHeader  string
+	width     int
+	height    int
+	container *ViewContainer
 }
 
 // NewRecordView creates a new record view
@@ -63,22 +64,26 @@ func (rv *RecordView) Init() tea.Cmd {
 func (rv *RecordView) SetSize(width, height int) {
 	rv.width = width
 	rv.height = height
+	rv.container = NewViewContainer(width, height)
+
+	// Get content dimensions accounting for padding
+	contentWidth, contentHeight := rv.container.GetContentDimensions()
 
 	// Reserve space for DN header (2 lines)
-	tableHeight := height - 2
+	tableHeight := contentHeight - 2
 	if tableHeight < 3 {
 		tableHeight = 3
 	}
 
-	// Calculate column widths based on available space
-	nameWidth := width / 3
+	// Calculate column widths based on available content space
+	nameWidth := contentWidth / 3
 	if nameWidth < 15 {
 		nameWidth = 15
 	}
-	valueWidth := width - nameWidth - 4 // Account for borders and padding
+	valueWidth := contentWidth - nameWidth - 4 // Account for borders and padding
 	if valueWidth < 20 {
 		valueWidth = 20
-		nameWidth = width - valueWidth - 4
+		nameWidth = contentWidth - valueWidth - 4
 	}
 
 	// Update table dimensions
@@ -88,7 +93,7 @@ func (rv *RecordView) SetSize(width, height int) {
 	}
 	rv.table.SetColumns(columns)
 	rv.table.SetHeight(tableHeight)
-	rv.table.SetWidth(width)
+	rv.table.SetWidth(contentWidth)
 }
 
 // SetEntry sets the entry to display
@@ -116,13 +121,17 @@ func (rv *RecordView) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 // View renders the record view
 func (rv *RecordView) View() string {
-	if rv.entry == nil {
-		return lipgloss.NewStyle().
-			AlignHorizontal(lipgloss.Center).
-			Render("No record selected")
+	if rv.container == nil {
+		rv.container = NewViewContainer(rv.width, rv.height)
 	}
-	// Render DN header + table
-	return rv.dnHeader + "\n\n" + rv.table.View()
+
+	if rv.entry == nil {
+		return rv.container.RenderCentered("No record selected")
+	}
+
+	// Create content with DN header and table
+	content := rv.dnHeader + "\n\n" + rv.table.View()
+	return rv.container.RenderWithPadding(content)
 }
 
 // buildTable builds the table data from the entry
@@ -134,12 +143,12 @@ func (rv *RecordView) buildTable() {
 	}
 
 	// Build DN header
+	contentWidth, _ := rv.container.GetContentDimensions()
 	dnStyle := lipgloss.NewStyle().
 		Foreground(lipgloss.Color("14")).
 		Bold(true).
 		Background(lipgloss.Color("238")).
-		Padding(0, 1).
-		Width(rv.width - 2)
+		Width(contentWidth)
 
 	rv.dnHeader = dnStyle.Render(fmt.Sprintf("DN: %s", rv.entry.DN))
 

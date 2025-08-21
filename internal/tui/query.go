@@ -24,6 +24,7 @@ type QueryView struct {
 	inputMode   bool
 	loading     bool
 	error       error
+	container   *ViewContainer
 
 	// Pagination state
 	pageSize        uint32
@@ -77,8 +78,13 @@ func (qv *QueryView) Init() tea.Cmd {
 func (qv *QueryView) SetSize(width, height int) {
 	qv.width = width
 	qv.height = height
-	// Set textarea width to fit within the border with some padding
-	qv.textarea.SetWidth(width - 4) // Account for border and padding
+	qv.container = NewViewContainer(width, height)
+
+	// Get content dimensions for textarea sizing
+	contentWidth, _ := qv.container.GetContentDimensions()
+
+	// Set textarea width to fit within the content area
+	qv.textarea.SetWidth(contentWidth - 4) // Account for border and padding
 	// Allow the textarea to be multi-line but limit height reasonably
 	qv.textarea.SetHeight(3) // Start with 3 lines, can expand
 }
@@ -202,13 +208,21 @@ func (qv *QueryView) handleBrowseMode(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			}
 		}
 	case "page_up":
-		qv.cursor -= qv.height - 8 // Account for header space
+		_, contentHeight := qv.container.GetContentDimensions()
+		if qv.container == nil {
+			contentHeight = qv.height
+		}
+		qv.cursor -= contentHeight - 8 // Account for header space
 		if qv.cursor < 0 {
 			qv.cursor = 0
 		}
 		qv.adjustViewport()
 	case "page_down":
-		qv.cursor += qv.height - 8
+		_, contentHeight := qv.container.GetContentDimensions()
+		if qv.container == nil {
+			contentHeight = qv.height
+		}
+		qv.cursor += contentHeight - 8
 		if qv.cursor >= len(qv.resultLines) {
 			qv.cursor = len(qv.resultLines) - 1
 		}
@@ -233,6 +247,10 @@ func (qv *QueryView) handleBrowseMode(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 
 // View renders the query view
 func (qv *QueryView) View() string {
+	if qv.container == nil {
+		qv.container = NewViewContainer(qv.width, qv.height)
+	}
+
 	var content strings.Builder
 
 	// Header
@@ -266,8 +284,9 @@ func (qv *QueryView) View() string {
 	}
 	content.WriteString("\n\n")
 
-	// Status/Results area
-	remainingHeight := qv.height - 8 // Account for header, query input, and instruction
+	// Get content dimensions for results area
+	_, contentHeight := qv.container.GetContentDimensions()
+	remainingHeight := contentHeight - 8 // Account for header, query input, and instruction
 
 	if qv.loading {
 		statusContent := lipgloss.NewStyle().
@@ -286,7 +305,7 @@ func (qv *QueryView) View() string {
 		content.WriteString("Enter your LDAP query above and press Ctrl+Enter to execute")
 	}
 
-	return content.String()
+	return qv.container.RenderWithPadding(content.String())
 }
 
 // renderResults renders the query results
@@ -437,7 +456,12 @@ func (qv *QueryView) buildResultLines() {
 
 // adjustViewport adjusts the viewport to keep the cursor visible
 func (qv *QueryView) adjustViewport() {
-	visibleHeight := qv.height - 8 // Account for header, query input, and instruction text
+	// Get content height and subtract space for header, query input, and instruction text
+	_, contentHeight := qv.container.GetContentDimensions()
+	if qv.container == nil {
+		contentHeight = qv.height
+	}
+	visibleHeight := contentHeight - 8
 
 	if qv.cursor < qv.viewport {
 		qv.viewport = qv.cursor
