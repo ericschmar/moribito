@@ -55,7 +55,7 @@ func NewRecordView() *RecordView {
 		Bold(false)
 	s.Selected = s.Selected.
 		Foreground(lipgloss.Color("15")).
-		Background(lipgloss.Color("240")).
+		Background(lipgloss.Color(GetGradientColor(0.3))).
 		Bold(false)
 	t.SetStyles(s)
 
@@ -237,7 +237,7 @@ func (rv *RecordView) renderTable() string {
 	normalStyle := lipgloss.NewStyle()
 	selectedStyle := lipgloss.NewStyle().
 		Foreground(lipgloss.Color("15")).
-		Background(lipgloss.Color("240")).
+		Background(lipgloss.Color(GetGradientColor(0.3))).
 		Bold(false)
 
 	currentCursor := rv.table.Cursor()

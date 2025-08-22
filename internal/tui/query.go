@@ -405,7 +405,7 @@ func (qv *QueryView) renderResults(maxHeight int) string {
 		if isSelected {
 			style := lipgloss.NewStyle().
 				Foreground(lipgloss.Color("0")).
-				Background(lipgloss.Color("4")).
+				Background(lipgloss.Color(GetGradientColor(0.6))).
 				Bold(true).
 				Width(contentWidth - 4) // Account for padding
 			renderedLine = style.Render(line)

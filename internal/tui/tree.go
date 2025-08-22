@@ -183,7 +183,7 @@ func (tv *TreeView) renderTreeItem(item *TreeItem, isCursor bool, contentWidth i
 
 	style := lipgloss.NewStyle()
 	if isCursor {
-		style = style.Background(lipgloss.Color("240")).Foreground(lipgloss.Color("15"))
+		style = style.Background(lipgloss.Color(GetGradientColor(0.5))).Foreground(lipgloss.Color("15"))
 	}
 
 	// Truncate if too long
