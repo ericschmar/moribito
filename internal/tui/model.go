@@ -610,11 +610,17 @@ func (m *Model) handleQueryViewClick(zoneID string) (tea.Model, tea.Cmd) {
 		return m, nil
 	}
 
-	// Handle result line clicks
+	// Handle result line clicks - now using table cursor
 	if len(zoneID) > 13 && zoneID[:13] == "query-result-" {
 		if lineIndex, err := strconv.Atoi(zoneID[13:]); err == nil {
-			m.queryView.cursor = lineIndex
-			// Optionally enter browse mode or show record details
+			// Since we're using a table now, we need to set the table cursor
+			// The lineIndex should correspond to the row index
+			if lineIndex < len(m.queryView.results) {
+				// Set the table cursor to the clicked row
+				// Note: We can't directly set table cursor, but we can trigger selection
+				// For now, let's just show the record directly
+				return m, ShowRecord(m.queryView.results[lineIndex])
+			}
 		}
 	}
 	return m, nil
