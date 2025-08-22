@@ -143,7 +143,7 @@ func (tv *TreeView) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 func (tv *TreeView) View() string {
 	if tv.container == nil {
-		tv.container = NewViewContainer(tv.width, tv.height)
+		tv.container = NewViewContainer(tv.width, tv.height - 5)
 	}
 
 	if tv.loading {

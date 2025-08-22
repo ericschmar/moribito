@@ -104,22 +104,23 @@ func (m *Model) Init() tea.Cmd {
 	return tea.Batch(cmds...)
 }
 
-// SetSize sets the size of the model and propagates to child views
 func (m *Model) SetSize(width, height int) {
+	// Set minimum height to prevent layout issues
+	minHeight := 35 // Adjust this value as needed
+	if height < minHeight {
+		height = minHeight
+	}
+
 	m.width = width
 	m.height = height
 
-	// Update child views - reserve space for tab bar (3 lines), status bar (1 line) and help bar (1 line)
-	contentHeight := height - 5
-	m.startView.SetSize(width, contentHeight)
-	if m.tree != nil {
-		m.tree.SetSize(width, contentHeight)
-	}
-	m.recordView.SetSize(width, contentHeight)
-	if m.queryView != nil {
-		m.queryView.SetSize(width, contentHeight)
-	}
+	// Update all view sizes with the potentially adjusted height
+	m.startView.SetSize(width, height)
+	m.tree.SetSize(width, height)
+	m.recordView.SetSize(width, height)
+	m.queryView.SetSize(width, height)
 }
+
 
 // Update handles messages
 func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -301,40 +302,6 @@ func (m *Model) switchView() *Model {
 
 // renderStatusBar creates the status bar
 func (m *Model) renderStatusBar() string {
-	var viewInfo struct {
-		name  string
-		emoji string
-		color string
-	}
-
-	switch m.currentView {
-	case ViewModeStart:
-		viewInfo.name = "Start"
-		viewInfo.emoji = "🏠"
-		viewInfo.color = "12" // Bright blue
-	case ViewModeTree:
-		viewInfo.name = "Tree"
-		viewInfo.emoji = "🌲"
-		viewInfo.color = "10" // Bright green
-	case ViewModeRecord:
-		viewInfo.name = "Record"
-		viewInfo.emoji = "📄"
-		viewInfo.color = "11" // Bright yellow
-	case ViewModeQuery:
-		viewInfo.name = "Query"
-		viewInfo.emoji = "🔍"
-		viewInfo.color = "13" // Bright magenta
-	}
-
-	// Create left side with current view info
-	viewStyle := lipgloss.NewStyle().
-		Foreground(lipgloss.Color("0")).
-		Background(lipgloss.Color(viewInfo.color)).
-		Bold(true).
-		Padding(0, 1)
-
-	leftContent := viewStyle.Render(fmt.Sprintf("%s %s", viewInfo.emoji, viewInfo.name))
-
 	// Create right side with connection status
 	var rightContent string
 	if m.client != nil {
@@ -364,11 +331,10 @@ func (m *Model) renderStatusBar() string {
 
 	// Calculate spacing for center alignment
 	totalWidth := m.width
-	leftWidth := lipgloss.Width(leftContent)
 	rightWidth := lipgloss.Width(rightContent)
 	statusWidth := lipgloss.Width(statusContent)
 
-	remainingWidth := totalWidth - leftWidth - rightWidth
+	remainingWidth := totalWidth  - rightWidth
 	if remainingWidth < 0 {
 		remainingWidth = 0
 	}
@@ -382,7 +348,7 @@ func (m *Model) renderStatusBar() string {
 		middleContent = strings.Repeat(" ", remainingWidth)
 	}
 
-	return leftContent + middleContent + rightContent
+	return  middleContent + rightContent
 }
 
 // renderTabBar creates the tab navigation bar
@@ -393,11 +359,12 @@ func (m *Model) renderTabBar() string {
 		key      string
 		viewMode ViewMode
 		enabled  bool
+		color   string
 	}{
-		{"Start", "🏠", "1", ViewModeStart, true},
-		{"Tree", "🌲", "2", ViewModeTree, m.client != nil},
-		{"Record", "📄", "3", ViewModeRecord, true},
-		{"Query", "🔍", "4", ViewModeQuery, m.client != nil},
+		{"Start", "🏠", "1", ViewModeStart, true, "12"},
+		{"Tree", "🌲", "2", ViewModeTree, m.client != nil, "10"},
+		{"Record", "📄", "3", ViewModeRecord, true, "11"},
+		{"Query", "🔍", "4", ViewModeQuery, m.client != nil, "13"},
 	}
 
 	var tabButtons []string
@@ -408,7 +375,7 @@ func (m *Model) renderTabBar() string {
 			// Active tab style
 			style = lipgloss.NewStyle().
 				Foreground(lipgloss.Color("0")).
-				Background(lipgloss.Color("15")).
+				Background(lipgloss.Color(tab.color)).
 				Bold(true).
 				Padding(0, 2).
 				Border(lipgloss.ThickBorder(), false, false, true, false).
@@ -416,7 +383,7 @@ func (m *Model) renderTabBar() string {
 		} else if tab.enabled {
 			// Available tab style
 			style = lipgloss.NewStyle().
-				Foreground(lipgloss.Color("15")).
+				Foreground(lipgloss.Color(tab.color)).
 				Background(lipgloss.Color("8")).
 				Padding(0, 2).
 				Border(lipgloss.ThickBorder(), false, false, true, false).
@@ -471,12 +438,6 @@ func (m *Model) renderHelpBar() string {
 		}
 	case ViewModeRecord:
 		helpText = "View LDAP record details • [↑↓] navigate attributes"
-	case ViewModeQuery:
-		if m.queryView != nil {
-			helpText = "Execute LDAP queries • [Enter] run query • [Esc] clear • [↑↓] browse results"
-		} else {
-			helpText = "Query view requires LDAP connection"
-		}
 	}
 
 	style := lipgloss.NewStyle().
