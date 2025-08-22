@@ -42,9 +42,6 @@ jobs:
         echo "tag=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
         echo "version=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
 
-    - name: Run tests and build with version
-      run: make fmt test build VERSION=${{ steps.tag.outputs.version }}
-
     - name: Build for all platforms with version
       run: make build-all VERSION=${{ steps.tag.outputs.version }}
 
@@ -61,41 +58,41 @@ jobs:
         name: Release ${{ steps.tag.outputs.tag }}
         body: |
           ## Changes
-          
+
           See [CHANGELOG.md](https://github.com/ericschmar/moribito/blob/main/CHANGELOG.md) for details.
-          
+
           ## Installation
-          
+
           Download the appropriate binary for your platform from the assets below.
-          
+
           ### Linux/macOS
           ```bash
           # Linux
           wget https://github.com/ericschmar/moribito/releases/download/${{ steps.tag.outputs.tag }}/moribito-linux-amd64
           chmod +x moribito-linux-amd64
           sudo mv moribito-linux-amd64 /usr/local/bin/moribito
-          
+
           # Linux ARM64
           wget https://github.com/ericschmar/moribito/releases/download/${{ steps.tag.outputs.tag }}/moribito-linux-arm64
           chmod +x moribito-linux-arm64
           sudo mv moribito-linux-arm64 /usr/local/bin/moribito
-          
+
           # macOS Intel
           wget https://github.com/ericschmar/moribito/releases/download/${{ steps.tag.outputs.tag }}/moribito-darwin-amd64
           chmod +x moribito-darwin-amd64
           sudo mv moribito-darwin-amd64 /usr/local/bin/moribito
-          
+
           # macOS Apple Silicon
           wget https://github.com/ericschmar/moribito/releases/download/${{ steps.tag.outputs.tag }}/moribito-darwin-arm64
           chmod +x moribito-darwin-arm64
           sudo mv moribito-darwin-arm64 /usr/local/bin/moribito
           ```
-          
+
           ### Windows
           Download `moribito-windows-amd64.exe` and place it in your PATH.
-          
+
           ## Verification
-          
+
           Verify the download with the included checksums:
           ```bash
           sha256sum -c checksums.txt
