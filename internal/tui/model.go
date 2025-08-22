@@ -1,6 +1,7 @@
 package tui
 
 import (
+	"context"
 	"fmt"
 	"strconv"
 	"strings"
@@ -9,6 +10,8 @@ import (
 	"github.com/charmbracelet/lipgloss"
 	"github.com/ericschmar/ldap-cli/internal/config"
 	"github.com/ericschmar/ldap-cli/internal/ldap"
+	"github.com/ericschmar/ldap-cli/internal/updater"
+	"github.com/ericschmar/ldap-cli/internal/version"
 	zone "github.com/lrstanley/bubblezone"
 )
 
@@ -22,19 +25,56 @@ const (
 	ViewModeQuery
 )
 
+// Update-related message types
+type (
+	updateCheckMsg struct {
+		available bool
+		version   string
+		url       string
+		err       error
+	}
+)
+
+// checkForUpdatesCmd creates a command to check for updates
+func checkForUpdatesCmd() tea.Cmd {
+	return func() tea.Msg {
+		checker := updater.New("ericschmar", "ldap-cli")
+		ctx := context.Background()
+
+		currentVersion := version.Get().Version
+		release, err := checker.CheckForUpdate(ctx, currentVersion)
+
+		if err != nil {
+			return updateCheckMsg{err: err}
+		}
+
+		if release != nil {
+			return updateCheckMsg{
+				available: true,
+				version:   release.TagName,
+				url:       release.URL,
+			}
+		}
+
+		return updateCheckMsg{available: false}
+	}
+}
+
 // Model represents the main TUI model
 type Model struct {
-	client      *ldap.Client
-	startView   *StartView
-	tree        *TreeView
-	recordView  *RecordView
-	queryView   *QueryView
-	currentView ViewMode
-	width       int
-	height      int
-	err         error
-	statusMsg   string
-	quitting    bool
+	client       *ldap.Client
+	startView    *StartView
+	tree         *TreeView
+	recordView   *RecordView
+	queryView    *QueryView
+	currentView  ViewMode
+	width        int
+	height       int
+	err          error
+	statusMsg    string
+	quitting     bool
+	checkUpdates bool
+	updateStatus string
 }
 
 // NewModel creates a new model
@@ -57,11 +97,17 @@ func NewModel(client *ldap.Client, cfg *config.Config) *Model {
 
 // NewModelWithPageSize creates a new model with page size configuration
 func NewModelWithPageSize(client *ldap.Client, cfg *config.Config) *Model {
+	return NewModelWithUpdateCheck(client, cfg, false)
+}
+
+// NewModelWithUpdateCheck creates a new model with page size configuration and update checking
+func NewModelWithUpdateCheck(client *ldap.Client, cfg *config.Config, checkUpdates bool) *Model {
 	model := &Model{
-		client:      client,
-		startView:   NewStartView(cfg),
-		recordView:  NewRecordView(),
-		currentView: ViewModeStart,
+		client:       client,
+		startView:    NewStartView(cfg),
+		recordView:   NewRecordView(),
+		currentView:  ViewModeStart,
+		checkUpdates: checkUpdates,
 	}
 
 	// Initialize tree and query views if client is available
@@ -99,6 +145,11 @@ func (m *Model) Init() tea.Cmd {
 		if cmd := m.queryView.Init(); cmd != nil {
 			cmds = append(cmds, cmd)
 		}
+	}
+
+	// Start update checking if enabled
+	if m.checkUpdates {
+		cmds = append(cmds, checkForUpdatesCmd())
 	}
 
 	return tea.Batch(cmds...)
@@ -189,6 +240,18 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case ShowRecordMsg:
 		m.recordView.SetEntry(msg.Entry)
 		m.currentView = ViewModeRecord
+		return m, nil
+
+	case updateCheckMsg:
+		if msg.err != nil {
+			// Silently ignore update check errors - don't disturb user experience
+			return m, nil
+		}
+		if msg.available {
+			m.updateStatus = fmt.Sprintf("🔄 Update available: %s", msg.version)
+		} else {
+			m.updateStatus = ""
+		}
 		return m, nil
 
 	// Handle tree-specific messages regardless of current view
@@ -320,9 +383,17 @@ func (m *Model) renderStatusBar() string {
 		rightContent = connStyle.Render("❌ Disconnected")
 	}
 
-	// Create status message in the middle
+	// Create status message in the middle - prioritize update notifications
 	var statusContent string
-	if m.statusMsg != "" {
+	if m.updateStatus != "" {
+		// Show update notification with special styling
+		updateStyle := lipgloss.NewStyle().
+			Foreground(lipgloss.Color("0")).
+			Background(lipgloss.Color("11")). // Bright yellow background
+			Bold(true).
+			Padding(0, 1)
+		statusContent = updateStyle.Render(m.updateStatus)
+	} else if m.statusMsg != "" {
 		statusStyle := lipgloss.NewStyle().
 			Foreground(lipgloss.Color("15")).
 			Padding(0, 1)
