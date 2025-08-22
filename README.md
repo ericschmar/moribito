@@ -11,6 +11,7 @@ A terminal-based LDAP server explorer built with Go and BubbleTea, providing an 
 - 📖 **Paginated Results**: Efficient pagination for large result sets with automatic loading
 - ⚙️ **Flexible Configuration**: Support for config files and command-line options
 - 🔐 **Secure Authentication**: Support for SSL/TLS and various authentication methods
+- 🔄 **Auto-Update Notifications**: Optional checking for newer releases from GitHub
 - 🎨 **Modern TUI**: Clean, intuitive interface built with BubbleTea
 
 ## Installation
@@ -58,6 +59,9 @@ go build -o ldap-cli cmd/ldap-cli/main.go
 ```bash
 # Connect with command line options
 ldap-cli -host ldap.example.com -base-dn "dc=example,dc=com" -user "cn=admin,dc=example,dc=com"
+
+# Enable automatic update checking
+ldap-cli -check-updates -host ldap.example.com -base-dn "dc=example,dc=com"
 
 # Use a configuration file
 ldap-cli -config /path/to/config.yaml

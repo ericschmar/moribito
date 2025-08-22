@@ -17,17 +17,18 @@ import (
 
 func main() {
 	var (
-		configPath  = flag.String("config", "", "Path to configuration file")
-		host        = flag.String("host", "", "LDAP server host")
-		port        = flag.Int("port", 0, "LDAP server port")
-		baseDN      = flag.String("base-dn", "", "Base DN for LDAP operations")
-		useSSL      = flag.Bool("ssl", false, "Use SSL/LDAPS")
-		useTLS      = flag.Bool("tls", false, "Use StartTLS")
-		bindUser    = flag.String("user", "", "Bind user DN")
-		bindPass    = flag.String("password", "", "Bind password")
-		pageSize    = flag.Uint("page-size", 0, "Number of entries per page (0 for default)")
-		help        = flag.Bool("help", false, "Show help")
-		showVersion = flag.Bool("version", false, "Show version information")
+		configPath   = flag.String("config", "", "Path to configuration file")
+		host         = flag.String("host", "", "LDAP server host")
+		port         = flag.Int("port", 0, "LDAP server port")
+		baseDN       = flag.String("base-dn", "", "Base DN for LDAP operations")
+		useSSL       = flag.Bool("ssl", false, "Use SSL/LDAPS")
+		useTLS       = flag.Bool("tls", false, "Use StartTLS")
+		bindUser     = flag.String("user", "", "Bind user DN")
+		bindPass     = flag.String("password", "", "Bind password")
+		pageSize     = flag.Uint("page-size", 0, "Number of entries per page (0 for default)")
+		help         = flag.Bool("help", false, "Show help")
+		showVersion  = flag.Bool("version", false, "Show version information")
+		checkUpdates = flag.Bool("check-updates", false, "Enable automatic update checking")
 	)
 
 	flag.Parse()
@@ -130,7 +131,7 @@ func main() {
 	}
 
 	// Create and run the TUI
-	model := tui.NewModelWithPageSize(client, cfg)
+	model := tui.NewModelWithUpdateCheck(client, cfg, *checkUpdates)
 	program := tea.NewProgram(model, tea.WithAltScreen(), tea.WithMouseCellMotion())
 
 	if _, err := program.Run(); err != nil {
@@ -154,6 +155,7 @@ func printHelp() {
 	fmt.Println("  -user string       Bind user DN")
 	fmt.Println("  -password string   Bind password (will prompt if user provided but password not)")
 	fmt.Println("  -page-size int     Number of entries per page for paginated queries (default: 50)")
+	fmt.Println("  -check-updates     Enable automatic update checking")
 	fmt.Println("  -version           Show version information")
 	fmt.Println("  -help              Show this help message")
 	fmt.Println()

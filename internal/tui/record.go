@@ -2,6 +2,7 @@ package tui
 
 import (
 	"fmt"
+	"image/color"
 	"sort"
 	"strings"
 
@@ -12,6 +13,7 @@ import (
 	"github.com/ericschmar/ldap-cli/internal/ldap"
 	zone "github.com/lrstanley/bubblezone"
 	"github.com/lucasb-eyer/go-colorful"
+	"github.com/muesli/gamut"
 )
 
 // RecordView displays detailed information about an LDAP entry
@@ -36,6 +38,7 @@ var (
 	// Color blend for table rows - using blue to teal gradient similar to the example
 	startColor, _ = colorful.Hex("#0066CC") // Blue
 	endColor, _   = colorful.Hex("#008080") // Teal
+	blends    = gamut.Blends(lipgloss.Color("#0066CC"), lipgloss.Color("#008080"), 50)
 )
 
 // getRowColor returns a color for a table row based on its index
@@ -148,13 +151,17 @@ func (rv *RecordView) View() string {
 	}
 
 	if rv.entry == nil {
-		return rv.container.RenderCentered("No record selected")
+		// Make sure we have the same content structure as when we have data
+		// This ensures consistent spacing and layout
+		content := "No record selected"
+		return rv.container.RenderWithPadding(content)
 	}
 
 	// Create content with DN header and custom table rendering
 	content := rv.dnHeader + "\n\n" + rv.renderTable()
 	return rv.container.RenderWithPadding(content)
 }
+
 
 // buildTable builds the table data from the entry
 func (rv *RecordView) buildTable() {
@@ -210,28 +217,19 @@ func (rv *RecordView) buildTable() {
 
 	rv.table.SetRows(rows)
 }
-
-// renderTable renders the table with clickable zones
 func (rv *RecordView) renderTable() string {
 	if len(rv.renderedRows) == 0 {
 		return "No attributes to display"
 	}
 
-	// Get content dimensions
 	contentWidth, _ := rv.container.GetContentDimensions()
-
-	// Calculate column widths
 	nameWidth := contentWidth / 3
 	if nameWidth < 15 {
 		nameWidth = 15
 	}
-	valueWidth := contentWidth - nameWidth - 4 // Account for borders and padding
-	if valueWidth < 20 {
-		valueWidth = 20
-		nameWidth = contentWidth - valueWidth - 4
-	}
+	valueWidth := contentWidth - nameWidth - 4
 
-	// Create table header
+	// Create table header (unchanged)
 	headerStyle := lipgloss.NewStyle().
 		Border(lipgloss.NormalBorder()).
 		BorderForeground(lipgloss.Color("240")).
@@ -244,11 +242,9 @@ func (rv *RecordView) renderTable() string {
 		lipgloss.JoinHorizontal(lipgloss.Top, attributeHeader, "  ", valueHeader),
 	)
 
-	// Create table rows with clickable zones
 	var rows []string
 	rows = append(rows, header)
 
-	// Style for normal and selected rows with color blending
 	currentCursor := rv.table.Cursor()
 
 	for i, rowData := range rv.renderedRows {
@@ -260,36 +256,42 @@ func (rv *RecordView) renderTable() string {
 			valueText = "• " + strings.Join(rowData.Values, " • ")
 		}
 
-		// Truncate long values
 		if len(valueText) > valueWidth-3 {
 			valueText = valueText[:valueWidth-6] + "..."
 		}
 
-		// Style the row with blended colors
-		var style lipgloss.Style
+		var attrStyle, valueStyle lipgloss.Style
+
 		if i == currentCursor {
-			// Selected row: Use a brighter variant of the row color
-			selectedColor := getRowColor(i)
-			style = lipgloss.NewStyle().
+			// Selected row: Apply gradient colors
+			blendColors := gamut.Blends(lipgloss.Color("#0066CC"), lipgloss.Color("#008080"), 6)
+			gradientColors := colorsToHex(blendColors)
+
+			// Use different gradient colors for attribute and value columns
+			attrColorIndex := 1 // Use early gradient color for attribute
+			valueColorIndex := 4 // Use later gradient color for value
+
+			attrStyle = lipgloss.NewStyle().
+				Background(lipgloss.Color(gradientColors[attrColorIndex])).
 				Foreground(lipgloss.Color("15")).
-				Background(selectedColor).
-				Bold(false)
+				Bold(true).
+				Width(nameWidth)
+			valueStyle = lipgloss.NewStyle().
+				Background(lipgloss.Color(gradientColors[valueColorIndex])).
+				Foreground(lipgloss.Color("15")).
+				Bold(true).
+				Width(valueWidth)
 		} else {
-			// Normal row: Use a subtle background color from the blend
-			normalColor := getRowColor(i)
-			// Make the normal background more subtle by using a lighter version
-			normalColorObj, _ := colorful.MakeColor(normalColor)
-			subtleColor := normalColorObj.BlendLuv(colorful.Color{R: 1, G: 1, B: 1}, 0.8) // Blend with white for subtlety
-			style = lipgloss.NewStyle().
-				Background(lipgloss.Color(subtleColor.Hex()))
+			// Normal row: Use subtle/no background
+			attrStyle = lipgloss.NewStyle().
+				Width(nameWidth)
+			valueStyle = lipgloss.NewStyle().
+				Width(valueWidth)
 		}
 
-		// Format the row content
-		attributeCell := lipgloss.NewStyle().Width(nameWidth).Render(rowData.AttributeName)
-		valueCell := lipgloss.NewStyle().Width(valueWidth).Render(valueText)
-		rowContent := style.Render(
-			lipgloss.JoinHorizontal(lipgloss.Top, attributeCell, "  ", valueCell),
-		)
+		attributeCell := attrStyle.Render(rowData.AttributeName)
+		valueCell := valueStyle.Render(valueText)
+		rowContent := lipgloss.JoinHorizontal(lipgloss.Top, attributeCell, "  ", valueCell)
 
 		// Add clickable zone
 		zoneID := fmt.Sprintf("record-row-%d", i)
@@ -339,4 +341,18 @@ func (rv *RecordView) copyCurrentValue() tea.Cmd {
 	// Provide feedback about what was copied
 	msg := fmt.Sprintf("Copied %s value to clipboard", attributeName)
 	return SendStatus(msg)
+}
+// Helper function to convert gamut colors to hex strings
+func colorsToHex(colors []color.Color) []string {
+	var hexColors []string
+	for _, c := range colors {
+		if colorfulColor, ok := c.(colorful.Color); ok {
+			hexColors = append(hexColors, colorfulColor.Hex())
+		} else {
+			// Fallback: convert via colorful
+			colorfulColor, _ := colorful.MakeColor(c)
+			hexColors = append(hexColors, colorfulColor.Hex())
+		}
+	}
+	return hexColors
 }

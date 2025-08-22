@@ -70,7 +70,7 @@ var (
 	headerStyle = lipgloss.NewStyle().
 			Foreground(lipgloss.Color("14")).
 			Bold(true).
-			Margin(1, 0, 1, 0)
+			Margin(0, 0, 1, 0)
 
 	fieldLabelStyle = lipgloss.NewStyle().
 			Foreground(lipgloss.Color("11")).
@@ -83,8 +83,8 @@ var (
 			Padding(0, 1)
 
 	selectedFieldStyle = lipgloss.NewStyle().
-				Foreground(lipgloss.Color("0")).
-				Background(lipgloss.Color(GetGradientColor(0.7))).
+				Foreground(lipgloss.Color("15")).
+				Background(lipgloss.Color(lipgloss.Color(GetGradientColor(0.5)))).
 				Bold(true).
 				Padding(0, 1)
 
@@ -104,10 +104,10 @@ var (
 				Margin(1, 0, 0, 0)
 
 	containerStyle = lipgloss.NewStyle().
-			Border(lipgloss.RoundedBorder()).
-			BorderForeground(lipgloss.Color("6")).
-			Padding(1, 2).
-			Margin(1, 0)
+				Border(lipgloss.RoundedBorder()).
+				BorderForeground(lipgloss.Color("6")).
+				Padding(0, 2).
+				Margin(0, 0)
 )
 
 // NewStartView creates a new start view
@@ -241,10 +241,6 @@ func (sv *StartView) renderNarrowView() string {
 // renderConfigPane creates the main configuration interface
 func (sv *StartView) renderConfigPane(maxWidth int) string {
 	var sections []string
-
-	// Title
-	title := titleStyle.Width(maxWidth - 8).Render("🔧 LDAP Configuration")
-	sections = append(sections, title)
 
 	// Header description
 	header := headerStyle.Render("Configure your LDAP connection settings:")

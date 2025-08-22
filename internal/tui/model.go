@@ -1,6 +1,7 @@
 package tui
 
 import (
+	"context"
 	"fmt"
 	"strconv"
 	"strings"
@@ -9,6 +10,8 @@ import (
 	"github.com/charmbracelet/lipgloss"
 	"github.com/ericschmar/ldap-cli/internal/config"
 	"github.com/ericschmar/ldap-cli/internal/ldap"
+	"github.com/ericschmar/ldap-cli/internal/updater"
+	"github.com/ericschmar/ldap-cli/internal/version"
 	zone "github.com/lrstanley/bubblezone"
 )
 
@@ -22,19 +25,56 @@ const (
 	ViewModeQuery
 )
 
+// Update-related message types
+type (
+	updateCheckMsg struct {
+		available bool
+		version   string
+		url       string
+		err       error
+	}
+)
+
+// checkForUpdatesCmd creates a command to check for updates
+func checkForUpdatesCmd() tea.Cmd {
+	return func() tea.Msg {
+		checker := updater.New("ericschmar", "ldap-cli")
+		ctx := context.Background()
+
+		currentVersion := version.Get().Version
+		release, err := checker.CheckForUpdate(ctx, currentVersion)
+
+		if err != nil {
+			return updateCheckMsg{err: err}
+		}
+
+		if release != nil {
+			return updateCheckMsg{
+				available: true,
+				version:   release.TagName,
+				url:       release.URL,
+			}
+		}
+
+		return updateCheckMsg{available: false}
+	}
+}
+
 // Model represents the main TUI model
 type Model struct {
-	client      *ldap.Client
-	startView   *StartView
-	tree        *TreeView
-	recordView  *RecordView
-	queryView   *QueryView
-	currentView ViewMode
-	width       int
-	height      int
-	err         error
-	statusMsg   string
-	quitting    bool
+	client       *ldap.Client
+	startView    *StartView
+	tree         *TreeView
+	recordView   *RecordView
+	queryView    *QueryView
+	currentView  ViewMode
+	width        int
+	height       int
+	err          error
+	statusMsg    string
+	quitting     bool
+	checkUpdates bool
+	updateStatus string
 }
 
 // NewModel creates a new model
@@ -57,11 +97,17 @@ func NewModel(client *ldap.Client, cfg *config.Config) *Model {
 
 // NewModelWithPageSize creates a new model with page size configuration
 func NewModelWithPageSize(client *ldap.Client, cfg *config.Config) *Model {
+	return NewModelWithUpdateCheck(client, cfg, false)
+}
+
+// NewModelWithUpdateCheck creates a new model with page size configuration and update checking
+func NewModelWithUpdateCheck(client *ldap.Client, cfg *config.Config, checkUpdates bool) *Model {
 	model := &Model{
-		client:      client,
-		startView:   NewStartView(cfg),
-		recordView:  NewRecordView(),
-		currentView: ViewModeStart,
+		client:       client,
+		startView:    NewStartView(cfg),
+		recordView:   NewRecordView(),
+		currentView:  ViewModeStart,
+		checkUpdates: checkUpdates,
 	}
 
 	// Initialize tree and query views if client is available
@@ -101,25 +147,31 @@ func (m *Model) Init() tea.Cmd {
 		}
 	}
 
+	// Start update checking if enabled
+	if m.checkUpdates {
+		cmds = append(cmds, checkForUpdatesCmd())
+	}
+
 	return tea.Batch(cmds...)
 }
 
-// SetSize sets the size of the model and propagates to child views
 func (m *Model) SetSize(width, height int) {
+	// Set minimum height to prevent layout issues
+	minHeight := 35 // Adjust this value as needed
+	if height < minHeight {
+		height = minHeight
+	}
+
 	m.width = width
 	m.height = height
 
-	// Update child views - reserve space for tab bar (3 lines), status bar (1 line) and help bar (1 line)
-	contentHeight := height - 5
-	m.startView.SetSize(width, contentHeight)
-	if m.tree != nil {
-		m.tree.SetSize(width, contentHeight)
-	}
-	m.recordView.SetSize(width, contentHeight)
-	if m.queryView != nil {
-		m.queryView.SetSize(width, contentHeight)
-	}
+	// Update all view sizes with the potentially adjusted height
+	m.startView.SetSize(width, height)
+	m.tree.SetSize(width, height)
+	m.recordView.SetSize(width, height)
+	m.queryView.SetSize(width, height)
 }
+
 
 // Update handles messages
 func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -188,6 +240,18 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case ShowRecordMsg:
 		m.recordView.SetEntry(msg.Entry)
 		m.currentView = ViewModeRecord
+		return m, nil
+
+	case updateCheckMsg:
+		if msg.err != nil {
+			// Silently ignore update check errors - don't disturb user experience
+			return m, nil
+		}
+		if msg.available {
+			m.updateStatus = fmt.Sprintf("🔄 Update available: %s", msg.version)
+		} else {
+			m.updateStatus = ""
+		}
 		return m, nil
 
 	// Handle tree-specific messages regardless of current view
@@ -301,40 +365,6 @@ func (m *Model) switchView() *Model {
 
 // renderStatusBar creates the status bar
 func (m *Model) renderStatusBar() string {
-	var viewInfo struct {
-		name  string
-		emoji string
-		color string
-	}
-
-	switch m.currentView {
-	case ViewModeStart:
-		viewInfo.name = "Start"
-		viewInfo.emoji = "🏠"
-		viewInfo.color = "12" // Bright blue
-	case ViewModeTree:
-		viewInfo.name = "Tree"
-		viewInfo.emoji = "🌲"
-		viewInfo.color = "10" // Bright green
-	case ViewModeRecord:
-		viewInfo.name = "Record"
-		viewInfo.emoji = "📄"
-		viewInfo.color = "11" // Bright yellow
-	case ViewModeQuery:
-		viewInfo.name = "Query"
-		viewInfo.emoji = "🔍"
-		viewInfo.color = "13" // Bright magenta
-	}
-
-	// Create left side with current view info
-	viewStyle := lipgloss.NewStyle().
-		Foreground(lipgloss.Color("0")).
-		Background(lipgloss.Color(viewInfo.color)).
-		Bold(true).
-		Padding(0, 1)
-
-	leftContent := viewStyle.Render(fmt.Sprintf("%s %s", viewInfo.emoji, viewInfo.name))
-
 	// Create right side with connection status
 	var rightContent string
 	if m.client != nil {
@@ -353,9 +383,17 @@ func (m *Model) renderStatusBar() string {
 		rightContent = connStyle.Render("❌ Disconnected")
 	}
 
-	// Create status message in the middle
+	// Create status message in the middle - prioritize update notifications
 	var statusContent string
-	if m.statusMsg != "" {
+	if m.updateStatus != "" {
+		// Show update notification with special styling
+		updateStyle := lipgloss.NewStyle().
+			Foreground(lipgloss.Color("0")).
+			Background(lipgloss.Color("11")). // Bright yellow background
+			Bold(true).
+			Padding(0, 1)
+		statusContent = updateStyle.Render(m.updateStatus)
+	} else if m.statusMsg != "" {
 		statusStyle := lipgloss.NewStyle().
 			Foreground(lipgloss.Color("15")).
 			Padding(0, 1)
@@ -364,11 +402,10 @@ func (m *Model) renderStatusBar() string {
 
 	// Calculate spacing for center alignment
 	totalWidth := m.width
-	leftWidth := lipgloss.Width(leftContent)
 	rightWidth := lipgloss.Width(rightContent)
 	statusWidth := lipgloss.Width(statusContent)
 
-	remainingWidth := totalWidth - leftWidth - rightWidth
+	remainingWidth := totalWidth  - rightWidth
 	if remainingWidth < 0 {
 		remainingWidth = 0
 	}
@@ -382,7 +419,7 @@ func (m *Model) renderStatusBar() string {
 		middleContent = strings.Repeat(" ", remainingWidth)
 	}
 
-	return leftContent + middleContent + rightContent
+	return  middleContent + rightContent
 }
 
 // renderTabBar creates the tab navigation bar
@@ -393,11 +430,12 @@ func (m *Model) renderTabBar() string {
 		key      string
 		viewMode ViewMode
 		enabled  bool
+		color   string
 	}{
-		{"Start", "🏠", "1", ViewModeStart, true},
-		{"Tree", "🌲", "2", ViewModeTree, m.client != nil},
-		{"Record", "📄", "3", ViewModeRecord, true},
-		{"Query", "🔍", "4", ViewModeQuery, m.client != nil},
+		{"Start", "🏠", "1", ViewModeStart, true, "12"},
+		{"Tree", "🌲", "2", ViewModeTree, m.client != nil, "10"},
+		{"Record", "📄", "3", ViewModeRecord, true, "11"},
+		{"Query", "🔍", "4", ViewModeQuery, m.client != nil, "13"},
 	}
 
 	var tabButtons []string
@@ -408,7 +446,7 @@ func (m *Model) renderTabBar() string {
 			// Active tab style
 			style = lipgloss.NewStyle().
 				Foreground(lipgloss.Color("0")).
-				Background(lipgloss.Color("15")).
+				Background(lipgloss.Color(tab.color)).
 				Bold(true).
 				Padding(0, 2).
 				Border(lipgloss.ThickBorder(), false, false, true, false).
@@ -416,7 +454,7 @@ func (m *Model) renderTabBar() string {
 		} else if tab.enabled {
 			// Available tab style
 			style = lipgloss.NewStyle().
-				Foreground(lipgloss.Color("15")).
+				Foreground(lipgloss.Color(tab.color)).
 				Background(lipgloss.Color("8")).
 				Padding(0, 2).
 				Border(lipgloss.ThickBorder(), false, false, true, false).
@@ -471,12 +509,6 @@ func (m *Model) renderHelpBar() string {
 		}
 	case ViewModeRecord:
 		helpText = "View LDAP record details • [↑↓] navigate attributes"
-	case ViewModeQuery:
-		if m.queryView != nil {
-			helpText = "Execute LDAP queries • [Enter] run query • [Esc] clear • [↑↓] browse results"
-		} else {
-			helpText = "Query view requires LDAP connection"
-		}
 	}
 
 	style := lipgloss.NewStyle().

@@ -345,17 +345,6 @@ func (qv *QueryView) View() string {
 
 	var sections []string
 
-	// Title
-	titleStyle := lipgloss.NewStyle().
-		Foreground(lipgloss.Color("15")).
-		Background(lipgloss.Color("13")).
-		Bold(true).
-		Padding(1, 2).
-		Margin(0, 0, 1, 0)
-
-	title := titleStyle.Render("🔍 LDAP Query Interface")
-	sections = append(sections, title)
-
 	// Query input area
 	queryHeader := lipgloss.NewStyle().
 		Foreground(lipgloss.Color("14")).

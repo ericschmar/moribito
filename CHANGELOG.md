@@ -15,6 +15,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - 'c' key binding in Record View to copy current line's attribute value to clipboard
 - Status feedback when copy operations succeed or fail
 - Cross-platform clipboard support using github.com/atotto/clipboard
+- Auto-update feature with GitHub releases integration
+- `--check-updates` CLI flag to enable automatic update checking
+- Status bar notifications when updates are available
 
 ### Changed
 

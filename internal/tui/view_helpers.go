@@ -86,13 +86,14 @@ func (vc *ViewContainer) shouldApplyContainerStyling(content string) bool {
 func (vc *ViewContainer) RenderCentered(content string) string {
 	style := lipgloss.NewStyle().
 		Width(vc.width).
-		Height(vc.height).
+		MaxHeight(vc.height).  // Use MaxHeight instead of Height
 		AlignHorizontal(lipgloss.Center).
 		AlignVertical(lipgloss.Center).
 		Padding(0, vc.padding)
 
 	return style.Render(content)
 }
+
 
 // RenderPlain renders content with basic truncation for simple views
 func (vc *ViewContainer) RenderPlain(content string) string {
