@@ -96,13 +96,13 @@ func TestStartView_LayoutAndAlignment(t *testing.T) {
 
 	// Test that all fields are present in the output
 	output := sv.View()
-	
+
 	// Should contain all field names
 	expectedFields := []string{
-		"Host:", "Port:", "Base DN:", "Use SSL:", "Use TLS:", 
+		"Host:", "Port:", "Base DN:", "Use SSL:", "Use TLS:",
 		"Bind User:", "Bind Password:", "Page Size:",
 	}
-	
+
 	for _, field := range expectedFields {
 		if !strings.Contains(output, field) {
 			t.Errorf("Expected field '%s' to be present in output", field)
@@ -111,10 +111,10 @@ func TestStartView_LayoutAndAlignment(t *testing.T) {
 
 	// Should contain the configuration values
 	expectedValues := []string{
-		"ldap.example.com", "636", "dc=example,dc=com", 
+		"ldap.example.com", "636", "dc=example,dc=com",
 		"true", "false", "cn=admin,dc=example,dc=com", "********", "100",
 	}
-	
+
 	for _, value := range expectedValues {
 		if !strings.Contains(output, value) {
 			t.Errorf("Expected value '%s' to be present in output", value)
