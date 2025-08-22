@@ -22,38 +22,38 @@ A terminal-based LDAP server explorer built with Go and BubbleTea, providing an 
 
 ### From GitHub Releases (Recommended)
 
-Download the latest pre-built binary from [GitHub Releases](https://github.com/ericschmar/ldap-cli/releases):
+Download the latest pre-built binary from [GitHub Releases](https://github.com/ericschmar/moribito/releases):
 
 ```bash
 # Linux x86_64
-curl -L https://github.com/ericschmar/ldap-cli/releases/latest/download/ldap-cli-linux-amd64 -o ldap-cli
-chmod +x ldap-cli
-sudo mv ldap-cli /usr/local/bin/
+curl -L https://github.com/ericschmar/moribito/releases/latest/download/moribito-linux-amd64 -o moribito
+chmod +x moribito
+sudo mv moribito /usr/local/bin/
 
 # Linux ARM64
-curl -L https://github.com/ericschmar/ldap-cli/releases/latest/download/ldap-cli-linux-arm64 -o ldap-cli
-chmod +x ldap-cli
-sudo mv ldap-cli /usr/local/bin/
+curl -L https://github.com/ericschmar/moribito/releases/latest/download/moribito-linux-arm64 -o moribito
+chmod +x moribito
+sudo mv moribito /usr/local/bin/
 
 # macOS Intel
-curl -L https://github.com/ericschmar/ldap-cli/releases/latest/download/ldap-cli-darwin-amd64 -o ldap-cli
-chmod +x ldap-cli
-sudo mv ldap-cli /usr/local/bin/
+curl -L https://github.com/ericschmar/moribito/releases/latest/download/moribito-darwin-amd64 -o moribito
+chmod +x moribito
+sudo mv moribito /usr/local/bin/
 
 # macOS Apple Silicon
-curl -L https://github.com/ericschmar/ldap-cli/releases/latest/download/ldap-cli-darwin-arm64 -o ldap-cli
-chmod +x ldap-cli
-sudo mv ldap-cli /usr/local/bin/
+curl -L https://github.com/ericschmar/moribito/releases/latest/download/moribito-darwin-arm64 -o moribito
+chmod +x moribito
+sudo mv moribito /usr/local/bin/
 ```
 
-For Windows, download `ldap-cli-windows-amd64.exe` from the releases page.
+For Windows, download `moribito-windows-amd64.exe` from the releases page.
 
 ### From Source
 
 ```bash
-git clone https://github.com/ericschmar/ldap-cli
-cd ldap-cli
-go build -o ldap-cli cmd/ldap-cli/main.go
+git clone https://github.com/ericschmar/moribito
+cd moribito
+go build -o moribito cmd/moribito/main.go
 ```
 
 ## Usage
@@ -62,24 +62,24 @@ go build -o ldap-cli cmd/ldap-cli/main.go
 
 ```bash
 # Connect with command line options
-ldap-cli -host ldap.example.com -base-dn "dc=example,dc=com" -user "cn=admin,dc=example,dc=com"
+moribito -host ldap.example.com -base-dn "dc=example,dc=com" -user "cn=admin,dc=example,dc=com"
 
 # Enable automatic update checking
-ldap-cli -check-updates -host ldap.example.com -base-dn "dc=example,dc=com"
+moribito -check-updates -host ldap.example.com -base-dn "dc=example,dc=com"
 
 # Use a configuration file
-ldap-cli -config /path/to/config.yaml
+moribito -config /path/to/config.yaml
 
 # Get help
-ldap-cli -help
+moribito -help
 ```
 
 ### Configuration File
 
 Create a configuration file in one of these locations:
 - `./config.yaml` (current directory)
-- `~/.ldap-cli.yaml` (home directory) 
-- `~/.config/ldap-cli/config.yaml` (XDG config directory)
+- `~/.moribito.yaml` (home directory) 
+- `~/.config/moribito/config.yaml` (XDG config directory)
 
 ```yaml
 ldap:
@@ -243,7 +243,7 @@ LDAP CLI uses intelligent pagination to provide optimal performance when working
 ### Configuration Examples
 ```bash
 # Command line override
-ldap-cli --page-size 100 --host ldap.example.com
+moribito --page-size 100 --host ldap.example.com
 
 # Configuration file
 pagination:
@@ -355,6 +355,28 @@ This project uses GitHub Actions for CI/CD:
 ### Versioning
 
 This project follows [Semantic Versioning](https://semver.org/). See [docs/versioning.md](docs/versioning.md) for details on the release process.
+
+## Documentation
+
+Comprehensive documentation is available using DocPress. To build and view the documentation:
+
+```bash
+# Build static documentation website  
+make docs
+
+# Serve documentation locally with live reload
+make docs-serve
+```
+
+The documentation covers:
+- Installation and setup
+- Usage guide with examples
+- Interface navigation
+- Development setup
+- Contributing guidelines
+- API reference and advanced features
+
+Visit the generated documentation site for the complete guide.
 
 ## Contributing
 

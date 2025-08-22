@@ -97,24 +97,32 @@ func findConfigFile() string {
 	candidates := []string{
 		"./config.yaml",
 		"./config.yml",
-		"./ldap-cli.yaml",
-		"./ldap-cli.yml",
+		"./moribito.yaml",      // New format
+		"./moribito.yml",       // New format
+		"./ldap-cli.yaml",      // Legacy support
+		"./ldap-cli.yml",       // Legacy support
 	}
 
 	// Check home directory
 	if homeDir, err := os.UserHomeDir(); err == nil {
 		candidates = append(candidates,
-			filepath.Join(homeDir, ".ldap-cli.yaml"),
-			filepath.Join(homeDir, ".ldap-cli.yml"),
-			filepath.Join(homeDir, ".config", "ldap-cli", "config.yaml"),
-			filepath.Join(homeDir, ".config", "ldap-cli", "config.yml"),
+			filepath.Join(homeDir, ".moribito.yaml"),                    // New format
+			filepath.Join(homeDir, ".moribito.yml"),                     // New format
+			filepath.Join(homeDir, ".config", "moribito", "config.yaml"), // New format
+			filepath.Join(homeDir, ".config", "moribito", "config.yml"),  // New format
+			filepath.Join(homeDir, ".ldap-cli.yaml"),                     // Legacy support
+			filepath.Join(homeDir, ".ldap-cli.yml"),                      // Legacy support
+			filepath.Join(homeDir, ".config", "ldap-cli", "config.yaml"), // Legacy support
+			filepath.Join(homeDir, ".config", "ldap-cli", "config.yml"),  // Legacy support
 		)
 	}
 
 	// Check /etc directory on Unix systems
 	candidates = append(candidates,
-		"/etc/ldap-cli/config.yaml",
-		"/etc/ldap-cli/config.yml",
+		"/etc/moribito/config.yaml",   // New format
+		"/etc/moribito/config.yml",    // New format
+		"/etc/ldap-cli/config.yaml",   // Legacy support
+		"/etc/ldap-cli/config.yml",    // Legacy support
 	)
 
 	for _, candidate := range candidates {

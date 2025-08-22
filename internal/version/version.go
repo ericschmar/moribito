@@ -37,7 +37,7 @@ func Get() Info {
 
 // String returns a formatted version string
 func (i Info) String() string {
-	return fmt.Sprintf("ldap-cli version %s (commit %s, built %s, %s, %s)",
+	return fmt.Sprintf("moribito version %s (commit %s, built %s, %s, %s)",
 		i.Version, i.Commit, i.Date, i.GoVersion, i.Platform)
 }
 

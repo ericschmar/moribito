@@ -9,10 +9,10 @@ import (
 	"github.com/charmbracelet/bubbletea"
 	"golang.org/x/term"
 
-	"github.com/ericschmar/ldap-cli/internal/config"
-	"github.com/ericschmar/ldap-cli/internal/ldap"
-	"github.com/ericschmar/ldap-cli/internal/tui"
-	"github.com/ericschmar/ldap-cli/internal/version"
+	"github.com/ericschmar/moribito/internal/config"
+	"github.com/ericschmar/moribito/internal/ldap"
+	"github.com/ericschmar/moribito/internal/tui"
+	"github.com/ericschmar/moribito/internal/version"
 )
 
 func main() {
@@ -140,10 +140,10 @@ func main() {
 }
 
 func printHelp() {
-	fmt.Println("LDAP CLI - Interactive LDAP Explorer")
+	fmt.Println("Moribito - Interactive LDAP Explorer")
 	fmt.Println()
 	fmt.Println("Usage:")
-	fmt.Println("  ldap-cli [options]")
+	fmt.Println("  moribito [options]")
 	fmt.Println()
 	fmt.Println("Options:")
 	fmt.Println("  -config string     Path to configuration file")

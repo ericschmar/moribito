@@ -10,7 +10,7 @@ import (
 	"github.com/charmbracelet/bubbles/table"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
-	"github.com/ericschmar/ldap-cli/internal/ldap"
+	"github.com/ericschmar/moribito/internal/ldap"
 	zone "github.com/lrstanley/bubblezone"
 	"github.com/lucasb-eyer/go-colorful"
 	"github.com/muesli/gamut"

@@ -1,0 +1,12 @@
+{
+  "title": "LDAP CLI Explorer",
+  "description": "Terminal-based LDAP server explorer documentation",
+  "github": "ericschmar/ldap-cli",
+  "plugins": {
+    "docpress-core": {},
+    "docpress-base": {}
+  },
+  "markdown": {
+    "typographer": true
+  }
+}

@@ -43,7 +43,7 @@ The application embeds version information at build time:
 
 ```bash
 # Check version
-./ldap-cli --version
+./moribito --version
 
 # Build with specific version (done automatically in CI)
 make build VERSION=1.0.0
@@ -60,7 +60,7 @@ make build VERSION=1.0.0
 Version information is managed in `internal/version/version.go`:
 
 ```go
-import "github.com/ericschmar/ldap-cli/internal/version"
+import "github.com/ericschmar/moribito/internal/version"
 
 info := version.Get()
 fmt.Println(info.String()) // Full version info

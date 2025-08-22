@@ -1,0 +1,21 @@
+{
+  "name": "ldap-cli",
+  "version": "1.0.0",
+  "description": "A terminal-based LDAP server explorer built with Go and BubbleTea, providing an interactive interface for browsing LDAP directory trees, viewing records, and executing custom queries.",
+  "main": "index.js",
+  "directories": {
+    "doc": "docs"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "docs:build": "docpress build",
+    "docs:serve": "docpress serve",
+    "docs:clean": "rm -rf _docpress"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "docpress": "^0.8.2"
+  }
+}

@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ericschmar/ldap-cli/internal/ldap"
+	"github.com/ericschmar/moribito/internal/ldap"
 )
 
 func TestTreeView_LoadingTimer(t *testing.T) {

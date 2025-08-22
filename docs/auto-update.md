@@ -1,6 +1,6 @@
 # Auto-Update Feature
 
-The ldap-cli application includes an optional auto-update feature that checks for newer releases on GitHub and notifies you when updates are available.
+The moribito application includes an optional auto-update feature that checks for newer releases on GitHub and notifies you when updates are available.
 
 ## How it Works
 
@@ -16,13 +16,13 @@ When enabled, the application will:
 To enable automatic update checking, use the `--check-updates` flag:
 
 ```bash
-./ldap-cli --check-updates
+./moribito --check-updates
 ```
 
 You can combine this with other flags:
 
 ```bash
-./ldap-cli --check-updates --host ldap.example.com --base-dn dc=example,dc=com
+./moribito --check-updates --host ldap.example.com --base-dn dc=example,dc=com
 ```
 
 ## Status Bar Notifications
@@ -47,7 +47,7 @@ The auto-update feature:
 
 ## Technical Details
 
-- Uses GitHub's releases API endpoint: `https://api.github.com/repos/ericschmar/ldap-cli/releases/latest`
+- Uses GitHub's releases API endpoint: `https://api.github.com/repos/ericschmar/moribito/releases/latest`
 - Compares versions using simple string comparison (works with semantic versioning)
 - Development versions (`dev`) always show update notifications
 - HTTP client includes appropriate User-Agent header to avoid rate limiting

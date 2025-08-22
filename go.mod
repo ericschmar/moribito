@@ -1,4 +1,4 @@
-module github.com/ericschmar/ldap-cli
+module github.com/ericschmar/moribito
 
 go 1.24.6
 
