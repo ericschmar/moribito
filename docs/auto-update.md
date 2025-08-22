@@ -6,10 +6,11 @@ The moribito application includes an optional auto-update feature that checks fo
 
 When enabled, the application will:
 
-1. Check the GitHub releases API on startup
-2. Compare the current version with the latest available release
-3. Display a notification in the status bar if an update is available
-4. Gracefully handle network errors without disrupting the user experience
+1. Start the UI immediately without waiting
+2. Check the GitHub releases API in the background after startup
+3. Compare the current version with the latest available release
+4. Display a notification in the status bar if an update is available
+5. Gracefully handle network errors without disrupting the user experience
 
 ## Usage
 
@@ -44,6 +45,7 @@ The auto-update feature:
 - Uses a 10-second timeout for network requests
 - Silently ignores network errors to avoid disrupting the user experience
 - Only runs the check once per application startup
+- Runs as a background task to avoid blocking UI startup
 
 ## Technical Details
 
@@ -51,6 +53,7 @@ The auto-update feature:
 - Compares versions using simple string comparison (works with semantic versioning)
 - Development versions (`dev`) always show update notifications
 - HTTP client includes appropriate User-Agent header to avoid rate limiting
+- Includes a 1.5 second delay before making the network request to ensure UI starts immediately
 
 ## Disabling Updates
 

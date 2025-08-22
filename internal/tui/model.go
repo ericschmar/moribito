@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
@@ -38,6 +39,10 @@ type (
 // checkForUpdatesCmd creates a command to check for updates
 func checkForUpdatesCmd() tea.Cmd {
 	return func() tea.Msg {
+		// Add a small delay to allow UI to initialize first
+		// This prevents blocking the startup while still running the check in background
+		time.Sleep(1500 * time.Millisecond)
+
 		checker := updater.New("ericschmar", "moribito")
 		ctx := context.Background()
 
