@@ -88,6 +88,12 @@ jobs:
           sudo mv moribito-darwin-arm64 /usr/local/bin/moribito
           ```
 
+          ### Homebrew
+          ```bash
+          # Install from our custom tap
+          brew install ericschmar/tap/moribito
+          ```
+
           ### Windows
           Download `moribito-windows-amd64.exe` and place it in your PATH.
 

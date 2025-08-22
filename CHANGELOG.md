@@ -18,8 +18,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Auto-update feature with GitHub releases integration
 - `--check-updates` CLI flag to enable automatic update checking
 - Status bar notifications when updates are available
+- **Homebrew distribution support with custom tap and formula**
+- **Homebrew installation instructions and documentation**
+- **Helper script for maintaining Homebrew formula with automatic SHA256 generation**
 
 ### Changed
+- **Fixed binary naming in GitHub releases (from ldap-cli-* to moribito-*)**
+- **Updated release workflow to include Homebrew installation instructions**
 
 ### Fixed
 

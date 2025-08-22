@@ -20,7 +20,19 @@ A terminal-based LDAP server explorer built with Go and BubbleTea, providing an 
 
 ## Installation
 
-### From GitHub Releases (Recommended)
+### Homebrew (Recommended for macOS/Linux)
+
+#### From Custom Tap
+```bash
+brew install ericschmar/tap/moribito
+```
+
+#### From Formula URL (if tap not available)
+```bash
+brew install https://raw.githubusercontent.com/ericschmar/moribito/main/homebrew/moribito.rb
+```
+
+### From GitHub Releases
 
 Download the latest pre-built binary from [GitHub Releases](https://github.com/ericschmar/moribito/releases):
 
@@ -47,6 +59,8 @@ sudo mv moribito /usr/local/bin/
 ```
 
 For Windows, download `moribito-windows-amd64.exe` from the releases page.
+
+> **Note**: Homebrew is also available for Windows via WSL (Windows Subsystem for Linux). If you have WSL installed, you can use the Homebrew installation method above.
 
 ### From Source
 
@@ -351,6 +365,15 @@ This project uses GitHub Actions for CI/CD:
 - [Lipgloss](https://github.com/charmbracelet/lipgloss) - Styling
 - [go-ldap](https://github.com/go-ldap/ldap) - LDAP client
 - [golang.org/x/term](https://golang.org/x/term) - Terminal utilities
+
+### Homebrew Distribution
+
+This project includes full Homebrew support for easy installation on macOS and Linux. See the [homebrew/](homebrew/) directory for:
+
+- Ready-to-use Homebrew formula
+- Formula generation and maintenance scripts
+- Documentation for creating custom taps
+- Instructions for submitting to homebrew-core
 
 ### Versioning
 

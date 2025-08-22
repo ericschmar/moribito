@@ -1,6 +1,18 @@
 # Installation
 
-## From GitHub Releases (Recommended)
+## Homebrew (Recommended for macOS/Linux)
+
+### From Custom Tap
+```bash
+brew install ericschmar/tap/moribito
+```
+
+### From Formula URL (if tap not available)
+```bash
+brew install https://raw.githubusercontent.com/ericschmar/moribito/main/homebrew/moribito.rb
+```
+
+## From GitHub Releases
 
 Download the latest pre-built binary from [GitHub Releases](https://github.com/ericschmar/moribito/releases):
 
