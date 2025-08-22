@@ -141,7 +141,6 @@ func (rv *RecordView) View() string {
 	return rv.container.RenderWithPadding(content)
 }
 
-
 // buildTable builds the table data from the entry
 func (rv *RecordView) buildTable() {
 	if rv.entry == nil {
