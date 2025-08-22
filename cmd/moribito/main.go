@@ -29,6 +29,7 @@ func main() {
 		help         = flag.Bool("help", false, "Show help")
 		showVersion  = flag.Bool("version", false, "Show version information")
 		checkUpdates = flag.Bool("check-updates", false, "Enable automatic update checking")
+		createConfig = flag.Bool("create-config", false, "Create default configuration file in OS-appropriate location")
 	)
 
 	flag.Parse()
@@ -40,6 +41,15 @@ func main() {
 
 	if *help {
 		printHelp()
+		return
+	}
+
+	if *createConfig {
+		if err := config.CreateDefaultConfig(); err != nil {
+			log.Fatalf("Failed to create config: %v", err)
+		}
+		fmt.Printf("Configuration file created at: %s\n", config.GetDefaultConfigPath())
+		fmt.Println("Please edit the file with your LDAP server details.")
 		return
 	}
 
@@ -156,6 +166,7 @@ func printHelp() {
 	fmt.Println("  -password string   Bind password (will prompt if user provided but password not)")
 	fmt.Println("  -page-size int     Number of entries per page for paginated queries (default: 50)")
 	fmt.Println("  -check-updates     Enable automatic update checking")
+	fmt.Println("  -create-config     Create default configuration file in OS-appropriate location")
 	fmt.Println("  -version           Show version information")
 	fmt.Println("  -help              Show this help message")
 	fmt.Println()
