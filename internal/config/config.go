@@ -98,10 +98,10 @@ func findConfigFile() string {
 	candidates := []string{
 		"./config.yaml",
 		"./config.yml",
-		"./moribito.yaml",      // New format
-		"./moribito.yml",       // New format
-		"./ldap-cli.yaml",      // Legacy support
-		"./ldap-cli.yml",       // Legacy support
+		"./moribito.yaml", // New format
+		"./moribito.yml",  // New format
+		"./ldap-cli.yaml", // Legacy support
+		"./ldap-cli.yml",  // Legacy support
 	}
 
 	// Add OS-specific and home directory paths
