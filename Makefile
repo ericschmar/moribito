@@ -1,4 +1,4 @@
-.PHONY: build test fmt lint clean run help install build-all docs docs-serve
+.PHONY: build test fmt lint clean run help install build-all docs docs-serve docs-clean
 
 # Version information
 VERSION ?= dev
@@ -30,6 +30,10 @@ lint:
 clean:
 	rm -rf bin/
 	go clean
+
+# Clean documentation build artifacts  
+docs-clean:
+	rm -rf _docpress/
 
 # Run the application with example config
 run:
@@ -80,4 +84,5 @@ help:
 	@echo "  build-all  - Build for multiple platforms"
 	@echo "  docs       - Build documentation website"
 	@echo "  docs-serve - Serve documentation locally"
+	@echo "  docs-clean - Clean documentation build artifacts"
 	@echo "  help       - Show this help"
