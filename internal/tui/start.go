@@ -104,10 +104,10 @@ var (
 				Margin(1, 0, 0, 0)
 
 	containerStyle = lipgloss.NewStyle().
-				Border(lipgloss.RoundedBorder()).
-				BorderForeground(lipgloss.Color("6")).
-				Padding(0, 2).
-				Margin(0, 0)
+			Border(lipgloss.RoundedBorder()).
+			BorderForeground(lipgloss.Color("6")).
+			Padding(0, 2).
+			Margin(0, 0)
 )
 
 // NewStartView creates a new start view
