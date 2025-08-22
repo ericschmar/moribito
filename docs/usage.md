@@ -4,19 +4,19 @@
 
 ```bash
 # Connect with command line options
-ldap-cli --host ldap.example.com --port 389 --base-dn "dc=example,dc=com"
+moribito --host ldap.example.com --port 389 --base-dn "dc=example,dc=com"
 
 # Use SSL/TLS
-ldap-cli --host ldap.example.com --ssl --base-dn "dc=example,dc=com"
+moribito --host ldap.example.com --ssl --base-dn "dc=example,dc=com"
 
 # With authentication
-ldap-cli --host ldap.example.com --bind-user "cn=admin,dc=example,dc=com" --bind-password "password" --base-dn "dc=example,dc=com"
+moribito --host ldap.example.com --bind-user "cn=admin,dc=example,dc=com" --bind-password "password" --base-dn "dc=example,dc=com"
 
 # Enable auto-update checking
-ldap-cli --check-updates
+moribito --check-updates
 
 # Combine options
-ldap-cli --host ldap.example.com --ssl --check-updates --base-dn "dc=example,dc=com"
+moribito --host ldap.example.com --ssl --check-updates --base-dn "dc=example,dc=com"
 ```
 
 ## Configuration File
@@ -24,7 +24,7 @@ ldap-cli --host ldap.example.com --ssl --check-updates --base-dn "dc=example,dc=
 Create a YAML configuration file to avoid typing connection details repeatedly:
 
 ```yaml
-# ~/.ldap-cli.yaml or ./config.yaml
+# ~/.moribito.yaml or ./config.yaml
 host: ldap.example.com
 port: 389
 base_dn: dc=example,dc=com
@@ -37,7 +37,7 @@ page_size: 100
 
 Then simply run:
 ```bash
-ldap-cli -config ~/.ldap-cli.yaml
+moribito -config ~/.moribito.yaml
 ```
 
 ## Features Overview

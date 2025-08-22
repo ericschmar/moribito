@@ -62,7 +62,7 @@ jobs:
         body: |
           ## Changes
           
-          See [CHANGELOG.md](https://github.com/ericschmar/ldap-cli/blob/main/CHANGELOG.md) for details.
+          See [CHANGELOG.md](https://github.com/ericschmar/moribito/blob/main/CHANGELOG.md) for details.
           
           ## Installation
           
@@ -71,28 +71,28 @@ jobs:
           ### Linux/macOS
           ```bash
           # Linux
-          wget https://github.com/ericschmar/ldap-cli/releases/download/${{ steps.tag.outputs.tag }}/ldap-cli-linux-amd64
-          chmod +x ldap-cli-linux-amd64
-          sudo mv ldap-cli-linux-amd64 /usr/local/bin/ldap-cli
+          wget https://github.com/ericschmar/moribito/releases/download/${{ steps.tag.outputs.tag }}/moribito-linux-amd64
+          chmod +x moribito-linux-amd64
+          sudo mv moribito-linux-amd64 /usr/local/bin/moribito
           
           # Linux ARM64
-          wget https://github.com/ericschmar/ldap-cli/releases/download/${{ steps.tag.outputs.tag }}/ldap-cli-linux-arm64
-          chmod +x ldap-cli-linux-arm64
-          sudo mv ldap-cli-linux-arm64 /usr/local/bin/ldap-cli
+          wget https://github.com/ericschmar/moribito/releases/download/${{ steps.tag.outputs.tag }}/moribito-linux-arm64
+          chmod +x moribito-linux-arm64
+          sudo mv moribito-linux-arm64 /usr/local/bin/moribito
           
           # macOS Intel
-          wget https://github.com/ericschmar/ldap-cli/releases/download/${{ steps.tag.outputs.tag }}/ldap-cli-darwin-amd64
-          chmod +x ldap-cli-darwin-amd64
-          sudo mv ldap-cli-darwin-amd64 /usr/local/bin/ldap-cli
+          wget https://github.com/ericschmar/moribito/releases/download/${{ steps.tag.outputs.tag }}/moribito-darwin-amd64
+          chmod +x moribito-darwin-amd64
+          sudo mv moribito-darwin-amd64 /usr/local/bin/moribito
           
           # macOS Apple Silicon
-          wget https://github.com/ericschmar/ldap-cli/releases/download/${{ steps.tag.outputs.tag }}/ldap-cli-darwin-arm64
-          chmod +x ldap-cli-darwin-arm64
-          sudo mv ldap-cli-darwin-arm64 /usr/local/bin/ldap-cli
+          wget https://github.com/ericschmar/moribito/releases/download/${{ steps.tag.outputs.tag }}/moribito-darwin-arm64
+          chmod +x moribito-darwin-arm64
+          sudo mv moribito-darwin-arm64 /usr/local/bin/moribito
           ```
           
           ### Windows
-          Download `ldap-cli-windows-amd64.exe` and place it in your PATH.
+          Download `moribito-windows-amd64.exe` and place it in your PATH.
           
           ## Verification
           
@@ -101,11 +101,11 @@ jobs:
           sha256sum -c checksums.txt
           ```
         files: |
-          bin/ldap-cli-linux-amd64
-          bin/ldap-cli-linux-arm64
-          bin/ldap-cli-darwin-amd64
-          bin/ldap-cli-darwin-arm64
-          bin/ldap-cli-windows-amd64.exe
+          bin/moribito-linux-amd64
+          bin/moribito-linux-arm64
+          bin/moribito-darwin-amd64
+          bin/moribito-darwin-arm64
+          bin/moribito-windows-amd64.exe
           checksums.txt
         draft: false
         prerelease: false
