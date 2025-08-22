@@ -344,9 +344,22 @@ func (qv *QueryView) View() string {
 			Render("Results:")
 		sections = append(sections, resultsHeader)
 
-		// Get content dimensions for results area
+		// Calculate remaining height dynamically based on content built so far
 		_, contentHeight := qv.container.GetContentDimensions()
-		remainingHeight := contentHeight - 8 // Account for header, query input, and instruction
+		
+		// Count lines in sections built so far
+		currentContent := strings.Join(sections, "\n")
+		currentLines := strings.Split(currentContent, "\n")
+		usedLines := len(currentLines)
+		
+		// Reserve space for instructions at the bottom (2 lines: margin + instruction text)
+		instructionLines := 2
+		
+		// Calculate remaining space for results
+		remainingHeight := contentHeight - usedLines - instructionLines
+		if remainingHeight < 0 {
+			remainingHeight = 0
+		}
 
 		if remainingHeight > 0 {
 			resultsContent := qv.renderResults(remainingHeight)
@@ -385,9 +398,20 @@ func (qv *QueryView) renderResults(maxHeight int) string {
 		return "No results"
 	}
 
+	// Reserve space for pagination info if needed
+	availableHeight := maxHeight
+	if qv.hasMore {
+		availableHeight = maxHeight - 1 // Reserve 1 line for pagination info
+	}
+	
+	// Ensure we have at least 1 line for results
+	if availableHeight < 1 {
+		availableHeight = 1
+	}
+
 	// Calculate visible range
 	visibleStart := qv.viewport
-	visibleEnd := visibleStart + maxHeight
+	visibleEnd := visibleStart + availableHeight
 	if visibleEnd > len(qv.ResultLines) {
 		visibleEnd = len(qv.ResultLines)
 	}
@@ -425,8 +449,8 @@ func (qv *QueryView) renderResults(maxHeight int) string {
 
 	result := strings.Join(lines, "\n")
 
-	// Add pagination info if applicable
-	if qv.hasMore {
+	// Add pagination info if applicable and if we reserved space for it
+	if qv.hasMore && maxHeight > 1 {
 		paginationInfo := lipgloss.NewStyle().
 			Foreground(lipgloss.Color("8")).
 			Italic(true).
@@ -499,12 +523,30 @@ func (qv *QueryView) buildResultLines() {
 
 // adjustViewport adjusts the viewport to keep the cursor visible
 func (qv *QueryView) adjustViewport() {
-	// Get content height and subtract space for header, query input, and instruction text
+	// Get content height and calculate actual space available for results
 	_, contentHeight := qv.container.GetContentDimensions()
 	if qv.container == nil {
 		contentHeight = qv.height
 	}
-	visibleHeight := contentHeight - 8
+	
+	// Calculate the same way as in View() - count actual UI elements
+	// This ensures consistency between rendering and viewport calculations
+	
+	// Estimated fixed elements (more conservative than hardcoded 8):
+	// - Title: ~2 lines (with margin)
+	// - Query header: 1 line  
+	// - Textarea: ~3 lines (with border)
+	// - Status: ~1 line (when present)
+	// - Results header: ~2 lines (with margin)
+	// - Instructions: ~2 lines (with margin)
+	// Total: ~11 lines, so use 12 to be safe
+	fixedUILines := 12
+	visibleHeight := contentHeight - fixedUILines
+	
+	// Ensure we have at least 1 line for results
+	if visibleHeight < 1 {
+		visibleHeight = 1
+	}
 
 	if qv.cursor < qv.viewport {
 		qv.viewport = qv.cursor
