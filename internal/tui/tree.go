@@ -48,7 +48,6 @@ func (tv *TreeView) Init() tea.Cmd {
 	return tv.loadRootNode()
 }
 
-// SetSize sets the size of the tree view
 func (tv *TreeView) SetSize(width, height int) {
 	tv.width = width
 	tv.height = height
@@ -143,7 +142,7 @@ func (tv *TreeView) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 func (tv *TreeView) View() string {
 	if tv.container == nil {
-		tv.container = NewViewContainer(tv.width, tv.height - 5)
+		tv.container = NewViewContainer(tv.width, tv.height)
 	}
 
 	if tv.loading {

@@ -83,8 +83,8 @@ var (
 			Padding(0, 1)
 
 	selectedFieldStyle = lipgloss.NewStyle().
-				Foreground(lipgloss.Color("0")).
-				Background(lipgloss.Color(GetGradientColor(0.7))).
+				Foreground(lipgloss.Color("15")).
+				Background(lipgloss.Color(lipgloss.Color(GetGradientColor(0.5)))).
 				Bold(true).
 				Padding(0, 1)
 
