@@ -96,6 +96,23 @@ func (m *Model) Init() tea.Cmd {
 	return tea.Batch(cmds...)
 }
 
+// SetSize sets the size of the model and propagates to child views
+func (m *Model) SetSize(width, height int) {
+	m.width = width
+	m.height = height
+
+	// Update child views - reserve space for tab bar (3 lines), status bar (1 line) and help bar (1 line)
+	contentHeight := height - 5
+	m.startView.SetSize(width, contentHeight)
+	if m.tree != nil {
+		m.tree.SetSize(width, contentHeight)
+	}
+	m.recordView.SetSize(width, contentHeight)
+	if m.queryView != nil {
+		m.queryView.SetSize(width, contentHeight)
+	}
+}
+
 // Update handles messages
 func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var cmds []tea.Cmd
@@ -466,44 +483,72 @@ func (m *Model) renderHelpBar() string {
 
 // handleZoneMessage handles bubblezone click messages
 func (m *Model) handleZoneMessage(msg zone.MsgZoneInBounds) (tea.Model, tea.Cmd) {
-	// Since we can't get the zone ID directly from the message,
-	// we need to determine which zone was clicked based on the zone bounds
-	// and match it against known zone locations
-
-	mouseX := msg.Event.X
-	mouseY := msg.Event.Y
-
-	// Check if this is a tab click by examining the mouse position
-	// Tabs are at the top of the screen
-	if mouseY <= 2 { // Tab bar area
-		// Handle tab clicks based on position
-		if mouseX >= 0 {
-			// Simplified tab detection - in a real implementation you'd want
-			// to track the exact positions of each tab
-			// For now, just cycle through views
-			m.switchView()
+	// Check which specific zone was clicked by testing known zone patterns
+	mouseEvent := msg.Event
+	
+	// Check tab clicks first - tabs are at the top
+	if mouseEvent.Y <= 2 { // Tab bar area
+		// Check each tab zone
+		tabs := []string{"0", "1", "2", "3"}
+		for _, tab := range tabs {
+			zoneID := fmt.Sprintf("tab-%s", tab)
+			if zoneInfo := zone.Get(zoneID); zoneInfo != nil && zoneInfo.InBounds(mouseEvent) {
+				// Handle tab click
+				switch tab {
+				case "0":
+					m.currentView = ViewModeStart
+				case "1":
+					m.currentView = ViewModeTree
+				case "2":
+					m.currentView = ViewModeRecord
+				case "3":
+					m.currentView = ViewModeQuery
+				}
+				return m, nil
+			}
 		}
-		return m, nil
 	}
 
 	// Forward to current view's zone handler based on view mode
 	switch m.currentView {
 	case ViewModeStart:
-		// Handle start view clicks - we'll need a different approach
-		// since we can't easily determine the exact field clicked
-		return m, nil
+		// Check for config field clicks
+		for i := 0; i < 10; i++ { // reasonable upper bound for config fields
+			zoneID := fmt.Sprintf("config-field-%d", i)
+			if zoneInfo := zone.Get(zoneID); zoneInfo != nil && zoneInfo.InBounds(mouseEvent) {
+				return m.handleStartViewClick(zoneID)
+			}
+		}
+
 	case ViewModeTree:
 		if m.tree != nil {
-			// Handle tree view clicks
-			return m, nil
+			// Check for tree item clicks
+			for i := 0; i < len(m.tree.FlattenedTree); i++ {
+				zoneID := fmt.Sprintf("tree-item-%d", i)
+				if zoneInfo := zone.Get(zoneID); zoneInfo != nil && zoneInfo.InBounds(mouseEvent) {
+					return m.handleTreeViewClick(zoneID)
+				}
+			}
 		}
+
 	case ViewModeRecord:
-		// Handle record view clicks
-		return m, nil
+		// Check for record row clicks
+		for i := 0; i < 100; i++ { // reasonable upper bound for attributes
+			zoneID := fmt.Sprintf("record-row-%d", i)
+			if zoneInfo := zone.Get(zoneID); zoneInfo != nil && zoneInfo.InBounds(mouseEvent) {
+				return m.handleRecordViewClick(zoneID)
+			}
+		}
+
 	case ViewModeQuery:
 		if m.queryView != nil {
-			// Handle query view clicks
-			return m, nil
+			// Check for query result clicks
+			for i := 0; i < 1000; i++ { // reasonable upper bound for query results
+				zoneID := fmt.Sprintf("query-result-%d", i)
+				if zoneInfo := zone.Get(zoneID); zoneInfo != nil && zoneInfo.InBounds(mouseEvent) {
+					return m.handleQueryViewClick(zoneID)
+				}
+			}
 		}
 	}
 
@@ -537,12 +582,15 @@ func (m *Model) handleTreeViewClick(zoneID string) (tea.Model, tea.Cmd) {
 		return m, nil
 	}
 
-	// Handle tree node clicks
-	if len(zoneID) > 10 && zoneID[:10] == "tree-node-" {
+	// Handle tree item clicks - match the zone ID format used in tree.go
+	if len(zoneID) > 10 && zoneID[:10] == "tree-item-" {
 		if nodeIndex, err := strconv.Atoi(zoneID[10:]); err == nil && nodeIndex < len(m.tree.FlattenedTree) {
 			m.tree.cursor = nodeIndex
+			m.tree.adjustViewport() // Ensure the cursor is visible
 			// Simulate enter key press to expand/view node
-			return m.tree.Update(tea.KeyMsg{Type: tea.KeyEnter})
+			newTreeModel, cmd := m.tree.Update(tea.KeyMsg{Type: tea.KeyEnter})
+			m.tree = newTreeModel.(*TreeView) // Update the tree in the model
+			return m, cmd
 		}
 	}
 	return m, nil
@@ -550,9 +598,9 @@ func (m *Model) handleTreeViewClick(zoneID string) (tea.Model, tea.Cmd) {
 
 // handleRecordViewClick handles clicks in the record view
 func (m *Model) handleRecordViewClick(zoneID string) (tea.Model, tea.Cmd) {
-	// Handle attribute row clicks
-	if len(zoneID) > 14 && zoneID[:14] == "record-attrib-" {
-		if attrIndex, err := strconv.Atoi(zoneID[14:]); err == nil {
+	// Handle record row clicks - match the zone ID format used in record.go
+	if len(zoneID) > 11 && zoneID[:11] == "record-row-" {
+		if attrIndex, err := strconv.Atoi(zoneID[11:]); err == nil {
 			// Set table cursor to clicked attribute
 			if attrIndex < len(m.recordView.renderedRows) {
 				m.recordView.table.SetCursor(attrIndex)
