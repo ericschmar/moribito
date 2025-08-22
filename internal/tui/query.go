@@ -298,6 +298,13 @@ func (qv *QueryView) handleInputMode(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			qv.textarea.SetValue(qv.textarea.Value() + clipboardText)
 		}
 		return qv, nil
+
+	case "ctrl+f":
+		// Format the LDAP query
+		currentQuery := qv.textarea.Value()
+		formattedQuery := qv.formatLdapQuery(currentQuery)
+		qv.textarea.SetValue(formattedQuery)
+		return qv, nil
 	}
 
 	// Forward to textarea
@@ -559,4 +566,144 @@ func (qv *QueryView) buildResultLines() {
 	if len(qv.ResultLines) > 0 && qv.ResultLines[len(qv.ResultLines)-1] == "" {
 		qv.ResultLines = qv.ResultLines[:len(qv.ResultLines)-1]
 	}
+}
+
+// formatLdapQuery formats an LDAP query with proper indentation
+func (qv *QueryView) formatLdapQuery(query string) string {
+	// Trim whitespace
+	query = strings.TrimSpace(query)
+
+	// Return empty string as-is
+	if query == "" {
+		return ""
+	}
+
+	// Return non-parenthesized queries as-is (invalid LDAP syntax)
+	if !strings.HasPrefix(query, "(") || !strings.HasSuffix(query, ")") {
+		return query
+	}
+
+	// Check if this is a simple query that doesn't need formatting
+	// Simple query: starts with (, ends with ), and has no nested logical operators
+	if qv.isSimpleQuery(query) {
+		return query
+	}
+
+	// Try to format the query, return original if parsing fails
+	result, ok := qv.formatLdapExpression(query, 0)
+	if !ok {
+		return query
+	}
+
+	return result
+}
+
+// isSimpleQuery checks if a query is simple and doesn't need formatting
+func (qv *QueryView) isSimpleQuery(query string) bool {
+	if len(query) < 3 {
+		return true
+	}
+
+	// Remove outer parentheses for analysis
+	inner := query[1 : len(query)-1]
+
+	// If it doesn't start with a logical operator (&, |, !), it's simple
+	if len(inner) == 0 || (inner[0] != '&' && inner[0] != '|' && inner[0] != '!') {
+		return true
+	}
+
+	// Any query that starts with a logical operator should be formatted
+	// unless it has exactly one leaf condition (very edge case)
+	return false
+}
+
+// formatLdapExpression recursively formats LDAP expressions
+func (qv *QueryView) formatLdapExpression(expr string, indent int) (string, bool) {
+	if len(expr) < 3 {
+		return expr, false
+	}
+
+	// Must start and end with parentheses
+	if expr[0] != '(' || expr[len(expr)-1] != ')' {
+		return expr, false
+	}
+
+	inner := expr[1 : len(expr)-1]
+	if len(inner) == 0 {
+		return expr, false
+	}
+
+	// Check for logical operators
+	if inner[0] != '&' && inner[0] != '|' && inner[0] != '!' {
+		// This is a leaf condition, return as-is
+		return expr, true
+	}
+
+	operator := string(inner[0])
+	remaining := inner[1:]
+
+	// Parse the sub-expressions
+	subExpressions, ok := qv.parseSubExpressions(remaining)
+	if !ok {
+		return expr, false
+	}
+
+	// Format each sub-expression
+	indentStr := strings.Repeat("  ", indent)
+	nextIndentStr := strings.Repeat("  ", indent+1)
+
+	result := "(" + operator + "\n"
+
+	for _, subExpr := range subExpressions {
+		formatted, ok := qv.formatLdapExpression(subExpr, indent+1)
+		if !ok {
+			return expr, false
+		}
+		result += nextIndentStr + formatted + "\n"
+	}
+
+	result += indentStr + ")"
+
+	return result, true
+}
+
+// parseSubExpressions parses sub-expressions from the remaining string after the operator
+func (qv *QueryView) parseSubExpressions(remaining string) ([]string, bool) {
+	var expressions []string
+	var current strings.Builder
+	parenCount := 0
+
+	for _, r := range remaining {
+		if r == '(' {
+			parenCount++
+		} else if r == ')' {
+			parenCount--
+		}
+
+		current.WriteRune(r)
+
+		// If we've closed all parentheses, we have a complete expression
+		if parenCount == 0 {
+			expr := strings.TrimSpace(current.String())
+			if expr != "" {
+				expressions = append(expressions, expr)
+				current.Reset()
+			}
+		}
+	}
+
+	// Check if we have unmatched parentheses
+	if parenCount != 0 {
+		return nil, false
+	}
+
+	// Check if there's remaining content
+	if current.Len() > 0 {
+		remaining := strings.TrimSpace(current.String())
+		if remaining != "" {
+			return nil, false // Malformed
+		}
+	}
+
+	return expressions, true
 }
