@@ -4,13 +4,18 @@ import (
 	"testing"
 
 	"github.com/charmbracelet/bubbletea"
+	"github.com/ericschmar/ldap-cli/internal/config"
 	"github.com/ericschmar/ldap-cli/internal/ldap"
 )
 
 func TestModel_NavigationKeysWithQueryInputMode(t *testing.T) {
 	// Create a model with a mock client
 	var client *ldap.Client
-	model := NewModel(client)
+	cfg := config.Default()
+	model := NewModel(client, cfg)
+
+	// Since client is nil, manually create queryView for testing
+	model.queryView = NewQueryView(client)
 
 	// Set to query view
 	model.currentView = ViewModeQuery
@@ -41,7 +46,11 @@ func TestModel_NavigationKeysWithQueryInputMode(t *testing.T) {
 func TestModel_NavigationKeysWithQueryBrowseMode(t *testing.T) {
 	// Create a model with a mock client
 	var client *ldap.Client
-	model := NewModel(client)
+	cfg := config.Default()
+	model := NewModel(client, cfg)
+
+	// Since client is nil, manually create queryView for testing
+	model.queryView = NewQueryView(client)
 
 	// Set to query view but in browse mode
 	model.currentView = ViewModeQuery
@@ -77,7 +86,8 @@ func TestModel_NavigationKeysWithQueryBrowseMode(t *testing.T) {
 func TestModel_NavigationKeysInOtherViews(t *testing.T) {
 	// Create a model with a mock client
 	var client *ldap.Client
-	model := NewModel(client)
+	cfg := config.Default()
+	model := NewModel(client, cfg)
 
 	// Test that number keys work normally in other views
 	testCases := []struct {
@@ -110,7 +120,8 @@ func TestModel_NavigationKeysInOtherViews(t *testing.T) {
 func TestModel_TreeLoadingHandledRegardlessOfCurrentView(t *testing.T) {
 	// Create a model with a mock client
 	var client *ldap.Client
-	model := NewModel(client)
+	cfg := config.Default()
+	model := NewModel(client, cfg)
 
 	// Ensure tree exists and is in loading state initially
 	if model.tree == nil {
@@ -157,7 +168,8 @@ func TestModel_TreeLoadingHandledRegardlessOfCurrentView(t *testing.T) {
 func TestModel_NodeChildrenLoadingHandledRegardlessOfCurrentView(t *testing.T) {
 	// Create a model with a mock client
 	var client *ldap.Client
-	model := NewModel(client)
+	cfg := config.Default()
+	model := NewModel(client, cfg)
 
 	// Set tree to loading state
 	model.tree.loading = true

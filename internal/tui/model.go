@@ -39,12 +39,20 @@ type Model struct {
 
 // NewModel creates a new model
 func NewModel(client *ldap.Client, cfg *config.Config) *Model {
-	return &Model{
+	model := &Model{
 		client:      client,
 		startView:   NewStartView(cfg),
 		recordView:  NewRecordView(),
 		currentView: ViewModeStart,
 	}
+
+	// Initialize tree and query views if client is available
+	if client != nil {
+		model.tree = NewTreeView(client)
+		model.queryView = NewQueryViewWithPageSize(client, cfg.Pagination.PageSize)
+	}
+
+	return model
 }
 
 // NewModelWithPageSize creates a new model with page size configuration
@@ -501,7 +509,7 @@ func (m *Model) handleZoneMessage(msg zone.MsgZoneInBounds) (tea.Model, tea.Cmd)
 		// Check for config field clicks
 		for i := 0; i < 10; i++ { // reasonable upper bound for config fields
 			zoneID := fmt.Sprintf("config-field-%d", i)
-			if zoneInfo := zone.Get(zoneID); zoneInfo != nil && zoneInfo.InBounds(mouseEvent) {
+			if zoneInfo := zone.Get(zoneID); zoneInfo != nil && zoneInfo.InBounds(msg.Event) {
 				return m.handleStartViewClick(zoneID)
 			}
 		}
@@ -511,7 +519,7 @@ func (m *Model) handleZoneMessage(msg zone.MsgZoneInBounds) (tea.Model, tea.Cmd)
 			// Check for tree item clicks
 			for i := 0; i < len(m.tree.FlattenedTree); i++ {
 				zoneID := fmt.Sprintf("tree-item-%d", i)
-				if zoneInfo := zone.Get(zoneID); zoneInfo != nil && zoneInfo.InBounds(mouseEvent) {
+				if zoneInfo := zone.Get(zoneID); zoneInfo != nil && zoneInfo.InBounds(msg.Event) {
 					return m.handleTreeViewClick(zoneID)
 				}
 			}
@@ -521,7 +529,7 @@ func (m *Model) handleZoneMessage(msg zone.MsgZoneInBounds) (tea.Model, tea.Cmd)
 		// Check for record row clicks
 		for i := 0; i < 100; i++ { // reasonable upper bound for attributes
 			zoneID := fmt.Sprintf("record-row-%d", i)
-			if zoneInfo := zone.Get(zoneID); zoneInfo != nil && zoneInfo.InBounds(mouseEvent) {
+			if zoneInfo := zone.Get(zoneID); zoneInfo != nil && zoneInfo.InBounds(msg.Event) {
 				return m.handleRecordViewClick(zoneID)
 			}
 		}
@@ -531,7 +539,7 @@ func (m *Model) handleZoneMessage(msg zone.MsgZoneInBounds) (tea.Model, tea.Cmd)
 			// Check for query result clicks
 			for i := 0; i < 1000; i++ { // reasonable upper bound for query results
 				zoneID := fmt.Sprintf("query-result-%d", i)
-				if zoneInfo := zone.Get(zoneID); zoneInfo != nil && zoneInfo.InBounds(mouseEvent) {
+				if zoneInfo := zone.Get(zoneID); zoneInfo != nil && zoneInfo.InBounds(msg.Event) {
 					return m.handleQueryViewClick(zoneID)
 				}
 			}
