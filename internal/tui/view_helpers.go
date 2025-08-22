@@ -135,3 +135,36 @@ func (vc *ViewContainer) GetContentDimensions() (width, height int) {
 	}
 	return contentWidth, vc.height
 }
+
+// GetGradientColor returns a blue-to-teal gradient color based on position
+// position should be 0-1 where 0 is pure blue and 1 is pure teal
+func GetGradientColor(position float64) string {
+	// Clamp position between 0 and 1
+	if position < 0 {
+		position = 0
+	}
+	if position > 1 {
+		position = 1
+	}
+
+	// Define blue-to-teal gradient color progression
+	// Using hex colors that transition from blue (#0066CC) to teal (#008080)
+	colors := []string{
+		"#0066CC", // Blue
+		"#0066B8", // Blue-teal 1
+		"#0066A4", // Blue-teal 2
+		"#006690", // Blue-teal 3
+		"#00667C", // Blue-teal 4
+		"#006668", // Blue-teal 5
+		"#006654", // Blue-teal 6
+		"#008080", // Teal
+	}
+
+	// Calculate which color to use based on position
+	index := int(position * float64(len(colors)-1))
+	if index >= len(colors) {
+		index = len(colors) - 1
+	}
+
+	return colors[index]
+}
