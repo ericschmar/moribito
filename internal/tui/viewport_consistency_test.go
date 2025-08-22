@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"github.com/charmbracelet/bubbletea"
-	"github.com/ericschmar/ldap-cli/internal/ldap"
+	"github.com/ericschmar/moribito/internal/ldap"
 )
 
 func TestViewportConsistency(t *testing.T) {

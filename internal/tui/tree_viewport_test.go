@@ -3,7 +3,7 @@ package tui
 import (
 	"testing"
 
-	"github.com/ericschmar/ldap-cli/internal/ldap"
+	"github.com/ericschmar/moribito/internal/ldap"
 	zone "github.com/lrstanley/bubblezone"
 )
 

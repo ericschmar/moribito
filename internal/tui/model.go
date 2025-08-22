@@ -8,10 +8,10 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
-	"github.com/ericschmar/ldap-cli/internal/config"
-	"github.com/ericschmar/ldap-cli/internal/ldap"
-	"github.com/ericschmar/ldap-cli/internal/updater"
-	"github.com/ericschmar/ldap-cli/internal/version"
+	"github.com/ericschmar/moribito/internal/config"
+	"github.com/ericschmar/moribito/internal/ldap"
+	"github.com/ericschmar/moribito/internal/updater"
+	"github.com/ericschmar/moribito/internal/version"
 	zone "github.com/lrstanley/bubblezone"
 )
 
@@ -38,7 +38,7 @@ type (
 // checkForUpdatesCmd creates a command to check for updates
 func checkForUpdatesCmd() tea.Cmd {
 	return func() tea.Msg {
-		checker := updater.New("ericschmar", "ldap-cli")
+		checker := updater.New("ericschmar", "moribito")
 		ctx := context.Background()
 
 		currentVersion := version.Get().Version

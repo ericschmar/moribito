@@ -31,12 +31,12 @@ func TestCheckForUpdate_MockSuccess(t *testing.T) {
 	mockResponse := `{
 		"tag_name": "v0.1.0",
 		"name": "Release v0.1.0",
-		"html_url": "https://github.com/ericschmar/ldap-cli/releases/tag/v0.1.0"
+		"html_url": "https://github.com/ericschmar/moribito/releases/tag/v0.1.0"
 	}`
 
 	checker := &Checker{
 		owner: "ericschmar",
-		repo:  "ldap-cli",
+		repo:  "moribito",
 		client: &http.Client{
 			Transport: &mockTransport{
 				response: mockResponse,
@@ -74,12 +74,12 @@ func TestCheckForUpdate_NoUpdateNeeded(t *testing.T) {
 	mockResponse := `{
 		"tag_name": "v0.1.0",
 		"name": "Release v0.1.0",
-		"html_url": "https://github.com/ericschmar/ldap-cli/releases/tag/v0.1.0"
+		"html_url": "https://github.com/ericschmar/moribito/releases/tag/v0.1.0"
 	}`
 
 	checker := &Checker{
 		owner: "ericschmar",
-		repo:  "ldap-cli",
+		repo:  "moribito",
 		client: &http.Client{
 			Transport: &mockTransport{
 				response: mockResponse,

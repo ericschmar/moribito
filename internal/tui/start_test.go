@@ -6,7 +6,7 @@ import (
 
 	"github.com/atotto/clipboard"
 	"github.com/charmbracelet/bubbletea"
-	"github.com/ericschmar/ldap-cli/internal/config"
+	"github.com/ericschmar/moribito/internal/config"
 )
 
 func TestStartView_PasteInEditMode(t *testing.T) {

@@ -1,7 +1,7 @@
 package tui
 
 import (
-	"github.com/ericschmar/ldap-cli/internal/ldap"
+	"github.com/ericschmar/moribito/internal/ldap"
 	"strings"
 	"testing"
 )

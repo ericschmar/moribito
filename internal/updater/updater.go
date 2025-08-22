@@ -59,7 +59,7 @@ func (c *Checker) getLatestRelease(ctx context.Context) (*GitHubRelease, error) 
 	}
 
 	// Set User-Agent to avoid GitHub API rate limiting
-	req.Header.Set("User-Agent", "ldap-cli-updater")
+	req.Header.Set("User-Agent", "moribito-updater")
 
 	resp, err := c.client.Do(req)
 	if err != nil {

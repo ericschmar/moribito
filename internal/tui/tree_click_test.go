@@ -4,8 +4,8 @@ import (
 	"testing"
 
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/ericschmar/ldap-cli/internal/config"
-	"github.com/ericschmar/ldap-cli/internal/ldap"
+	"github.com/ericschmar/moribito/internal/config"
+	"github.com/ericschmar/moribito/internal/ldap"
 	zone "github.com/lrstanley/bubblezone"
 )
 

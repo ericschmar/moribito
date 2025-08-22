@@ -38,7 +38,7 @@ func TestRetryConfig(t *testing.T) {
 
 func TestConfigLoadWithPagination(t *testing.T) {
 	// Create a temporary config file
-	tempDir, err := os.MkdirTemp("", "ldap-cli-test")
+	tempDir, err := os.MkdirTemp("", "moribito-test")
 	if err != nil {
 		t.Fatalf("Failed to create temp dir: %v", err)
 	}
@@ -79,7 +79,7 @@ pagination:
 
 func TestConfigLoadWithoutPagination(t *testing.T) {
 	// Create a temporary config file without pagination section
-	tempDir, err := os.MkdirTemp("", "ldap-cli-test")
+	tempDir, err := os.MkdirTemp("", "moribito-test")
 	if err != nil {
 		t.Fatalf("Failed to create temp dir: %v", err)
 	}
@@ -111,7 +111,7 @@ func TestConfigLoadWithoutPagination(t *testing.T) {
 
 func TestConfigLoadWithRetry(t *testing.T) {
 	// Create a temporary config file with retry settings
-	tempDir, err := os.MkdirTemp("", "ldap-cli-test")
+	tempDir, err := os.MkdirTemp("", "moribito-test")
 	if err != nil {
 		t.Fatalf("Failed to create temp dir: %v", err)
 	}
@@ -174,7 +174,7 @@ retry:
 
 func TestConfigLoadWithoutRetry(t *testing.T) {
 	// Create a temporary config file without retry section
-	tempDir, err := os.MkdirTemp("", "ldap-cli-test")
+	tempDir, err := os.MkdirTemp("", "moribito-test")
 	if err != nil {
 		t.Fatalf("Failed to create temp dir: %v", err)
 	}

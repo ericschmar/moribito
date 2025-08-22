@@ -1,8 +1,8 @@
-# LDAP CLI Configuration Example
+# Moribito Configuration Example
 # Copy this file to one of the following locations:
 #   - ./config.yaml (current directory)
-#   - ~/.ldap-cli.yaml (home directory)
-#   - ~/.config/ldap-cli/config.yaml (XDG config directory)
+#   - ~/.moribito.yaml (home directory)
+#   - ~/.config/moribito/config.yaml (XDG config directory)
 
 ldap:
   # LDAP server connection settings
