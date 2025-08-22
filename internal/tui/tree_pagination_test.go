@@ -7,7 +7,7 @@ import (
 
 	zone "github.com/lrstanley/bubblezone"
 
-	"github.com/ericschmar/ldap-cli/internal/ldap"
+	"github.com/ericschmar/moribito/internal/ldap"
 )
 
 func TestTreeViewPagination(t *testing.T) {

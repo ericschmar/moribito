@@ -6,7 +6,7 @@ import (
 )
 
 func TestNew(t *testing.T) {
-	checker := New("ericschmar", "ldap-cli")
+	checker := New("ericschmar", "moribito")
 	if checker == nil {
 		t.Fatal("Expected non-nil checker")
 	}
@@ -15,8 +15,8 @@ func TestNew(t *testing.T) {
 		t.Errorf("Expected owner 'ericschmar', got '%s'", checker.owner)
 	}
 
-	if checker.repo != "ldap-cli" {
-		t.Errorf("Expected repo 'ldap-cli', got '%s'", checker.repo)
+	if checker.repo != "moribito" {
+		t.Errorf("Expected repo 'moribito', got '%s'", checker.repo)
 	}
 
 	if checker.client == nil {
@@ -81,7 +81,7 @@ func TestCheckForUpdate_Integration(t *testing.T) {
 		t.Skip("Skipping integration test in short mode")
 	}
 
-	checker := New("ericschmar", "ldap-cli")
+	checker := New("ericschmar", "moribito")
 	ctx := context.Background()
 
 	// Test with dev version - should always return update available

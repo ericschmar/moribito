@@ -3,8 +3,8 @@ package tui
 import (
 	"testing"
 
-	"github.com/ericschmar/ldap-cli/internal/config"
-	"github.com/ericschmar/ldap-cli/internal/ldap"
+	"github.com/ericschmar/moribito/internal/config"
+	"github.com/ericschmar/moribito/internal/ldap"
 )
 
 func TestModel_ViewWithoutPanic(t *testing.T) {

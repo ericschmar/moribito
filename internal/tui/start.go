@@ -8,7 +8,7 @@ import (
 	"github.com/atotto/clipboard"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
-	"github.com/ericschmar/ldap-cli/internal/config"
+	"github.com/ericschmar/moribito/internal/config"
 	zone "github.com/lrstanley/bubblezone"
 )
 
