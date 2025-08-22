@@ -71,7 +71,12 @@ func (tv *TreeView) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if tv.container == nil {
 				contentHeight = tv.height
 			}
-			tv.cursor -= contentHeight
+			// Adjust for pagination line if needed
+			availableHeight := contentHeight
+			if len(tv.FlattenedTree) > contentHeight {
+				availableHeight = contentHeight - 1
+			}
+			tv.cursor -= availableHeight
 			if tv.cursor < 0 {
 				tv.cursor = 0
 			}
@@ -81,7 +86,12 @@ func (tv *TreeView) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if tv.container == nil {
 				contentHeight = tv.height
 			}
-			tv.cursor += contentHeight
+			// Adjust for pagination line if needed
+			availableHeight := contentHeight
+			if len(tv.FlattenedTree) > contentHeight {
+				availableHeight = contentHeight - 1
+			}
+			tv.cursor += availableHeight
 			if tv.cursor >= len(tv.FlattenedTree) {
 				tv.cursor = len(tv.FlattenedTree) - 1
 			}
@@ -134,9 +144,16 @@ func (tv *TreeView) View() string {
 	// Get content dimensions
 	contentWidth, contentHeight := tv.container.GetContentDimensions()
 
+	// Reserve space for pagination info if there are more items than fit on screen
+	availableHeight := contentHeight
+	showPagination := len(tv.FlattenedTree) > contentHeight
+	if showPagination {
+		availableHeight = contentHeight - 1 // Reserve 1 line for pagination info
+	}
+
 	var lines []string
 	visibleStart := tv.viewport
-	visibleEnd := visibleStart + contentHeight
+	visibleEnd := visibleStart + availableHeight
 	if visibleEnd > len(tv.FlattenedTree) {
 		visibleEnd = len(tv.FlattenedTree)
 	}
@@ -152,8 +169,17 @@ func (tv *TreeView) View() string {
 		lines = append(lines, line)
 	}
 
-	// Don't fill remaining space - let the ViewContainer handle height constraints
 	content := strings.Join(lines, "\n")
+
+	// Add pagination info if applicable
+	if showPagination {
+		paginationInfo := lipgloss.NewStyle().
+			Foreground(lipgloss.Color("8")).
+			Italic(true).
+			Render(fmt.Sprintf("Showing %d-%d of %d entries", visibleStart+1, visibleEnd, len(tv.FlattenedTree)))
+		content += "\n" + paginationInfo
+	}
+
 	return tv.container.RenderWithPadding(content)
 }
 
@@ -287,10 +313,16 @@ func (tv *TreeView) adjustViewport() {
 		contentHeight = tv.height
 	}
 
+	// Adjust for pagination line if needed
+	availableHeight := contentHeight
+	if len(tv.FlattenedTree) > contentHeight {
+		availableHeight = contentHeight - 1 // Reserve 1 line for pagination info
+	}
+
 	if tv.cursor < tv.viewport {
 		tv.viewport = tv.cursor
-	} else if tv.cursor >= tv.viewport+contentHeight {
-		tv.viewport = tv.cursor - contentHeight + 1
+	} else if tv.cursor >= tv.viewport+availableHeight {
+		tv.viewport = tv.cursor - availableHeight + 1
 	}
 
 	if tv.viewport < 0 {
