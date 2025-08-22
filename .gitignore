@@ -38,3 +38,11 @@ Thumbs.db
 config/local.yaml
 config/production.yaml
 config/config.yaml
+
+# Node.js dependencies and build artifacts
+node_modules/
+package-lock.json
+npm-debug.log*
+
+# DocPress build output
+_docpress/

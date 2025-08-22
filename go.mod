@@ -10,6 +10,7 @@ require (
 	github.com/go-ldap/ldap/v3 v3.4.11
 	github.com/lrstanley/bubblezone v1.0.0
 	github.com/lucasb-eyer/go-colorful v1.2.0
+	github.com/muesli/gamut v0.3.1
 	golang.org/x/term v0.34.0
 	gopkg.in/yaml.v3 v3.0.1
 )
@@ -30,7 +31,6 @@ require (
 	github.com/muesli/ansi v0.0.0-20230316100256-276c6243b2f6 // indirect
 	github.com/muesli/cancelreader v0.2.2 // indirect
 	github.com/muesli/clusters v0.0.0-20200529215643-2700303c1762 // indirect
-	github.com/muesli/gamut v0.3.1 // indirect
 	github.com/muesli/kmeans v0.3.1 // indirect
 	github.com/muesli/termenv v0.16.0 // indirect
 	github.com/rivo/uniseg v0.4.7 // indirect

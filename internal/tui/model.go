@@ -172,7 +172,6 @@ func (m *Model) SetSize(width, height int) {
 	m.queryView.SetSize(width, height)
 }
 
-
 // Update handles messages
 func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var cmds []tea.Cmd
@@ -405,7 +404,7 @@ func (m *Model) renderStatusBar() string {
 	rightWidth := lipgloss.Width(rightContent)
 	statusWidth := lipgloss.Width(statusContent)
 
-	remainingWidth := totalWidth  - rightWidth
+	remainingWidth := totalWidth - rightWidth
 	if remainingWidth < 0 {
 		remainingWidth = 0
 	}
@@ -419,7 +418,7 @@ func (m *Model) renderStatusBar() string {
 		middleContent = strings.Repeat(" ", remainingWidth)
 	}
 
-	return  middleContent + rightContent
+	return middleContent + rightContent
 }
 
 // renderTabBar creates the tab navigation bar
@@ -430,7 +429,7 @@ func (m *Model) renderTabBar() string {
 		key      string
 		viewMode ViewMode
 		enabled  bool
-		color   string
+		color    string
 	}{
 		{"Start", "🏠", "1", ViewModeStart, true, "12"},
 		{"Tree", "🌲", "2", ViewModeTree, m.client != nil, "10"},

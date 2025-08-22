@@ -352,6 +352,28 @@ This project uses GitHub Actions for CI/CD:
 
 This project follows [Semantic Versioning](https://semver.org/). See [docs/versioning.md](docs/versioning.md) for details on the release process.
 
+## Documentation
+
+Comprehensive documentation is available using DocPress. To build and view the documentation:
+
+```bash
+# Build static documentation website  
+make docs
+
+# Serve documentation locally with live reload
+make docs-serve
+```
+
+The documentation covers:
+- Installation and setup
+- Usage guide with examples
+- Interface navigation
+- Development setup
+- Contributing guidelines
+- API reference and advanced features
+
+Visit the generated documentation site for the complete guide.
+
 ## Contributing
 
 1. Fork the repository

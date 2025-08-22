@@ -38,7 +38,7 @@ var (
 	// Color blend for table rows - using blue to teal gradient similar to the example
 	startColor, _ = colorful.Hex("#0066CC") // Blue
 	endColor, _   = colorful.Hex("#008080") // Teal
-	blends    = gamut.Blends(lipgloss.Color("#0066CC"), lipgloss.Color("#008080"), 50)
+	blends        = gamut.Blends(lipgloss.Color("#0066CC"), lipgloss.Color("#008080"), 50)
 )
 
 // getRowColor returns a color for a table row based on its index
@@ -162,7 +162,6 @@ func (rv *RecordView) View() string {
 	return rv.container.RenderWithPadding(content)
 }
 
-
 // buildTable builds the table data from the entry
 func (rv *RecordView) buildTable() {
 	if rv.entry == nil {
@@ -268,7 +267,7 @@ func (rv *RecordView) renderTable() string {
 			gradientColors := colorsToHex(blendColors)
 
 			// Use different gradient colors for attribute and value columns
-			attrColorIndex := 1 // Use early gradient color for attribute
+			attrColorIndex := 1  // Use early gradient color for attribute
 			valueColorIndex := 4 // Use later gradient color for value
 
 			attrStyle = lipgloss.NewStyle().
@@ -342,6 +341,7 @@ func (rv *RecordView) copyCurrentValue() tea.Cmd {
 	msg := fmt.Sprintf("Copied %s value to clipboard", attributeName)
 	return SendStatus(msg)
 }
+
 // Helper function to convert gamut colors to hex strings
 func colorsToHex(colors []color.Color) []string {
 	var hexColors []string
