@@ -346,15 +346,15 @@ func (qv *QueryView) View() string {
 
 		// Calculate remaining height dynamically based on content built so far
 		_, contentHeight := qv.container.GetContentDimensions()
-		
+
 		// Count lines in sections built so far
 		currentContent := strings.Join(sections, "\n")
 		currentLines := strings.Split(currentContent, "\n")
 		usedLines := len(currentLines)
-		
+
 		// Reserve space for instructions at the bottom (2 lines: margin + instruction text)
 		instructionLines := 2
-		
+
 		// Calculate remaining space for results
 		remainingHeight := contentHeight - usedLines - instructionLines
 		if remainingHeight < 0 {
@@ -403,7 +403,7 @@ func (qv *QueryView) renderResults(maxHeight int) string {
 	if qv.hasMore {
 		availableHeight = maxHeight - 1 // Reserve 1 line for pagination info
 	}
-	
+
 	// Ensure we have at least 1 line for results
 	if availableHeight < 1 {
 		availableHeight = 1
@@ -528,13 +528,13 @@ func (qv *QueryView) adjustViewport() {
 	if qv.container == nil {
 		contentHeight = qv.height
 	}
-	
+
 	// Calculate the same way as in View() - count actual UI elements
 	// This ensures consistency between rendering and viewport calculations
-	
+
 	// Estimated fixed elements (more conservative than hardcoded 8):
 	// - Title: ~2 lines (with margin)
-	// - Query header: 1 line  
+	// - Query header: 1 line
 	// - Textarea: ~3 lines (with border)
 	// - Status: ~1 line (when present)
 	// - Results header: ~2 lines (with margin)
@@ -542,7 +542,7 @@ func (qv *QueryView) adjustViewport() {
 	// Total: ~11 lines, so use 12 to be safe
 	fixedUILines := 12
 	visibleHeight := contentHeight - fixedUILines
-	
+
 	// Ensure we have at least 1 line for results
 	if visibleHeight < 1 {
 		visibleHeight = 1

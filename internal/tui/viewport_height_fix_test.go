@@ -32,17 +32,17 @@ func TestQueryViewHeightConstraint(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			qv.SetSize(tc.width, tc.height)
-			
+
 			// Get the rendered view
 			view := qv.View()
 			lines := strings.Split(view, "\n")
-			
+
 			// The view should never exceed the allocated height
 			if len(lines) > tc.height {
-				t.Errorf("QueryView exceeded height constraint: got %d lines, max allowed %d", 
+				t.Errorf("QueryView exceeded height constraint: got %d lines, max allowed %d",
 					len(lines), tc.height)
 				t.Logf("This would cause the tab bar to be cut off!")
-				
+
 				// Log the content for debugging
 				t.Logf("View content (first 10 lines):")
 				for i := 0; i < min(10, len(lines)); i++ {
@@ -91,14 +91,14 @@ func TestTreeViewHeightConstraint(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			tv.SetSize(tc.width, tc.height)
-			
+
 			// Get the rendered view
 			view := tv.View()
 			lines := strings.Split(view, "\n")
-			
+
 			// The view should never exceed the allocated height
 			if len(lines) > tc.height {
-				t.Errorf("TreeView exceeded height constraint: got %d lines, max allowed %d", 
+				t.Errorf("TreeView exceeded height constraint: got %d lines, max allowed %d",
 					len(lines), tc.height)
 				t.Logf("This would cause the tab bar to be cut off!")
 			}
