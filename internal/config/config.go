@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"runtime"
 
 	"gopkg.in/yaml.v3"
 )
@@ -103,27 +104,8 @@ func findConfigFile() string {
 		"./ldap-cli.yml",       // Legacy support
 	}
 
-	// Check home directory
-	if homeDir, err := os.UserHomeDir(); err == nil {
-		candidates = append(candidates,
-			filepath.Join(homeDir, ".moribito.yaml"),                    // New format
-			filepath.Join(homeDir, ".moribito.yml"),                     // New format
-			filepath.Join(homeDir, ".config", "moribito", "config.yaml"), // New format
-			filepath.Join(homeDir, ".config", "moribito", "config.yml"),  // New format
-			filepath.Join(homeDir, ".ldap-cli.yaml"),                     // Legacy support
-			filepath.Join(homeDir, ".ldap-cli.yml"),                      // Legacy support
-			filepath.Join(homeDir, ".config", "ldap-cli", "config.yaml"), // Legacy support
-			filepath.Join(homeDir, ".config", "ldap-cli", "config.yml"),  // Legacy support
-		)
-	}
-
-	// Check /etc directory on Unix systems
-	candidates = append(candidates,
-		"/etc/moribito/config.yaml",   // New format
-		"/etc/moribito/config.yml",    // New format
-		"/etc/ldap-cli/config.yaml",   // Legacy support
-		"/etc/ldap-cli/config.yml",    // Legacy support
-	)
+	// Add OS-specific and home directory paths
+	candidates = append(candidates, getOSSpecificConfigPaths()...)
 
 	for _, candidate := range candidates {
 		if _, err := os.Stat(candidate); err == nil {
@@ -132,6 +114,152 @@ func findConfigFile() string {
 	}
 
 	return ""
+}
+
+// getOSSpecificConfigPaths returns configuration file paths based on OS conventions
+func getOSSpecificConfigPaths() []string {
+	var candidates []string
+
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		return candidates
+	}
+
+	switch runtime.GOOS {
+	case "windows":
+		// Windows: Use APPDATA for user-specific config
+		if appData := os.Getenv("APPDATA"); appData != "" {
+			candidates = append(candidates,
+				filepath.Join(appData, "moribito", "config.yaml"),
+				filepath.Join(appData, "moribito", "config.yml"),
+			)
+		}
+		// Fallback to user profile directory
+		candidates = append(candidates,
+			filepath.Join(homeDir, ".moribito.yaml"),
+			filepath.Join(homeDir, ".moribito.yml"),
+		)
+
+	case "darwin":
+		// macOS: Prefer ~/.moribito/ as requested in the issue, with fallbacks
+		candidates = append(candidates,
+			filepath.Join(homeDir, ".moribito", "config.yaml"),        // Primary choice as per issue
+			filepath.Join(homeDir, ".moribito", "config.yml"),
+			filepath.Join(homeDir, "Library", "Application Support", "moribito", "config.yaml"), // macOS standard
+			filepath.Join(homeDir, "Library", "Application Support", "moribito", "config.yml"),
+			filepath.Join(homeDir, ".moribito.yaml"),                  // Fallback
+			filepath.Join(homeDir, ".moribito.yml"),
+			filepath.Join(homeDir, ".config", "moribito", "config.yaml"), // XDG fallback
+			filepath.Join(homeDir, ".config", "moribito", "config.yml"),
+		)
+
+	default:
+		// Linux and other Unix-like systems: XDG Base Directory Specification
+		xdgConfigHome := os.Getenv("XDG_CONFIG_HOME")
+		if xdgConfigHome == "" {
+			xdgConfigHome = filepath.Join(homeDir, ".config")
+		}
+		
+		candidates = append(candidates,
+			filepath.Join(xdgConfigHome, "moribito", "config.yaml"),   // XDG standard
+			filepath.Join(xdgConfigHome, "moribito", "config.yml"),
+			filepath.Join(homeDir, ".moribito", "config.yaml"),        // Also support directory approach
+			filepath.Join(homeDir, ".moribito", "config.yml"),
+			filepath.Join(homeDir, ".moribito.yaml"),                  // Fallback
+			filepath.Join(homeDir, ".moribito.yml"),
+		)
+
+		// System-wide config for Unix systems
+		candidates = append(candidates,
+			"/etc/moribito/config.yaml",
+			"/etc/moribito/config.yml",
+		)
+	}
+
+	// Add legacy support for all platforms
+	candidates = append(candidates,
+		filepath.Join(homeDir, ".ldap-cli.yaml"),
+		filepath.Join(homeDir, ".ldap-cli.yml"),
+	)
+
+	// Add legacy XDG support for Unix-like systems
+	if runtime.GOOS != "windows" {
+		xdgConfigHome := os.Getenv("XDG_CONFIG_HOME")
+		if xdgConfigHome == "" {
+			xdgConfigHome = filepath.Join(homeDir, ".config")
+		}
+		candidates = append(candidates,
+			filepath.Join(xdgConfigHome, "ldap-cli", "config.yaml"),
+			filepath.Join(xdgConfigHome, "ldap-cli", "config.yml"),
+		)
+
+		if runtime.GOOS != "darwin" {
+			// System-wide legacy support for Linux
+			candidates = append(candidates,
+				"/etc/ldap-cli/config.yaml",
+				"/etc/ldap-cli/config.yml",
+			)
+		}
+	}
+
+	return candidates
+}
+
+// GetDefaultConfigPath returns the preferred config file path for the current OS
+func GetDefaultConfigPath() string {
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		return "./config.yaml" // Fallback to current directory
+	}
+
+	switch runtime.GOOS {
+	case "windows":
+		if appData := os.Getenv("APPDATA"); appData != "" {
+			return filepath.Join(appData, "moribito", "config.yaml")
+		}
+		return filepath.Join(homeDir, ".moribito.yaml")
+	case "darwin":
+		return filepath.Join(homeDir, ".moribito", "config.yaml")
+	default:
+		xdgConfigHome := os.Getenv("XDG_CONFIG_HOME")
+		if xdgConfigHome == "" {
+			xdgConfigHome = filepath.Join(homeDir, ".config")
+		}
+		return filepath.Join(xdgConfigHome, "moribito", "config.yaml")
+	}
+}
+
+// CreateDefaultConfig creates a default configuration file at the OS-appropriate location
+func CreateDefaultConfig() error {
+	configPath := GetDefaultConfigPath()
+	
+	// Create directory if it doesn't exist
+	configDir := filepath.Dir(configPath)
+	if err := os.MkdirAll(configDir, 0755); err != nil {
+		return fmt.Errorf("failed to create config directory %s: %w", configDir, err)
+	}
+
+	// Check if config file already exists
+	if _, err := os.Stat(configPath); err == nil {
+		return fmt.Errorf("configuration file already exists at %s", configPath)
+	}
+
+	// Create sample configuration
+	config := Default()
+	data, err := yaml.Marshal(config)
+	if err != nil {
+		return fmt.Errorf("failed to marshal default config: %w", err)
+	}
+
+	// Add header comment
+	header := fmt.Sprintf("# Moribito Configuration\n# Created at: %s\n# Edit this file with your LDAP server details\n\n", configPath)
+	configContent := header + string(data)
+
+	if err := os.WriteFile(configPath, []byte(configContent), 0644); err != nil {
+		return fmt.Errorf("failed to write config file %s: %w", configPath, err)
+	}
+
+	return nil
 }
 
 // Default returns a default configuration

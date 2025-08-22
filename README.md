@@ -24,6 +24,31 @@ A terminal-based LDAP server explorer built with Go and BubbleTea, providing an 
 
 Download the latest pre-built binary from [GitHub Releases](https://github.com/ericschmar/moribito/releases):
 
+#### Option 1: Quick Install Scripts (Recommended)
+
+**Linux/Unix:**
+```bash
+curl -sSL https://raw.githubusercontent.com/ericschmar/moribito/main/scripts/install.sh | bash
+```
+
+**macOS:**
+```bash
+curl -sSL https://raw.githubusercontent.com/ericschmar/moribito/main/scripts/install-macos.sh | bash
+```
+
+**Windows (PowerShell):**
+```powershell
+irm https://raw.githubusercontent.com/ericschmar/moribito/main/scripts/install.ps1 | iex
+```
+
+The install scripts will:
+- Download the appropriate binary for your platform
+- Install it to the system PATH
+- Create OS-specific configuration directories
+- Generate sample configuration files
+
+#### Option 2: Manual Download
+
 ```bash
 # Linux x86_64
 curl -L https://github.com/ericschmar/moribito/releases/latest/download/moribito-linux-amd64 -o moribito
@@ -76,10 +101,33 @@ moribito -help
 
 ### Configuration File
 
-Create a configuration file in one of these locations:
-- `./config.yaml` (current directory)
-- `~/.moribito.yaml` (home directory) 
+Moribito will automatically look for configuration files in OS-specific locations:
+
+**Linux/Unix:**
 - `~/.config/moribito/config.yaml` (XDG config directory)
+- `~/.moribito/config.yaml` (user directory)
+- `~/.moribito.yaml` (user home file)
+
+**macOS:**
+- `~/.moribito/config.yaml` (user directory)
+- `~/Library/Application Support/moribito/config.yaml` (macOS standard)
+- `~/.moribito.yaml` (user home file)
+
+**Windows:**
+- `%APPDATA%\moribito\config.yaml` (Windows standard)
+- `%USERPROFILE%\.moribito.yaml` (user home file)
+
+**All platforms also check:**
+- `./config.yaml` (current directory)
+
+#### Creating Configuration
+
+Use the built-in command to create a configuration file:
+```bash
+moribito --create-config
+```
+
+Or manually create a configuration file:
 
 ```yaml
 ldap:
