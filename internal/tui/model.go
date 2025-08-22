@@ -39,12 +39,20 @@ type Model struct {
 
 // NewModel creates a new model
 func NewModel(client *ldap.Client, cfg *config.Config) *Model {
-	return &Model{
+	model := &Model{
 		client:      client,
 		startView:   NewStartView(cfg),
 		recordView:  NewRecordView(),
 		currentView: ViewModeStart,
 	}
+
+	// Initialize tree and query views if client is available
+	if client != nil {
+		model.tree = NewTreeView(client)
+		model.queryView = NewQueryViewWithPageSize(client, cfg.Pagination.PageSize)
+	}
+
+	return model
 }
 
 // NewModelWithPageSize creates a new model with page size configuration

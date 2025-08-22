@@ -3,6 +3,7 @@ package tui
 import (
 	"fmt"
 	"strings"
+	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
@@ -21,6 +22,9 @@ type TreeView struct {
 	height        int
 	loading       bool
 	container     *ViewContainer
+	// Timer fields for loading display
+	loadingStartTime time.Time
+	loadingElapsed   time.Duration
 }
 
 // TreeItem represents a flattened tree item for display
@@ -121,6 +125,15 @@ func (tv *TreeView) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		tv.loading = false
 		return tv, SendStatus(fmt.Sprintf("Loaded children for %s", msg.Node.Name))
 
+	case LoadingTimerTickMsg:
+		if tv.loading {
+			// Update elapsed time for display and continue the timer
+			tv.loadingElapsed = msg.Time.Sub(tv.loadingStartTime)
+			return tv, tv.timerTickCmd()
+		}
+		// If not loading anymore, don't continue the timer
+		return tv, nil
+
 	case tea.Msg:
 		// Handle other message types
 	}
@@ -134,7 +147,17 @@ func (tv *TreeView) View() string {
 	}
 
 	if tv.loading {
-		return tv.container.RenderCentered("Loading LDAP tree...")
+		// Calculate elapsed time and format the message
+		elapsed := tv.loadingElapsed
+		if !tv.loadingStartTime.IsZero() {
+			elapsed = time.Since(tv.loadingStartTime)
+		}
+
+		// Format elapsed time as seconds with 1 decimal place
+		elapsedSeconds := elapsed.Seconds()
+		loadingMsg := fmt.Sprintf("Loading LDAP tree... (%0.1fs)", elapsedSeconds)
+
+		return tv.container.RenderCentered(loadingMsg)
 	}
 
 	if len(tv.FlattenedTree) == 0 {
@@ -223,13 +246,20 @@ func (tv *TreeView) renderTreeItem(item *TreeItem, isCursor bool, contentWidth i
 // loadRootNode loads the root node of the tree
 func (tv *TreeView) loadRootNode() tea.Cmd {
 	tv.loading = true
-	return func() tea.Msg {
-		root, err := tv.client.BuildTree()
-		if err != nil {
-			return ErrorMsg{Err: err}
-		}
-		return RootNodeLoadedMsg{Node: root}
-	}
+	tv.loadingStartTime = time.Now()
+	tv.loadingElapsed = 0
+
+	// Return both the loading operation and the timer tick
+	return tea.Batch(
+		func() tea.Msg {
+			root, err := tv.client.BuildTree()
+			if err != nil {
+				return ErrorMsg{Err: err}
+			}
+			return RootNodeLoadedMsg{Node: root}
+		},
+		tv.timerTickCmd(),
+	)
 }
 
 // expandNode expands the current node
@@ -250,13 +280,20 @@ func (tv *TreeView) expandNode() tea.Cmd {
 	}
 
 	tv.loading = true
-	return func() tea.Msg {
-		err := tv.client.LoadChildren(node)
-		if err != nil {
-			return ErrorMsg{Err: err}
-		}
-		return NodeChildrenLoadedMsg{Node: node}
-	}
+	tv.loadingStartTime = time.Now()
+	tv.loadingElapsed = 0
+
+	// Return both the loading operation and the timer tick
+	return tea.Batch(
+		func() tea.Msg {
+			err := tv.client.LoadChildren(node)
+			if err != nil {
+				return ErrorMsg{Err: err}
+			}
+			return NodeChildrenLoadedMsg{Node: node}
+		},
+		tv.timerTickCmd(),
+	)
 }
 
 // collapseNode collapses the current node
@@ -354,4 +391,15 @@ type RootNodeLoadedMsg struct {
 
 type NodeChildrenLoadedMsg struct {
 	Node *ldap.TreeNode
+}
+
+type LoadingTimerTickMsg struct {
+	Time time.Time
+}
+
+// timerTickCmd returns a command that sends timer tick messages every 100ms
+func (tv *TreeView) timerTickCmd() tea.Cmd {
+	return tea.Tick(100*time.Millisecond, func(t time.Time) tea.Msg {
+		return LoadingTimerTickMsg{Time: t}
+	})
 }
