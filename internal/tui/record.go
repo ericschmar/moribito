@@ -11,6 +11,7 @@ import (
 	"github.com/charmbracelet/lipgloss"
 	"github.com/ericschmar/ldap-cli/internal/ldap"
 	zone "github.com/lrstanley/bubblezone"
+	"github.com/lucasb-eyer/go-colorful"
 )
 
 // RecordView displays detailed information about an LDAP entry
@@ -29,6 +30,20 @@ type RecordView struct {
 type RowData struct {
 	AttributeName string
 	Values        []string
+}
+
+var (
+	// Color blend for table rows - using blue to teal gradient similar to the example
+	startColor, _ = colorful.Hex("#0066CC") // Blue
+	endColor, _   = colorful.Hex("#008080") // Teal
+)
+
+// getRowColor returns a color for a table row based on its index
+func getRowColor(index int) lipgloss.Color {
+	// Create a blend between start and end colors based on row index
+	ratio := float64(index%10) / 9.0 // Use modulo 10 to cycle through colors
+	blended := startColor.BlendRgb(endColor, ratio)
+	return lipgloss.Color(blended.Hex())
 }
 
 // NewRecordView creates a new record view
@@ -55,7 +70,7 @@ func NewRecordView() *RecordView {
 		Bold(false)
 	s.Selected = s.Selected.
 		Foreground(lipgloss.Color("15")).
-		Background(lipgloss.Color(GetGradientColor(0.3))).
+		Background(getRowColor(0)). // Use the first color from our blend for selected
 		Bold(false)
 	t.SetStyles(s)
 
@@ -233,13 +248,7 @@ func (rv *RecordView) renderTable() string {
 	var rows []string
 	rows = append(rows, header)
 
-	// Style for normal and selected rows
-	normalStyle := lipgloss.NewStyle()
-	selectedStyle := lipgloss.NewStyle().
-		Foreground(lipgloss.Color("15")).
-		Background(lipgloss.Color(GetGradientColor(0.3))).
-		Bold(false)
-
+	// Style for normal and selected rows with color blending
 	currentCursor := rv.table.Cursor()
 
 	for i, rowData := range rv.renderedRows {
@@ -256,10 +265,23 @@ func (rv *RecordView) renderTable() string {
 			valueText = valueText[:valueWidth-6] + "..."
 		}
 
-		// Style the row
-		style := normalStyle
+		// Style the row with blended colors
+		var style lipgloss.Style
 		if i == currentCursor {
-			style = selectedStyle
+			// Selected row: Use a brighter variant of the row color
+			selectedColor := getRowColor(i)
+			style = lipgloss.NewStyle().
+				Foreground(lipgloss.Color("15")).
+				Background(selectedColor).
+				Bold(false)
+		} else {
+			// Normal row: Use a subtle background color from the blend
+			normalColor := getRowColor(i)
+			// Make the normal background more subtle by using a lighter version
+			normalColorObj, _ := colorful.MakeColor(normalColor)
+			subtleColor := normalColorObj.BlendLuv(colorful.Color{R: 1, G: 1, B: 1}, 0.8) // Blend with white for subtlety
+			style = lipgloss.NewStyle().
+				Background(lipgloss.Color(subtleColor.Hex()))
 		}
 
 		// Format the row content
