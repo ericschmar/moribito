@@ -1,4 +1,4 @@
-.PHONY: build test fmt lint clean run help install build-all
+.PHONY: build test fmt lint clean run help install build-all docs docs-serve
 
 # Version information
 VERSION ?= dev
@@ -54,6 +54,18 @@ build-all: bin
 	GOOS=darwin GOARCH=arm64 go build $(LDFLAGS) -o bin/ldap-cli-darwin-arm64 cmd/ldap-cli/main.go
 	GOOS=windows GOARCH=amd64 go build $(LDFLAGS) -o bin/ldap-cli-windows-amd64.exe cmd/ldap-cli/main.go
 
+# Build documentation website
+docs:
+	@which npm > /dev/null || (echo "npm is required for documentation generation" && exit 1)
+	@[ -d node_modules ] || npm install
+	./node_modules/.bin/docpress build
+
+# Serve documentation locally
+docs-serve:
+	@which npm > /dev/null || (echo "npm is required for documentation generation" && exit 1)
+	@[ -d node_modules ] || npm install
+	./node_modules/.bin/docpress serve
+
 # Show help
 help:
 	@echo "Available commands:"
@@ -66,4 +78,6 @@ help:
 	@echo "  install    - Install to GOPATH/bin"
 	@echo "  ci         - Run full CI checks (fmt, lint, test, build)"
 	@echo "  build-all  - Build for multiple platforms"
+	@echo "  docs       - Build documentation website"
+	@echo "  docs-serve - Serve documentation locally"
 	@echo "  help       - Show this help"
