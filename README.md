@@ -1,4 +1,4 @@
-# LDAP CLI Explorer
+# 森人 - Mori-bito (forest-person)
 
 A terminal-based LDAP server explorer built with Go and BubbleTea, providing an interactive interface for browsing LDAP directory trees, viewing records, and executing custom queries.
 
