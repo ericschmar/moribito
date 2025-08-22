@@ -308,7 +308,7 @@ func (qv *QueryView) handleInputMode(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 // handleBrowseMode handles input when browsing results
 func (qv *QueryView) handleBrowseMode(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	var cmd tea.Cmd
-	
+
 	switch msg.String() {
 	case "enter", " ":
 		// Show record details for selected entry
@@ -488,11 +488,11 @@ func (qv *QueryView) buildTableRows() {
 	}
 
 	var rows []table.Row
-	
+
 	for _, entry := range qv.results {
 		// Create DN column
 		dn := entry.DN
-		
+
 		// Create summary column with key attributes
 		var summaryParts []string
 		for attrName, attrValues := range entry.Attributes {
@@ -508,17 +508,17 @@ func (qv *QueryView) buildTableRows() {
 				}
 			}
 		}
-		
+
 		summary := strings.Join(summaryParts, " | ")
 		if summary == "" {
 			summary = "(no attributes)"
 		}
-		
+
 		rows = append(rows, table.Row{dn, summary})
 	}
-	
+
 	qv.table.SetRows(rows)
-	
+
 	// Also keep the legacy ResultLines for backward compatibility during transition
 	qv.buildResultLines()
 }
@@ -530,17 +530,17 @@ func (qv *QueryView) renderTable() string {
 	}
 
 	result := qv.table.View()
-	
+
 	// Add pagination info if applicable
 	if qv.hasMore {
 		paginationInfo := lipgloss.NewStyle().
 			Foreground(lipgloss.Color("8")).
 			Italic(true).
-			Render(fmt.Sprintf("Showing %d of %d+ results • Press [N] for next page", 
+			Render(fmt.Sprintf("Showing %d of %d+ results • Press [N] for next page",
 				len(qv.results), len(qv.results)))
 		result += "\n" + paginationInfo
 	}
-	
+
 	return result
 }
 
@@ -571,5 +571,3 @@ func (qv *QueryView) buildResultLines() {
 		qv.ResultLines = qv.ResultLines[:len(qv.ResultLines)-1]
 	}
 }
-
-
