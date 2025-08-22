@@ -468,7 +468,7 @@ func (m *Model) handleZoneMessage(msg zone.MsgZoneInBounds) (tea.Model, tea.Cmd)
 	// Check if this is a tab click by checking each tab zone
 	tabKeys := []string{"1", "2", "3", "4"}
 	viewModes := []ViewMode{ViewModeStart, ViewModeTree, ViewModeRecord, ViewModeQuery}
-	
+
 	for i, key := range tabKeys {
 		zoneID := fmt.Sprintf("tab-%s", key)
 		if zoneInfo := zone.Get(zoneID); zoneInfo != nil && zoneInfo.InBounds(msg.Event) {
