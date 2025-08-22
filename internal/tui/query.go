@@ -5,11 +5,11 @@ import (
 	"strings"
 
 	"github.com/atotto/clipboard"
+	"github.com/charmbracelet/bubbles/table"
 	"github.com/charmbracelet/bubbles/textarea"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/ericschmar/ldap-cli/internal/ldap"
-	zone "github.com/lrstanley/bubblezone"
 )
 
 // Message types for query results
@@ -26,10 +26,9 @@ type QueryPageMsg struct {
 type QueryView struct {
 	client      *ldap.Client
 	textarea    textarea.Model
-	cursor      int
 	results     []*ldap.Entry
-	ResultLines []string
-	viewport    int
+	table       table.Model
+	ResultLines []string // Keep for backward compatibility during transition
 	width       int
 	height      int
 	inputMode   bool
@@ -52,11 +51,37 @@ func NewQueryView(client *ldap.Client) *QueryView {
 	ta.ShowLineNumbers = false
 	ta.Focus()
 
+	// Create table with columns for query results
+	columns := []table.Column{
+		{Title: "DN", Width: 40},
+		{Title: "Summary", Width: 60},
+	}
+
+	t := table.New(
+		table.WithColumns(columns),
+		table.WithRows([]table.Row{}),
+		table.WithFocused(false), // Start unfocused since we start in input mode
+		table.WithHeight(10),
+	)
+
+	// Style the table
+	s := table.DefaultStyles()
+	s.Header = s.Header.
+		BorderStyle(lipgloss.NormalBorder()).
+		BorderForeground(lipgloss.Color("240")).
+		BorderBottom(true).
+		Bold(false)
+	s.Selected = s.Selected.
+		Foreground(lipgloss.Color("15")).
+		Background(lipgloss.Color(GetGradientColor(0.3))).
+		Bold(false)
+	t.SetStyles(s)
+
 	return &QueryView{
 		client:    client,
 		textarea:  ta,
+		table:     t,
 		inputMode: true,
-		cursor:    0,
 		pageSize:  50, // Default page size
 	}
 }
@@ -69,11 +94,37 @@ func NewQueryViewWithPageSize(client *ldap.Client, pageSize uint32) *QueryView {
 	ta.ShowLineNumbers = false
 	ta.Focus()
 
+	// Create table with columns for query results
+	columns := []table.Column{
+		{Title: "DN", Width: 40},
+		{Title: "Summary", Width: 60},
+	}
+
+	t := table.New(
+		table.WithColumns(columns),
+		table.WithRows([]table.Row{}),
+		table.WithFocused(false), // Start unfocused since we start in input mode
+		table.WithHeight(10),
+	)
+
+	// Style the table
+	s := table.DefaultStyles()
+	s.Header = s.Header.
+		BorderStyle(lipgloss.NormalBorder()).
+		BorderForeground(lipgloss.Color("240")).
+		BorderBottom(true).
+		Bold(false)
+	s.Selected = s.Selected.
+		Foreground(lipgloss.Color("15")).
+		Background(lipgloss.Color(GetGradientColor(0.3))).
+		Bold(false)
+	t.SetStyles(s)
+
 	return &QueryView{
 		client:    client,
 		textarea:  ta,
+		table:     t,
 		inputMode: true,
-		cursor:    0,
 		pageSize:  pageSize,
 	}
 }
@@ -81,6 +132,12 @@ func NewQueryViewWithPageSize(client *ldap.Client, pageSize uint32) *QueryView {
 // IsInputMode returns whether the query view is in input mode
 func (qv *QueryView) IsInputMode() bool {
 	return qv.inputMode
+}
+
+// SetResults sets the results for testing purposes
+func (qv *QueryView) SetResults(entries []*ldap.Entry) {
+	qv.results = entries
+	qv.buildTableRows()
 }
 
 // Init initializes the query view
@@ -95,12 +152,39 @@ func (qv *QueryView) SetSize(width, height int) {
 	qv.container = NewViewContainer(width, height)
 
 	// Get content dimensions for textarea sizing
-	contentWidth, _ := qv.container.GetContentDimensions()
+	contentWidth, contentHeight := qv.container.GetContentDimensions()
 
 	// Set textarea width to fit within the content area
 	qv.textarea.SetWidth(contentWidth - 4) // Account for border and padding
 	// Allow the textarea to be multi-line but limit height reasonably
 	qv.textarea.SetHeight(3)
+
+	// Configure table dimensions
+	// Reserve space for title, query, status, instructions (rough estimate ~10 lines)
+	tableHeight := contentHeight - 12
+	if tableHeight < 3 {
+		tableHeight = 3
+	}
+
+	// Calculate column widths based on available content space
+	dnWidth := contentWidth / 3
+	if dnWidth < 20 {
+		dnWidth = 20
+	}
+	summaryWidth := contentWidth - dnWidth - 4 // Account for borders and spacing
+	if summaryWidth < 30 {
+		summaryWidth = 30
+		dnWidth = contentWidth - summaryWidth - 4
+	}
+
+	// Update table dimensions and columns
+	columns := []table.Column{
+		{Title: "DN", Width: dnWidth},
+		{Title: "Summary", Width: summaryWidth},
+	}
+	qv.table.SetColumns(columns)
+	qv.table.SetHeight(tableHeight)
+	qv.table.SetWidth(contentWidth)
 }
 
 // Update handles input for the query view
@@ -122,9 +206,10 @@ func (qv *QueryView) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		qv.error = nil
 		qv.inputMode = false
 		qv.textarea.Blur() // Blur the textarea when browsing results
+		qv.table.Focus()   // Focus the table when browsing results
 		qv.hasMore = false
 		qv.currentCookie = nil
-		qv.buildResultLines()
+		qv.buildTableRows()
 		return qv, SendStatus(fmt.Sprintf("Found %d results", len(qv.results)))
 
 	case QueryPageMsg:
@@ -132,8 +217,6 @@ func (qv *QueryView) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if msg.IsFirstPage {
 			// First page - replace existing results
 			qv.results = msg.Page.Entries
-			qv.cursor = 0
-			qv.viewport = 0
 		} else {
 			// Subsequent page - append to existing results
 			qv.results = append(qv.results, msg.Page.Entries...)
@@ -147,9 +230,9 @@ func (qv *QueryView) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		qv.error = nil
 		qv.inputMode = false
 		qv.textarea.Blur()
+		qv.table.Focus()
 
-		qv.buildResultLines()
-		qv.adjustViewport()
+		qv.buildTableRows()
 
 		totalResults := len(qv.results)
 		statusMsg := fmt.Sprintf("Found %d results", totalResults)
@@ -189,11 +272,11 @@ func (qv *QueryView) handleInputMode(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		// Clear results and reset to input mode
 		qv.results = nil
 		qv.ResultLines = nil
-		qv.cursor = 0
-		qv.viewport = 0
+		qv.table.SetRows([]table.Row{})
 		qv.hasMore = false
 		qv.currentCookie = nil
 		qv.inputMode = true
+		qv.table.Blur()
 		qv.textarea.Focus()
 		return qv, nil
 
@@ -205,6 +288,7 @@ func (qv *QueryView) handleInputMode(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		if len(qv.results) > 0 {
 			qv.inputMode = false
 			qv.textarea.Blur()
+			qv.table.Focus()
 		}
 		return qv, nil
 
@@ -223,51 +307,19 @@ func (qv *QueryView) handleInputMode(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 
 // handleBrowseMode handles input when browsing results
 func (qv *QueryView) handleBrowseMode(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+	var cmd tea.Cmd
+	
 	switch msg.String() {
-	case "up", "k":
-		if qv.cursor > 0 {
-			qv.cursor--
-			qv.adjustViewport()
-		}
-	case "down", "j":
-		if qv.cursor < len(qv.ResultLines)-1 {
-			qv.cursor++
-			qv.adjustViewport()
-		}
-	case "page_up":
-		_, contentHeight := qv.container.GetContentDimensions()
-		if qv.container == nil {
-			contentHeight = qv.height
-		}
-		qv.cursor -= contentHeight - 8 // Account for header space
-		if qv.cursor < 0 {
-			qv.cursor = 0
-		}
-		qv.adjustViewport()
-	case "page_down":
-		_, contentHeight := qv.container.GetContentDimensions()
-		if qv.container == nil {
-			contentHeight = qv.height
-		}
-		qv.cursor += contentHeight - 8
-		if qv.cursor >= len(qv.ResultLines) {
-			qv.cursor = len(qv.ResultLines) - 1
-		}
-		qv.adjustViewport()
-	case "home":
-		qv.cursor = 0
-		qv.adjustViewport()
-	case "end":
-		qv.cursor = len(qv.ResultLines) - 1
-		qv.adjustViewport()
 	case "enter", " ":
 		// Show record details for selected entry
-		if qv.cursor < len(qv.results) {
-			return qv, ShowRecord(qv.results[qv.cursor])
+		selectedRow := qv.table.Cursor()
+		if selectedRow < len(qv.results) {
+			return qv, ShowRecord(qv.results[selectedRow])
 		}
 	case "esc":
 		// Return to input mode
 		qv.inputMode = true
+		qv.table.Blur()
 		qv.textarea.Focus()
 		return qv, nil
 	case "n":
@@ -276,6 +328,10 @@ func (qv *QueryView) handleBrowseMode(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			qv.loadingNextPage = true
 			return qv, qv.loadNextPage()
 		}
+	default:
+		// Forward navigation keys to the table
+		qv.table, cmd = qv.table.Update(msg)
+		return qv, cmd
 	}
 
 	return qv, nil
@@ -362,7 +418,7 @@ func (qv *QueryView) View() string {
 		}
 
 		if remainingHeight > 0 {
-			resultsContent := qv.renderResults(remainingHeight)
+			resultsContent := qv.renderTable()
 			sections = append(sections, resultsContent)
 		}
 	}
@@ -390,75 +446,6 @@ func (qv *QueryView) View() string {
 	content := strings.Join(sections, "\n")
 
 	return qv.container.RenderWithPadding(content)
-}
-
-// renderResults renders the results list
-func (qv *QueryView) renderResults(maxHeight int) string {
-	if len(qv.ResultLines) == 0 {
-		return "No results"
-	}
-
-	// Reserve space for pagination info if needed
-	availableHeight := maxHeight
-	if qv.hasMore {
-		availableHeight = maxHeight - 1 // Reserve 1 line for pagination info
-	}
-
-	// Ensure we have at least 1 line for results
-	if availableHeight < 1 {
-		availableHeight = 1
-	}
-
-	// Calculate visible range
-	visibleStart := qv.viewport
-	visibleEnd := visibleStart + availableHeight
-	if visibleEnd > len(qv.ResultLines) {
-		visibleEnd = len(qv.ResultLines)
-	}
-
-	var lines []string
-
-	// Get content dimensions for consistent width handling
-	contentWidth, _ := qv.container.GetContentDimensions()
-
-	for i := visibleStart; i < visibleEnd; i++ {
-		line := qv.ResultLines[i]
-		isSelected := i == qv.cursor
-
-		var renderedLine string
-		if isSelected {
-			style := lipgloss.NewStyle().
-				Foreground(lipgloss.Color("0")).
-				Background(lipgloss.Color(GetGradientColor(0.6))).
-				Bold(true).
-				Width(contentWidth - 4) // Account for padding
-			renderedLine = style.Render(line)
-		} else {
-			style := lipgloss.NewStyle().
-				Foreground(lipgloss.Color("15")).
-				Width(contentWidth - 4)
-			renderedLine = style.Render(line)
-		}
-
-		// Wrap with clickable zone
-		zoneID := fmt.Sprintf("query-result-%d", i)
-		renderedLine = zone.Mark(zoneID, renderedLine)
-
-		lines = append(lines, renderedLine)
-	}
-
-	result := strings.Join(lines, "\n")
-
-	// Add pagination info if applicable and if we reserved space for it
-	if qv.hasMore && maxHeight > 1 {
-		paginationInfo := lipgloss.NewStyle().
-			Foreground(lipgloss.Color("8")).
-			Italic(true).
-			Render(fmt.Sprintf("Page info: Showing %d-%d of %d+ results", visibleStart+1, visibleEnd, len(qv.ResultLines)))
-		result += "\n" + paginationInfo
-	}
-
-	return result
 }
 
 // executeQuery executes the current query
@@ -493,7 +480,71 @@ func (qv *QueryView) loadNextPage() tea.Cmd {
 	}
 }
 
-// buildResultLines builds the display lines from results
+// buildTableRows builds the table rows from results
+func (qv *QueryView) buildTableRows() {
+	if len(qv.results) == 0 {
+		qv.table.SetRows([]table.Row{})
+		return
+	}
+
+	var rows []table.Row
+	
+	for _, entry := range qv.results {
+		// Create DN column
+		dn := entry.DN
+		
+		// Create summary column with key attributes
+		var summaryParts []string
+		for attrName, attrValues := range entry.Attributes {
+			if len(attrValues) > 0 {
+				summary := fmt.Sprintf("%s: %s", attrName, attrValues[0])
+				if len(attrValues) > 1 {
+					summary += fmt.Sprintf(" (+%d more)", len(attrValues)-1)
+				}
+				summaryParts = append(summaryParts, summary)
+				// Limit to first few attributes to keep summary concise
+				if len(summaryParts) >= 3 {
+					break
+				}
+			}
+		}
+		
+		summary := strings.Join(summaryParts, " | ")
+		if summary == "" {
+			summary = "(no attributes)"
+		}
+		
+		rows = append(rows, table.Row{dn, summary})
+	}
+	
+	qv.table.SetRows(rows)
+	
+	// Also keep the legacy ResultLines for backward compatibility during transition
+	qv.buildResultLines()
+}
+
+// renderTable renders the table with proper styling and pagination info
+func (qv *QueryView) renderTable() string {
+	if len(qv.results) == 0 {
+		return "No results"
+	}
+
+	result := qv.table.View()
+	
+	// Add pagination info if applicable
+	if qv.hasMore {
+		paginationInfo := lipgloss.NewStyle().
+			Foreground(lipgloss.Color("8")).
+			Italic(true).
+			Render(fmt.Sprintf("Showing %d of %d+ results • Press [N] for next page", 
+				len(qv.results), len(qv.results)))
+		result += "\n" + paginationInfo
+	}
+	
+	return result
+}
+
+// buildResultLines builds the display lines from results (kept for backward compatibility)
 func (qv *QueryView) buildResultLines() {
 	qv.ResultLines = qv.ResultLines[:0] // Clear but keep capacity
 
@@ -521,40 +572,4 @@ func (qv *QueryView) buildResultLines() {
 	}
 }
 
-// adjustViewport adjusts the viewport to keep the cursor visible
-func (qv *QueryView) adjustViewport() {
-	// Get content height and calculate actual space available for results
-	_, contentHeight := qv.container.GetContentDimensions()
-	if qv.container == nil {
-		contentHeight = qv.height
-	}
 
-	// Calculate the same way as in View() - count actual UI elements
-	// This ensures consistency between rendering and viewport calculations
-
-	// Estimated fixed elements (more conservative than hardcoded 8):
-	// - Title: ~2 lines (with margin)
-	// - Query header: 1 line
-	// - Textarea: ~3 lines (with border)
-	// - Status: ~1 line (when present)
-	// - Results header: ~2 lines (with margin)
-	// - Instructions: ~2 lines (with margin)
-	// Total: ~11 lines, so use 12 to be safe
-	fixedUILines := 12
-	visibleHeight := contentHeight - fixedUILines
-
-	// Ensure we have at least 1 line for results
-	if visibleHeight < 1 {
-		visibleHeight = 1
-	}
-
-	if qv.cursor < qv.viewport {
-		qv.viewport = qv.cursor
-	} else if qv.cursor >= qv.viewport+visibleHeight {
-		qv.viewport = qv.cursor - visibleHeight + 1
-	}
-
-	if qv.viewport < 0 {
-		qv.viewport = 0
-	}
-}
