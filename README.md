@@ -1,5 +1,9 @@
 # 森人 - Mori-bito (forest-person)
 
+<p align="center">
+  <img src="https://github.com/user-attachments/assets/4e49f166-1129-4224-ab9a-bc29e13b2791" alt="Mori-bito - Forest Person" width="400"/>
+</p>
+
 A terminal-based LDAP server explorer built with Go and BubbleTea, providing an interactive interface for browsing LDAP directory trees, viewing records, and executing custom queries.
 
 ## Features
