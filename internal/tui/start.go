@@ -225,7 +225,7 @@ func (sv *StartView) renderNarrowView() string {
 		"Screen too narrow.",
 		"Please resize terminal.",
 		"",
-		"Press [1-3] to switch views",
+		"Press [1-4] to switch views",
 	}, "\n")
 
 	style := lipgloss.NewStyle().
@@ -332,7 +332,7 @@ func (sv *StartView) renderInstructions() string {
 			instructions += " • [Y/N] or [T/F] for boolean values"
 		}
 	} else {
-		instructions = "Press [↑↓] or [j/k] to navigate • [Enter] to edit • [1-3] to switch views"
+		instructions = "Press [↑↓] or [j/k] to navigate • [Enter] to edit • [1-4] to switch views"
 	}
 
 	return instructionStyle.Render(instructions)

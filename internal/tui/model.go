@@ -140,10 +140,7 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, tea.Quit
 		case "tab":
 			return m.switchView(), nil
-		case "0":
-			m.currentView = ViewModeStart
-			return m, nil
-		case "1", "2", "3":
+		case "1", "2", "3", "4":
 			// Skip global navigation keys if we're in query view input mode
 			if m.currentView == ViewModeQuery && m.queryView != nil && m.queryView.IsInputMode() {
 				break // Let the query view handle the input
@@ -151,10 +148,12 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			// Handle navigation keys for view switching
 			switch msg.String() {
 			case "1":
-				m.currentView = ViewModeTree
+				m.currentView = ViewModeStart
 			case "2":
-				m.currentView = ViewModeRecord
+				m.currentView = ViewModeTree
 			case "3":
+				m.currentView = ViewModeRecord
+			case "4":
 				m.currentView = ViewModeQuery
 			}
 			return m, nil
@@ -387,10 +386,10 @@ func (m *Model) renderTabBar() string {
 		viewMode ViewMode
 		enabled  bool
 	}{
-		{"Start", "🏠", "0", ViewModeStart, true},
-		{"Tree", "🌲", "1", ViewModeTree, m.client != nil},
-		{"Record", "📄", "2", ViewModeRecord, true},
-		{"Query", "🔍", "3", ViewModeQuery, m.client != nil},
+		{"Start", "🏠", "1", ViewModeStart, true},
+		{"Tree", "🌲", "2", ViewModeTree, m.client != nil},
+		{"Record", "📄", "3", ViewModeRecord, true},
+		{"Query", "🔍", "4", ViewModeQuery, m.client != nil},
 	}
 
 	var tabButtons []string
@@ -483,29 +482,16 @@ func (m *Model) renderHelpBar() string {
 
 // handleZoneMessage handles bubblezone click messages
 func (m *Model) handleZoneMessage(msg zone.MsgZoneInBounds) (tea.Model, tea.Cmd) {
-	// Check which specific zone was clicked by testing known zone patterns
-	mouseEvent := msg.Event
-	
-	// Check tab clicks first - tabs are at the top
-	if mouseEvent.Y <= 2 { // Tab bar area
-		// Check each tab zone
-		tabs := []string{"0", "1", "2", "3"}
-		for _, tab := range tabs {
-			zoneID := fmt.Sprintf("tab-%s", tab)
-			if zoneInfo := zone.Get(zoneID); zoneInfo != nil && zoneInfo.InBounds(mouseEvent) {
-				// Handle tab click
-				switch tab {
-				case "0":
-					m.currentView = ViewModeStart
-				case "1":
-					m.currentView = ViewModeTree
-				case "2":
-					m.currentView = ViewModeRecord
-				case "3":
-					m.currentView = ViewModeQuery
-				}
-				return m, nil
-			}
+	// Check if this is a tab click by checking each tab zone
+	tabKeys := []string{"1", "2", "3", "4"}
+	viewModes := []ViewMode{ViewModeStart, ViewModeTree, ViewModeRecord, ViewModeQuery}
+
+	for i, key := range tabKeys {
+		zoneID := fmt.Sprintf("tab-%s", key)
+		if zoneInfo := zone.Get(zoneID); zoneInfo != nil && zoneInfo.InBounds(msg.Event) {
+			// Navigate to the clicked tab
+			m.currentView = viewModes[i]
+			return m, nil
 		}
 	}
 
