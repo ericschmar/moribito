@@ -67,6 +67,21 @@ jobs:
         
         echo "Final _docpress contents:"
         find _docpress -type f | sort
+        
+        # Validate that we have the required files
+        if [ ! -f "_docpress/index.html" ]; then
+          echo "ERROR: index.html not found after build"
+          exit 1
+        fi
+        if [ ! -f "_docpress/assets/style.css" ]; then
+          echo "ERROR: style.css not found after build"
+          exit 1
+        fi
+        if [ ! -f "_docpress/assets/script.js" ]; then
+          echo "ERROR: script.js not found after build"
+          exit 1
+        fi
+        echo "Build validation successful!"
 
     - name: Setup Pages
       uses: actions/configure-pages@v4

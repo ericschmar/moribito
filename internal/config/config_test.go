@@ -224,92 +224,92 @@ pagination:
 }
 
 func TestGetDefaultConfigPath(t *testing.T) {
-// Test that GetDefaultConfigPath returns a non-empty path
-path := GetDefaultConfigPath()
-if path == "" {
-t.Error("Expected non-empty default config path")
-}
+	// Test that GetDefaultConfigPath returns a non-empty path
+	path := GetDefaultConfigPath()
+	if path == "" {
+		t.Error("Expected non-empty default config path")
+	}
 
-// Test that the path is OS-appropriate
-switch runtime.GOOS {
-case "windows":
-if !filepath.IsAbs(path) {
-t.Error("Expected absolute path on Windows")
-}
-case "darwin":
-if !strings.Contains(path, ".moribito") {
-t.Error("Expected macOS path to contain .moribito")
-}
-default:
-if !strings.Contains(path, ".config") {
-t.Error("Expected Unix path to contain .config")
-}
-}
+	// Test that the path is OS-appropriate
+	switch runtime.GOOS {
+	case "windows":
+		if !filepath.IsAbs(path) {
+			t.Error("Expected absolute path on Windows")
+		}
+	case "darwin":
+		if !strings.Contains(path, ".moribito") {
+			t.Error("Expected macOS path to contain .moribito")
+		}
+	default:
+		if !strings.Contains(path, ".config") {
+			t.Error("Expected Unix path to contain .config")
+		}
+	}
 }
 
 func TestGetOSSpecificConfigPaths(t *testing.T) {
-paths := getOSSpecificConfigPaths()
+	paths := getOSSpecificConfigPaths()
 
-if len(paths) == 0 {
-t.Error("Expected non-empty list of OS-specific config paths")
-}
+	if len(paths) == 0 {
+		t.Error("Expected non-empty list of OS-specific config paths")
+	}
 
-// Check that paths contain moribito
-foundMoribito := false
-for _, path := range paths {
-if strings.Contains(path, "moribito") {
-foundMoribito = true
-break
-}
-}
-if !foundMoribito {
-t.Error("Expected at least one path to contain 'moribito'")
-}
+	// Check that paths contain moribito
+	foundMoribito := false
+	for _, path := range paths {
+		if strings.Contains(path, "moribito") {
+			foundMoribito = true
+			break
+		}
+	}
+	if !foundMoribito {
+		t.Error("Expected at least one path to contain 'moribito'")
+	}
 }
 
 func TestCreateDefaultConfigCore(t *testing.T) {
-// Create a temporary directory for testing
-tempDir, err := os.MkdirTemp("", "moribito-config-test")
-if err != nil {
-t.Fatalf("Failed to create temp dir: %v", err)
-}
-defer os.RemoveAll(tempDir)
+	// Create a temporary directory for testing
+	tempDir, err := os.MkdirTemp("", "moribito-config-test")
+	if err != nil {
+		t.Fatalf("Failed to create temp dir: %v", err)
+	}
+	defer os.RemoveAll(tempDir)
 
-// Test creating a config in a specific directory
-testConfigPath := filepath.Join(tempDir, "test-config.yaml")
+	// Test creating a config in a specific directory
+	testConfigPath := filepath.Join(tempDir, "test-config.yaml")
 
-// Create directory
-if err := os.MkdirAll(filepath.Dir(testConfigPath), 0755); err != nil {
-t.Fatalf("Failed to create config directory: %v", err)
-}
+	// Create directory
+	if err := os.MkdirAll(filepath.Dir(testConfigPath), 0755); err != nil {
+		t.Fatalf("Failed to create config directory: %v", err)
+	}
 
-// Create default config content
-config := Default()
-data, err := yaml.Marshal(config)
-if err != nil {
-t.Fatalf("Failed to marshal default config: %v", err)
-}
+	// Create default config content
+	config := Default()
+	data, err := yaml.Marshal(config)
+	if err != nil {
+		t.Fatalf("Failed to marshal default config: %v", err)
+	}
 
-// Write config file
-header := fmt.Sprintf("# Moribito Configuration\n# Created at: %s\n# Edit this file with your LDAP server details\n\n", testConfigPath)
-configContent := header + string(data)
+	// Write config file
+	header := fmt.Sprintf("# Moribito Configuration\n# Created at: %s\n# Edit this file with your LDAP server details\n\n", testConfigPath)
+	configContent := header + string(data)
 
-if err := os.WriteFile(testConfigPath, []byte(configContent), 0644); err != nil {
-t.Fatalf("Failed to write config file: %v", err)
-}
+	if err := os.WriteFile(testConfigPath, []byte(configContent), 0644); err != nil {
+		t.Fatalf("Failed to write config file: %v", err)
+	}
 
-// Verify the file was created and can be loaded
-if _, err := os.Stat(testConfigPath); err != nil {
-t.Errorf("Config file was not created: %v", err)
-}
+	// Verify the file was created and can be loaded
+	if _, err := os.Stat(testConfigPath); err != nil {
+		t.Errorf("Config file was not created: %v", err)
+	}
 
-// Try to load the created config
-cfg, err := Load(testConfigPath)
-if err != nil {
-t.Errorf("Failed to load created config: %v", err)
-}
+	// Try to load the created config
+	cfg, err := Load(testConfigPath)
+	if err != nil {
+		t.Errorf("Failed to load created config: %v", err)
+	}
 
-if cfg == nil {
-t.Error("Loaded config is nil")
-}
+	if cfg == nil {
+		t.Error("Loaded config is nil")
+	}
 }

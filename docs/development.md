@@ -117,3 +117,13 @@ make docs
 # Serve documentation locally
 make docs-serve
 ```
+
+### Automatic Deployment
+
+Documentation is automatically built and deployed to GitHub Pages when:
+
+- Changes are pushed to the `main` branch that affect documentation files
+- Changes are made to `docs/**`, `docpress.json`, or `package.json`
+- The workflow can also be triggered manually from the Actions tab
+
+The deployed documentation is available at: https://ericschmar.github.io/moribito
