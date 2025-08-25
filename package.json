@@ -16,6 +16,6 @@
   "author": "",
   "license": "ISC",
   "devDependencies": {
-    "docpress": "^0.8.2"
+    "docpress": "0.8.2"
   }
 }

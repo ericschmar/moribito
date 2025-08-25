@@ -49,3 +49,4 @@ _docpress/
 # Homebrew testing files
 *.bottle.tar.gz
 .homebrew_build_deps/
+_docpress

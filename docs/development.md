@@ -49,10 +49,10 @@ make test
 
 ## Homebrew Distribution
 
-This project supports distribution via Homebrew. See the [homebrew/](../homebrew/) directory for:
+This project supports distribution via Homebrew. The `homebrew/` directory in the project root contains:
 
 - Homebrew formula files
-- Formula generation and maintenance scripts  
+- Formula generation and maintenance scripts
 - Documentation for setting up custom taps
 - Instructions for submitting to homebrew-core
 

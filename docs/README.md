@@ -1,19 +1,19 @@
-# Moribito Documentation
+# Moribito
 
 Welcome to the documentation for Moribito (森人), a terminal-based LDAP server explorer built with Go and BubbleTea.
 
 ## Quick Start
 
-* [Installation](installation.md) - How to install and setup Moribito
-* [Usage Guide](usage.md) - Basic usage and configuration
-* [Navigation](navigation.md) - Interface navigation and keyboard shortcuts
+* [Installation](installation.md)
+* [Usage Guide](usage.md)
+* [Navigation](navigation.md)
 
-## Advanced Topics  
+## Advanced
 
-* [Versioning](versioning.md) - Release management and versioning
-* [Auto-Update](auto-update.md) - Automatic update checking feature
+* [Versioning](versioning.md)
+* [Auto-Update](auto-update.md)
 
 ## Development
 
-* [Contributing](contributing.md) - How to contribute to the project
-* [Development Setup](development.md) - Setting up the development environment
+* [Contributing](contributing.md)
+* [Development Setup](development.md)
