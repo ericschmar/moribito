@@ -1,10 +1,10 @@
-# LDAP CLI Explorer Documentation
+# Moribito Documentation
 
-Welcome to the documentation for LDAP CLI Explorer, a terminal-based LDAP server explorer built with Go and BubbleTea.
+Welcome to the documentation for Moribito (森人), a terminal-based LDAP server explorer built with Go and BubbleTea.
 
 ## Quick Start
 
-* [Installation](installation.md) - How to install and setup LDAP CLI
+* [Installation](installation.md) - How to install and setup Moribito
 * [Usage Guide](usage.md) - Basic usage and configuration
 * [Navigation](navigation.md) - Interface navigation and keyboard shortcuts
 

@@ -143,11 +143,11 @@ func getOSSpecificConfigPaths() []string {
 	case "darwin":
 		// macOS: Prefer ~/.moribito/ as requested in the issue, with fallbacks
 		candidates = append(candidates,
-			filepath.Join(homeDir, ".moribito", "config.yaml"),        // Primary choice as per issue
+			filepath.Join(homeDir, ".moribito", "config.yaml"), // Primary choice as per issue
 			filepath.Join(homeDir, ".moribito", "config.yml"),
 			filepath.Join(homeDir, "Library", "Application Support", "moribito", "config.yaml"), // macOS standard
 			filepath.Join(homeDir, "Library", "Application Support", "moribito", "config.yml"),
-			filepath.Join(homeDir, ".moribito.yaml"),                  // Fallback
+			filepath.Join(homeDir, ".moribito.yaml"), // Fallback
 			filepath.Join(homeDir, ".moribito.yml"),
 			filepath.Join(homeDir, ".config", "moribito", "config.yaml"), // XDG fallback
 			filepath.Join(homeDir, ".config", "moribito", "config.yml"),
@@ -159,13 +159,13 @@ func getOSSpecificConfigPaths() []string {
 		if xdgConfigHome == "" {
 			xdgConfigHome = filepath.Join(homeDir, ".config")
 		}
-		
+
 		candidates = append(candidates,
-			filepath.Join(xdgConfigHome, "moribito", "config.yaml"),   // XDG standard
+			filepath.Join(xdgConfigHome, "moribito", "config.yaml"), // XDG standard
 			filepath.Join(xdgConfigHome, "moribito", "config.yml"),
-			filepath.Join(homeDir, ".moribito", "config.yaml"),        // Also support directory approach
+			filepath.Join(homeDir, ".moribito", "config.yaml"), // Also support directory approach
 			filepath.Join(homeDir, ".moribito", "config.yml"),
-			filepath.Join(homeDir, ".moribito.yaml"),                  // Fallback
+			filepath.Join(homeDir, ".moribito.yaml"), // Fallback
 			filepath.Join(homeDir, ".moribito.yml"),
 		)
 
@@ -232,7 +232,7 @@ func GetDefaultConfigPath() string {
 // CreateDefaultConfig creates a default configuration file at the OS-appropriate location
 func CreateDefaultConfig() error {
 	configPath := GetDefaultConfigPath()
-	
+
 	// Create directory if it doesn't exist
 	configDir := filepath.Dir(configPath)
 	if err := os.MkdirAll(configDir, 0755); err != nil {
