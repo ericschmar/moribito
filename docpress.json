@@ -1,7 +1,7 @@
 {
-  "title": "LDAP CLI Explorer",
+  "title": "Moribito",
   "description": "Terminal-based LDAP server explorer documentation",
-  "github": "ericschmar/ldap-cli",
+  "github": "ericschmar/moribito",
   "plugins": {
     "docpress-core": {},
     "docpress-base": {}
