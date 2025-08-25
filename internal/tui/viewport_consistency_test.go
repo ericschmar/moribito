@@ -2,8 +2,6 @@ package tui
 
 import (
 	"testing"
-	"github.com/charmbracelet/bubbletea"
-	"github.com/ericschmar/moribito/internal/ldap"
 )
 
 func TestViewportConsistency(t *testing.T) {

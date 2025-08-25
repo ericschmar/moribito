@@ -47,6 +47,41 @@ go test ./...
 make test
 ```
 
+## Homebrew Distribution
+
+This project supports distribution via Homebrew. See the [homebrew/](../homebrew/) directory for:
+
+- Homebrew formula files
+- Formula generation and maintenance scripts  
+- Documentation for setting up custom taps
+- Instructions for submitting to homebrew-core
+
+### Creating a Release with Homebrew Support
+
+1. **Create the GitHub release** (done automatically by CI when you tag):
+   ```bash
+   git tag -a v1.0.0 -m "Release version 1.0.0"
+   git push origin v1.0.0
+   ```
+
+2. **Generate/update the Homebrew formula**:
+   ```bash
+   ./homebrew/generate-formula.sh -v 1.0.0 -f
+   ```
+
+3. **Update your Homebrew tap** (if you have one):
+   ```bash
+   ./homebrew/setup-tap.sh
+   ```
+
+4. **Test the formula locally**:
+   ```bash
+   brew install --formula ./homebrew/moribito.rb
+   brew test moribito
+   moribito --version
+   brew uninstall moribito
+   ```
+
 ## Continuous Integration
 
 This project uses GitHub Actions for CI/CD:
