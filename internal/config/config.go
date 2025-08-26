@@ -16,8 +16,9 @@ type Config struct {
 	Retry      RetryConfig      `yaml:"retry"`
 }
 
-// LDAPConfig contains LDAP connection settings
-type LDAPConfig struct {
+// SavedConnection represents a single saved LDAP connection profile
+type SavedConnection struct {
+	Name     string `yaml:"name"`
 	Host     string `yaml:"host"`
 	Port     int    `yaml:"port"`
 	BaseDN   string `yaml:"base_dn"`
@@ -25,6 +26,22 @@ type LDAPConfig struct {
 	UseTLS   bool   `yaml:"use_tls"`
 	BindUser string `yaml:"bind_user"`
 	BindPass string `yaml:"bind_pass"`
+}
+
+// LDAPConfig contains LDAP connection settings
+type LDAPConfig struct {
+	// Current/default connection settings (for backward compatibility)
+	Host     string `yaml:"host"`
+	Port     int    `yaml:"port"`
+	BaseDN   string `yaml:"base_dn"`
+	UseSSL   bool   `yaml:"use_ssl"`
+	UseTLS   bool   `yaml:"use_tls"`
+	BindUser string `yaml:"bind_user"`
+	BindPass string `yaml:"bind_pass"`
+	
+	// Multiple saved connections (new feature)
+	SavedConnections []SavedConnection `yaml:"saved_connections,omitempty"`
+	SelectedConnection int              `yaml:"selected_connection,omitempty"` // Index into SavedConnections, -1 means use default
 }
 
 // PaginationConfig contains pagination settings
@@ -90,6 +107,112 @@ func Load(configPath string) (*Config, error) {
 	}
 
 	return &config, nil
+}
+
+// GetActiveConnection returns the currently active LDAP connection settings
+func (c *Config) GetActiveConnection() LDAPConnection {
+	// If no saved connections or selected connection is -1, use default
+	if len(c.LDAP.SavedConnections) == 0 || c.LDAP.SelectedConnection < 0 {
+		return LDAPConnection{
+			Name:     "Default",
+			Host:     c.LDAP.Host,
+			Port:     c.LDAP.Port,
+			BaseDN:   c.LDAP.BaseDN,
+			UseSSL:   c.LDAP.UseSSL,
+			UseTLS:   c.LDAP.UseTLS,
+			BindUser: c.LDAP.BindUser,
+			BindPass: c.LDAP.BindPass,
+		}
+	}
+	
+	// Validate selected connection index
+	if c.LDAP.SelectedConnection >= len(c.LDAP.SavedConnections) {
+		c.LDAP.SelectedConnection = 0
+	}
+	
+	saved := c.LDAP.SavedConnections[c.LDAP.SelectedConnection]
+	return LDAPConnection{
+		Name:     saved.Name,
+		Host:     saved.Host,
+		Port:     saved.Port,
+		BaseDN:   saved.BaseDN,
+		UseSSL:   saved.UseSSL,
+		UseTLS:   saved.UseTLS,
+		BindUser: saved.BindUser,
+		BindPass: saved.BindPass,
+	}
+}
+
+// LDAPConnection represents the active connection settings
+type LDAPConnection struct {
+	Name     string
+	Host     string
+	Port     int
+	BaseDN   string
+	UseSSL   bool
+	UseTLS   bool
+	BindUser string
+	BindPass string
+}
+
+// SetActiveConnection updates the current connection settings from a saved connection
+func (c *Config) SetActiveConnection(index int) {
+	if index < 0 || index >= len(c.LDAP.SavedConnections) {
+		c.LDAP.SelectedConnection = -1 // Use default
+		return
+	}
+	
+	c.LDAP.SelectedConnection = index
+	saved := c.LDAP.SavedConnections[index]
+	
+	// Update the default fields to match the selected connection
+	c.LDAP.Host = saved.Host
+	c.LDAP.Port = saved.Port
+	c.LDAP.BaseDN = saved.BaseDN
+	c.LDAP.UseSSL = saved.UseSSL
+	c.LDAP.UseTLS = saved.UseTLS
+	c.LDAP.BindUser = saved.BindUser
+	c.LDAP.BindPass = saved.BindPass
+}
+
+// AddSavedConnection adds a new saved connection
+func (c *Config) AddSavedConnection(conn SavedConnection) {
+	c.LDAP.SavedConnections = append(c.LDAP.SavedConnections, conn)
+}
+
+// RemoveSavedConnection removes a saved connection by index
+func (c *Config) RemoveSavedConnection(index int) {
+	if index < 0 || index >= len(c.LDAP.SavedConnections) {
+		return
+	}
+	
+	// If we're removing the currently selected connection, reset to default
+	if c.LDAP.SelectedConnection == index {
+		c.LDAP.SelectedConnection = -1
+	} else if c.LDAP.SelectedConnection > index {
+		// Adjust index if we removed a connection before the selected one
+		c.LDAP.SelectedConnection--
+	}
+	
+	// Remove the connection
+	c.LDAP.SavedConnections = append(
+		c.LDAP.SavedConnections[:index],
+		c.LDAP.SavedConnections[index+1:]...,
+	)
+}
+
+// UpdateSavedConnection updates a saved connection by index
+func (c *Config) UpdateSavedConnection(index int, conn SavedConnection) {
+	if index < 0 || index >= len(c.LDAP.SavedConnections) {
+		return
+	}
+	
+	c.LDAP.SavedConnections[index] = conn
+	
+	// If this is the currently selected connection, update the active settings
+	if c.LDAP.SelectedConnection == index {
+		c.SetActiveConnection(index)
+	}
 }
 
 // findConfigFile looks for configuration files in standard locations
@@ -259,6 +382,36 @@ func CreateDefaultConfig() error {
 		return fmt.Errorf("failed to write config file %s: %w", configPath, err)
 	}
 
+	return nil
+}
+
+// Save saves the configuration to a file
+func (c *Config) Save(configPath string) error {
+	// If no config path provided, use the default location
+	if configPath == "" {
+		configPath = GetDefaultConfigPath()
+	}
+	
+	// Create directory if it doesn't exist
+	configDir := filepath.Dir(configPath)
+	if err := os.MkdirAll(configDir, 0755); err != nil {
+		return fmt.Errorf("failed to create config directory %s: %w", configDir, err)
+	}
+	
+	// Marshal the config to YAML
+	data, err := yaml.Marshal(c)
+	if err != nil {
+		return fmt.Errorf("failed to marshal config: %w", err)
+	}
+	
+	// Add header comment
+	header := fmt.Sprintf("# Moribito Configuration\n# Last updated: %s\n\n", filepath.Base(configPath))
+	configContent := header + string(data)
+	
+	if err := os.WriteFile(configPath, []byte(configContent), 0644); err != nil {
+		return fmt.Errorf("failed to write config file %s: %w", configPath, err)
+	}
+	
 	return nil
 }
 
