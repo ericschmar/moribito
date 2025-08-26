@@ -3,9 +3,23 @@
 ## General Controls
 
 - **Tab** - Switch between Tree, Query, and Record views
+- **1/2/3** - Jump directly to Start/Tree/Query/Record view
 - **Ctrl+C** or **q** - Exit application
 - **?** - Toggle help modal (context-sensitive)
 - **Ctrl+R** - Refresh/reconnect to server
+
+## Start/Configuration View
+
+- **↑/↓** or **j/k** - Navigate through configuration fields
+- **Enter** - Edit field value or execute action
+- **←/→** or **h/l** - Navigate between saved connections (when in connection list)
+- **Escape** - Cancel editing or dialog
+
+### Connection Management
+- **Add New Connection** - Save current settings as a new named connection
+- **Delete Connection** - Remove the selected saved connection
+- **Save Current as New** - Create a new connection from current configuration
+- Navigate between saved connections and press **Enter** to switch to that connection
 
 ## Tree View
 

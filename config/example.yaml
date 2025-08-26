@@ -5,7 +5,8 @@
 #   - ~/.config/moribito/config.yaml (XDG config directory)
 
 ldap:
-  # LDAP server connection settings
+  # Default/current LDAP connection settings
+  # These are used when no saved connections exist or when using legacy configs
   host: "ldap.example.com"
   port: 389  # Use 636 for LDAPS
   base_dn: "dc=example,dc=com"
@@ -22,8 +23,46 @@ ldap:
   # bind_user: "uid=john,ou=users,dc=example,dc=com"
   # bind_user: "john@example.com"  # For AD-style authentication
 
+  # Multiple saved connections (new feature!)
+  # You can save multiple LDAP connection profiles and switch between them
+  selected_connection: 0  # Index of currently selected connection (-1 for default)
+  saved_connections:
+    - name: "Production"
+      host: "ldap.prod.example.com"
+      port: 636
+      base_dn: "dc=prod,dc=example,dc=com"
+      use_ssl: true
+      use_tls: false
+      bind_user: "cn=admin,dc=prod,dc=example,dc=com"
+      bind_pass: "prod-password"
+    
+    - name: "Development"
+      host: "ldap.dev.example.com"
+      port: 389
+      base_dn: "dc=dev,dc=example,dc=com"
+      use_ssl: false
+      use_tls: true
+      bind_user: "cn=admin,dc=dev,dc=example,dc=com"
+      bind_pass: "dev-password"
+
+    - name: "Staging"
+      host: "ldap.staging.example.com"
+      port: 389
+      base_dn: "dc=staging,dc=example,dc=com"
+      use_ssl: false
+      use_tls: true
+      bind_user: "cn=admin,dc=staging,dc=example,dc=com"
+      bind_pass: ""  # Will prompt for password
+
 # Pagination settings for query results
 pagination:
   # Number of entries to load per page (default: 50)
   # Adjust this based on your server capabilities and performance needs
   page_size: 50
+
+# Retry settings for LDAP operations  
+retry:
+  enabled: true
+  max_attempts: 3
+  initial_delay_ms: 500
+  max_delay_ms: 5000

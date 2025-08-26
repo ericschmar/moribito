@@ -17,6 +17,7 @@ A terminal-based LDAP server explorer built with Go and BubbleTea, providing an 
 - 🔐 **Secure Authentication**: Support for SSL/TLS and various authentication methods
 - 🔄 **Auto-Update Notifications**: Optional checking for newer releases from GitHub
 - 🎨 **Modern TUI**: Clean, intuitive interface built with BubbleTea
+- 🔀 **Multiple Connections**: Save and switch between multiple LDAP server configurations
 
 ## Installation
 

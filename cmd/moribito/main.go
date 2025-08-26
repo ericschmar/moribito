@@ -98,32 +98,45 @@ func main() {
 		cfg.Pagination.PageSize = uint32(*pageSize)
 	}
 
+	// Get the active connection for password prompting and validation
+	activeConn := cfg.GetActiveConnection()
+
 	// Prompt for password if not provided and user is specified
-	if cfg.LDAP.BindUser != "" && cfg.LDAP.BindPass == "" {
+	if activeConn.BindUser != "" && activeConn.BindPass == "" {
 		fmt.Print("Enter password: ")
 		password, err := term.ReadPassword(int(syscall.Stdin))
 		if err != nil {
 			log.Fatalf("Failed to read password: %v", err)
 		}
 		fmt.Println() // Add newline after password input
+		
+		// Update the password in the config
 		cfg.LDAP.BindPass = string(password)
+		
+		// If we have saved connections and one is selected, update it
+		if cfg.LDAP.SelectedConnection >= 0 && cfg.LDAP.SelectedConnection < len(cfg.LDAP.SavedConnections) {
+			cfg.LDAP.SavedConnections[cfg.LDAP.SelectedConnection].BindPass = string(password)
+		}
+		
+		// Refresh active connection after password update
+		activeConn = cfg.GetActiveConnection()
 	}
 
 	// Validate configuration (but allow for start page testing)
-	if cfg.LDAP.Host == "" || cfg.LDAP.BaseDN == "" {
+	if activeConn.Host == "" || activeConn.BaseDN == "" {
 		fmt.Println("Warning: LDAP host and/or Base DN not configured.")
 		fmt.Println("You can configure these in the start page.")
 	}
 
-	// Try to create LDAP client
+	// Try to create LDAP client using active connection
 	ldapConfig := ldap.Config{
-		Host:           cfg.LDAP.Host,
-		Port:           cfg.LDAP.Port,
-		BaseDN:         cfg.LDAP.BaseDN,
-		UseSSL:         cfg.LDAP.UseSSL,
-		UseTLS:         cfg.LDAP.UseTLS,
-		BindUser:       cfg.LDAP.BindUser,
-		BindPass:       cfg.LDAP.BindPass,
+		Host:           activeConn.Host,
+		Port:           activeConn.Port,
+		BaseDN:         activeConn.BaseDN,
+		UseSSL:         activeConn.UseSSL,
+		UseTLS:         activeConn.UseTLS,
+		BindUser:       activeConn.BindUser,
+		BindPass:       activeConn.BindPass,
 		RetryEnabled:   cfg.Retry.Enabled,
 		MaxRetries:     cfg.Retry.MaxAttempts,
 		InitialDelayMs: cfg.Retry.InitialDelayMs,
