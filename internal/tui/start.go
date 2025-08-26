@@ -22,11 +22,11 @@ type StartView struct {
 	editingField int
 	inputValue   string
 	container    *ViewContainer
-	
+
 	// Connection management state
-	connectionCursor       int    // Which saved connection is highlighted
-	showNewConnectionDialog bool  // Whether to show new connection name dialog
-	newConnectionName      string // Name for new connection being created
+	connectionCursor        int    // Which saved connection is highlighted
+	showNewConnectionDialog bool   // Whether to show new connection name dialog
+	newConnectionName       string // Name for new connection being created
 }
 
 // Field indices for editing
@@ -38,7 +38,7 @@ const (
 	FieldDeleteConnection
 	FieldSaveConnection
 	FieldConnectionSeparator
-	
+
 	// LDAP configuration fields
 	FieldHost
 	FieldPort
@@ -53,13 +53,13 @@ const (
 
 // Field configuration
 type fieldConfig struct {
-	name         string
-	placeholder  string
-	isBool       bool
-	isPassword   bool
-	isHeader     bool // For section headers
-	isAction     bool // For clickable actions
-	isSeparator  bool // For visual separators
+	name        string
+	placeholder string
+	isBool      bool
+	isPassword  bool
+	isHeader    bool // For section headers
+	isAction    bool // For clickable actions
+	isSeparator bool // For visual separators
 }
 
 // Field configurations for display and editing
@@ -159,10 +159,10 @@ var (
 				Padding(0, 2)
 
 	selectedConnectionStyle = lipgloss.NewStyle().
-					Foreground(lipgloss.Color("15")).
-					Background(lipgloss.Color("12")).
-					Bold(true).
-					Padding(0, 1)
+				Foreground(lipgloss.Color("15")).
+				Background(lipgloss.Color("12")).
+				Bold(true).
+				Padding(0, 1)
 )
 
 // NewStartView creates a new start view
@@ -192,7 +192,7 @@ func (sv *StartView) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if sv.showNewConnectionDialog {
 			return sv.handleNewConnectionDialog(msg)
 		}
-		
+
 		if sv.editing {
 			return sv.handleEditMode(msg)
 		}
@@ -456,7 +456,7 @@ func (sv *StartView) renderSeparatorField(field int) string {
 // renderConnectionListField renders the connection list field
 func (sv *StartView) renderConnectionListField(isSelected bool) string {
 	content := sv.renderConnectionList()
-	
+
 	if isSelected {
 		return selectedFieldStyle.Render(content)
 	}
@@ -482,7 +482,7 @@ func (sv *StartView) renderConnectionList() string {
 		} else if i == sv.config.LDAP.SelectedConnection {
 			indicator = "● "
 		}
-		
+
 		connLine := fmt.Sprintf("%s%s (%s)", indicator, conn.Name, conn.Host)
 		if i == sv.connectionCursor && sv.cursor == FieldConnectionList {
 			connLine = selectedConnectionStyle.Render(connLine)
@@ -614,7 +614,7 @@ func (sv *StartView) saveValue() {
 // handleFieldAction handles enter key press on different field types
 func (sv *StartView) handleFieldAction() (tea.Model, tea.Cmd) {
 	fieldCfg := fields[sv.cursor]
-	
+
 	switch sv.cursor {
 	case FieldConnectionList:
 		// Select the highlighted connection
@@ -622,13 +622,13 @@ func (sv *StartView) handleFieldAction() (tea.Model, tea.Cmd) {
 			sv.config.SetActiveConnection(sv.connectionCursor)
 		}
 		return sv, nil
-		
+
 	case FieldAddConnection:
 		// Start new connection dialog
 		sv.showNewConnectionDialog = true
 		sv.newConnectionName = ""
 		return sv, nil
-		
+
 	case FieldDeleteConnection:
 		// Delete the selected connection
 		if len(sv.config.LDAP.SavedConnections) > 0 && sv.connectionCursor < len(sv.config.LDAP.SavedConnections) {
@@ -638,13 +638,13 @@ func (sv *StartView) handleFieldAction() (tea.Model, tea.Cmd) {
 			}
 		}
 		return sv, nil
-		
+
 	case FieldSaveConnection:
 		// Save current settings as new connection dialog
 		sv.showNewConnectionDialog = true
 		sv.newConnectionName = ""
 		return sv, nil
-		
+
 	default:
 		// For regular fields, start editing
 		if !fieldCfg.isHeader && !fieldCfg.isSeparator && !fieldCfg.isAction {
@@ -673,7 +673,7 @@ func (sv *StartView) handleNewConnectionDialog(msg tea.KeyMsg) (tea.Model, tea.C
 				BindPass: sv.config.LDAP.BindPass,
 			}
 			sv.config.AddSavedConnection(newConn)
-			
+
 			// Set as active connection
 			sv.config.SetActiveConnection(len(sv.config.LDAP.SavedConnections) - 1)
 			sv.connectionCursor = len(sv.config.LDAP.SavedConnections) - 1
@@ -681,17 +681,17 @@ func (sv *StartView) handleNewConnectionDialog(msg tea.KeyMsg) (tea.Model, tea.C
 		sv.showNewConnectionDialog = false
 		sv.newConnectionName = ""
 		return sv, nil
-		
+
 	case "esc":
 		sv.showNewConnectionDialog = false
 		sv.newConnectionName = ""
 		return sv, nil
-		
+
 	case "backspace":
 		if len(sv.newConnectionName) > 0 {
 			sv.newConnectionName = sv.newConnectionName[:len(sv.newConnectionName)-1]
 		}
-		
+
 	default:
 		// Handle regular character input
 		if len(msg.String()) == 1 && msg.String() >= " " {

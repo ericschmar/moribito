@@ -59,6 +59,7 @@ check_prerequisites() {
 
 create_or_update_tap() {
     local temp_dir=$(mktemp -d)
+    local original_dir=$(pwd)
     echo "Working in temporary directory: $temp_dir"
     cd "$temp_dir"
 
@@ -107,7 +108,7 @@ EOF
 
     # Copy the formula
     echo "Copying formula to tap repository..."
-    cp "$OLDPWD/homebrew/moribito.rb" Formula/moribito.rb
+    cp "$original_dir/homebrew/moribito.rb" Formula/moribito.rb
 
     # Commit and push
     git add Formula/moribito.rb
@@ -133,7 +134,7 @@ EOF
     echo "  brew install $TAP_REPO/moribito"
 
     # Cleanup
-    cd "$OLDPWD"
+    cd "$original_dir"
     rm -rf "$temp_dir"
 }
 

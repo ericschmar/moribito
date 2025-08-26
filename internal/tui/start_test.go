@@ -79,7 +79,7 @@ func TestStartView_ExistingFunctionalityPreserved(t *testing.T) {
 func TestStartView_LayoutAndAlignment(t *testing.T) {
 	// Initialize bubblezone for tests
 	zone.NewGlobal()
-	
+
 	cfg := &config.Config{
 		LDAP: config.LDAPConfig{
 			Host:     "ldap.example.com",
@@ -101,7 +101,7 @@ func TestStartView_LayoutAndAlignment(t *testing.T) {
 	// Test that all fields are present in the output
 	output := sv.View()
 
-	// Should contain all field names (including new connection management fields)  
+	// Should contain all field names (including new connection management fields)
 	expectedFields := []string{
 		"Connection Management", "Add New Connection", "Delete Connection", "Save Current as New",
 		"Host:", "Port:", "Base DN:", "Use SSL:", "Use TLS:",
@@ -131,7 +131,7 @@ func TestStartView_LayoutAndAlignment(t *testing.T) {
 		t.Error("Expected configuration title to be present in output")
 	}
 
-	// Check that instructions are present  
+	// Check that instructions are present
 	if !strings.Contains(output, "navigate") {
 		t.Error("Expected navigation instructions to be present in output")
 	}
