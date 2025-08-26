@@ -22,11 +22,25 @@ type StartView struct {
 	editingField int
 	inputValue   string
 	container    *ViewContainer
+	
+	// Connection management state
+	connectionCursor       int    // Which saved connection is highlighted
+	showNewConnectionDialog bool  // Whether to show new connection name dialog
+	newConnectionName      string // Name for new connection being created
 }
 
 // Field indices for editing
 const (
-	FieldHost = iota
+	// Connection management fields
+	FieldConnectionHeader = iota
+	FieldConnectionList
+	FieldAddConnection
+	FieldDeleteConnection
+	FieldSaveConnection
+	FieldConnectionSeparator
+	
+	// LDAP configuration fields
+	FieldHost
 	FieldPort
 	FieldBaseDN
 	FieldUseSSL
@@ -39,14 +53,23 @@ const (
 
 // Field configuration
 type fieldConfig struct {
-	name        string
-	placeholder string
-	isBool      bool
-	isPassword  bool
+	name         string
+	placeholder  string
+	isBool       bool
+	isPassword   bool
+	isHeader     bool // For section headers
+	isAction     bool // For clickable actions
+	isSeparator  bool // For visual separators
 }
 
 // Field configurations for display and editing
 var fields = []fieldConfig{
+	{name: "Connection Management", isHeader: true},
+	{name: "Saved Connections", placeholder: "Select connection"},
+	{name: "Add New Connection", isAction: true},
+	{name: "Delete Connection", isAction: true},
+	{name: "Save Current as New", isAction: true},
+	{name: "", isSeparator: true},
 	{name: "Host", placeholder: "ldap.example.com"},
 	{name: "Port", placeholder: "389"},
 	{name: "Base DN", placeholder: "dc=example,dc=com"},
@@ -108,6 +131,38 @@ var (
 			BorderForeground(lipgloss.Color("6")).
 			Padding(0, 2).
 			Margin(0, 0)
+
+	// New styles for connection management
+	actionStyle = lipgloss.NewStyle().
+			Foreground(lipgloss.Color("10")).
+			Bold(true).
+			Padding(0, 1)
+
+	selectedActionStyle = lipgloss.NewStyle().
+				Foreground(lipgloss.Color("15")).
+				Background(lipgloss.Color("10")).
+				Bold(true).
+				Padding(0, 1)
+
+	headerStyle2 = lipgloss.NewStyle().
+			Foreground(lipgloss.Color("13")).
+			Bold(true).
+			Underline(true).
+			Margin(1, 0, 0, 0)
+
+	separatorStyle = lipgloss.NewStyle().
+			Foreground(lipgloss.Color("8")).
+			Margin(0, 0)
+
+	connectionListStyle = lipgloss.NewStyle().
+				Foreground(lipgloss.Color("7")).
+				Padding(0, 2)
+
+	selectedConnectionStyle = lipgloss.NewStyle().
+					Foreground(lipgloss.Color("15")).
+					Background(lipgloss.Color("12")).
+					Bold(true).
+					Padding(0, 1)
 )
 
 // NewStartView creates a new start view
@@ -134,6 +189,10 @@ func (sv *StartView) SetSize(width, height int) {
 func (sv *StartView) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
+		if sv.showNewConnectionDialog {
+			return sv.handleNewConnectionDialog(msg)
+		}
+		
 		if sv.editing {
 			return sv.handleEditMode(msg)
 		}
@@ -147,10 +206,22 @@ func (sv *StartView) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if sv.cursor < FieldCount-1 {
 				sv.cursor++
 			}
+		case "left", "h":
+			// Handle connection list navigation
+			if sv.cursor == FieldConnectionList && len(sv.config.LDAP.SavedConnections) > 0 {
+				if sv.connectionCursor > 0 {
+					sv.connectionCursor--
+				}
+			}
+		case "right", "l":
+			// Handle connection list navigation
+			if sv.cursor == FieldConnectionList && len(sv.config.LDAP.SavedConnections) > 0 {
+				if sv.connectionCursor < len(sv.config.LDAP.SavedConnections)-1 {
+					sv.connectionCursor++
+				}
+			}
 		case "enter":
-			sv.editing = true
-			sv.editingField = sv.cursor
-			sv.inputValue = sv.getFieldValue(sv.cursor)
+			return sv.handleFieldAction()
 		}
 	}
 
@@ -160,6 +231,22 @@ func (sv *StartView) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 // getFieldValue gets the current value for a field
 func (sv *StartView) getFieldValue(field int) string {
 	switch field {
+	case FieldConnectionHeader:
+		return "Connection Management"
+	case FieldConnectionList:
+		if len(sv.config.LDAP.SavedConnections) == 0 {
+			return "No saved connections"
+		}
+		activeConn := sv.config.GetActiveConnection()
+		return fmt.Sprintf("Current: %s", activeConn.Name)
+	case FieldAddConnection:
+		return "Add New Connection"
+	case FieldDeleteConnection:
+		return "Delete Connection"
+	case FieldSaveConnection:
+		return "Save Current as New"
+	case FieldConnectionSeparator:
+		return "────────────────────────"
 	case FieldHost:
 		return sv.config.LDAP.Host
 	case FieldPort:
@@ -186,6 +273,18 @@ func (sv *StartView) getDisplayValue(field int) string {
 
 	// Handle special display cases
 	switch field {
+	case FieldConnectionHeader:
+		return value
+	case FieldConnectionList:
+		// Show current connection and list of saved connections
+		if len(sv.config.LDAP.SavedConnections) == 0 {
+			return placeholderStyle.Render("No saved connections (using default)")
+		}
+		return sv.renderConnectionList()
+	case FieldAddConnection, FieldDeleteConnection, FieldSaveConnection:
+		return value
+	case FieldConnectionSeparator:
+		return separatorStyle.Render(value)
 	case FieldBindPass:
 		if value == "" {
 			return placeholderStyle.Render("[not set]")
@@ -212,6 +311,11 @@ func (sv *StartView) View() string {
 	// For very narrow screens, show simplified view
 	if contentWidth < 40 {
 		return sv.renderNarrowView()
+	}
+
+	// Show new connection dialog if active
+	if sv.showNewConnectionDialog {
+		return sv.renderNewConnectionDialog()
 	}
 
 	return sv.container.RenderWithPadding(sv.renderConfigPane(contentWidth))
@@ -281,35 +385,112 @@ func (sv *StartView) renderField(field int) string {
 	// Get field configuration
 	fieldCfg := fields[field]
 
-	// Render field label
-	label := fieldLabelStyle.Render(fieldCfg.name + ":")
-
-	// Render field value
-	var valueContent string
-	if isEditing {
-		valueContent = sv.renderEditingField()
-	} else {
-		valueContent = sv.getDisplayValue(field)
+	// Handle special field types
+	if fieldCfg.isHeader {
+		return sv.renderHeaderField(field)
+	}
+	if fieldCfg.isSeparator {
+		return sv.renderSeparatorField(field)
+	}
+	if field == FieldConnectionList {
+		return sv.renderConnectionListField(isSelected)
 	}
 
-	// Apply appropriate styling to the value
-	var styledValue string
-	if isEditing {
-		styledValue = editingFieldStyle.Render(valueContent)
-	} else if isSelected {
-		styledValue = selectedFieldStyle.Render(valueContent)
+	// Render field label (only for non-action fields)
+	var fieldLine string
+	if fieldCfg.isAction {
+		// Action fields don't have labels, just the action text
+		valueContent := sv.getDisplayValue(field)
+		if isSelected {
+			fieldLine = selectedActionStyle.Render(valueContent)
+		} else {
+			fieldLine = actionStyle.Render(valueContent)
+		}
 	} else {
-		styledValue = fieldValueStyle.Render(valueContent)
+		// Regular fields with labels
+		label := fieldLabelStyle.Render(fieldCfg.name + ":")
+
+		// Render field value
+		var valueContent string
+		if isEditing {
+			valueContent = sv.renderEditingField()
+		} else {
+			valueContent = sv.getDisplayValue(field)
+		}
+
+		// Apply appropriate styling to the value
+		var styledValue string
+		if isEditing {
+			styledValue = editingFieldStyle.Render(valueContent)
+		} else if isSelected {
+			styledValue = selectedFieldStyle.Render(valueContent)
+		} else {
+			styledValue = fieldValueStyle.Render(valueContent)
+		}
+
+		// Create field line with proper spacing
+		fieldLine = lipgloss.JoinHorizontal(lipgloss.Top, label, " ", styledValue)
 	}
 
-	// Create field line with proper spacing
-	fieldLine := lipgloss.JoinHorizontal(lipgloss.Top, label, " ", styledValue)
-
-	// Add clickable zone
-	zoneID := fmt.Sprintf("config-field-%d", field)
-	fieldLine = zone.Mark(zoneID, fieldLine)
+	// Add clickable zone only for interactive fields
+	if !fieldCfg.isHeader && !fieldCfg.isSeparator {
+		zoneID := fmt.Sprintf("config-field-%d", field)
+		fieldLine = zone.Mark(zoneID, fieldLine)
+	}
 
 	return fieldLine
+}
+
+// renderHeaderField renders a header field
+func (sv *StartView) renderHeaderField(field int) string {
+	value := sv.getFieldValue(field)
+	return headerStyle2.Render(value)
+}
+
+// renderSeparatorField renders a separator field
+func (sv *StartView) renderSeparatorField(field int) string {
+	value := sv.getFieldValue(field)
+	return separatorStyle.Render(value)
+}
+
+// renderConnectionListField renders the connection list field
+func (sv *StartView) renderConnectionListField(isSelected bool) string {
+	content := sv.renderConnectionList()
+	
+	if isSelected {
+		return selectedFieldStyle.Render(content)
+	}
+	return fieldValueStyle.Render(content)
+}
+
+// renderConnectionList renders the list of saved connections
+func (sv *StartView) renderConnectionList() string {
+	if len(sv.config.LDAP.SavedConnections) == 0 {
+		return "No saved connections (using default)"
+	}
+
+	var lines []string
+	activeConn := sv.config.GetActiveConnection()
+	lines = append(lines, fmt.Sprintf("Current: %s (%s)", activeConn.Name, activeConn.Host))
+	lines = append(lines, "")
+	lines = append(lines, "Saved connections:")
+
+	for i, conn := range sv.config.LDAP.SavedConnections {
+		indicator := "  "
+		if i == sv.connectionCursor && sv.cursor == FieldConnectionList {
+			indicator = "▶ "
+		} else if i == sv.config.LDAP.SelectedConnection {
+			indicator = "● "
+		}
+		
+		connLine := fmt.Sprintf("%s%s (%s)", indicator, conn.Name, conn.Host)
+		if i == sv.connectionCursor && sv.cursor == FieldConnectionList {
+			connLine = selectedConnectionStyle.Render(connLine)
+		}
+		lines = append(lines, connLine)
+	}
+
+	return strings.Join(lines, "\n")
 }
 
 // renderEditingField renders the field currently being edited
@@ -328,10 +509,33 @@ func (sv *StartView) renderInstructions() string {
 			instructions += " • [Y/N] or [T/F] for boolean values"
 		}
 	} else {
-		instructions = "Press [↑↓] or [j/k] to navigate • [Enter] to edit • [1-4] to switch views"
+		instructions = "Press [↑↓] or [j/k] to navigate • [Enter] to edit/select • [←→] or [h/l] for connections • [1-4] to switch views"
 	}
 
 	return instructionStyle.Render(instructions)
+}
+
+// renderNewConnectionDialog renders the dialog for creating a new connection
+func (sv *StartView) renderNewConnectionDialog() string {
+	content := strings.Join([]string{
+		"New Connection",
+		"",
+		"Enter connection name:",
+		sv.newConnectionName + "█",
+		"",
+		"Press [Enter] to save • [Esc] to cancel",
+	}, "\n")
+
+	style := lipgloss.NewStyle().
+		Align(lipgloss.Center).
+		Foreground(lipgloss.Color("15")).
+		Background(lipgloss.Color("0")).
+		Border(lipgloss.RoundedBorder()).
+		BorderForeground(lipgloss.Color("12")).
+		Padding(1, 2).
+		Width(40)
+
+	return sv.container.RenderCentered(style.Render(content))
 }
 
 // handleEditMode handles input when editing a configuration value
@@ -405,4 +609,94 @@ func (sv *StartView) saveValue() {
 			sv.config.Pagination.PageSize = uint32(pageSize)
 		}
 	}
+}
+
+// handleFieldAction handles enter key press on different field types
+func (sv *StartView) handleFieldAction() (tea.Model, tea.Cmd) {
+	fieldCfg := fields[sv.cursor]
+	
+	switch sv.cursor {
+	case FieldConnectionList:
+		// Select the highlighted connection
+		if len(sv.config.LDAP.SavedConnections) > 0 && sv.connectionCursor < len(sv.config.LDAP.SavedConnections) {
+			sv.config.SetActiveConnection(sv.connectionCursor)
+		}
+		return sv, nil
+		
+	case FieldAddConnection:
+		// Start new connection dialog
+		sv.showNewConnectionDialog = true
+		sv.newConnectionName = ""
+		return sv, nil
+		
+	case FieldDeleteConnection:
+		// Delete the selected connection
+		if len(sv.config.LDAP.SavedConnections) > 0 && sv.connectionCursor < len(sv.config.LDAP.SavedConnections) {
+			sv.config.RemoveSavedConnection(sv.connectionCursor)
+			if sv.connectionCursor >= len(sv.config.LDAP.SavedConnections) && len(sv.config.LDAP.SavedConnections) > 0 {
+				sv.connectionCursor = len(sv.config.LDAP.SavedConnections) - 1
+			}
+		}
+		return sv, nil
+		
+	case FieldSaveConnection:
+		// Save current settings as new connection dialog
+		sv.showNewConnectionDialog = true
+		sv.newConnectionName = ""
+		return sv, nil
+		
+	default:
+		// For regular fields, start editing
+		if !fieldCfg.isHeader && !fieldCfg.isSeparator && !fieldCfg.isAction {
+			sv.editing = true
+			sv.editingField = sv.cursor
+			sv.inputValue = sv.getFieldValue(sv.cursor)
+		}
+		return sv, nil
+	}
+}
+
+// handleNewConnectionDialog handles input for the new connection name dialog
+func (sv *StartView) handleNewConnectionDialog(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+	switch msg.String() {
+	case "enter":
+		if sv.newConnectionName != "" {
+			// Create new connection from current settings
+			newConn := config.SavedConnection{
+				Name:     sv.newConnectionName,
+				Host:     sv.config.LDAP.Host,
+				Port:     sv.config.LDAP.Port,
+				BaseDN:   sv.config.LDAP.BaseDN,
+				UseSSL:   sv.config.LDAP.UseSSL,
+				UseTLS:   sv.config.LDAP.UseTLS,
+				BindUser: sv.config.LDAP.BindUser,
+				BindPass: sv.config.LDAP.BindPass,
+			}
+			sv.config.AddSavedConnection(newConn)
+			
+			// Set as active connection
+			sv.config.SetActiveConnection(len(sv.config.LDAP.SavedConnections) - 1)
+			sv.connectionCursor = len(sv.config.LDAP.SavedConnections) - 1
+		}
+		sv.showNewConnectionDialog = false
+		sv.newConnectionName = ""
+		return sv, nil
+		
+	case "esc":
+		sv.showNewConnectionDialog = false
+		sv.newConnectionName = ""
+		return sv, nil
+		
+	case "backspace":
+		if len(sv.newConnectionName) > 0 {
+			sv.newConnectionName = sv.newConnectionName[:len(sv.newConnectionName)-1]
+		}
+		
+	default:
+		// Handle regular character input
+		if len(msg.String()) == 1 && msg.String() >= " " {
+			sv.newConnectionName += msg.String()
+		}
+	}
+	return sv, nil
 }

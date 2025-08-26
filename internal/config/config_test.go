@@ -313,3 +313,283 @@ func TestCreateDefaultConfigCore(t *testing.T) {
 		t.Error("Loaded config is nil")
 	}
 }
+
+func TestSavedConnections(t *testing.T) {
+	cfg := Default()
+	
+	// Test initial state - no saved connections
+	activeConn := cfg.GetActiveConnection()
+	if activeConn.Name != "Default" {
+		t.Errorf("Expected default connection name to be 'Default', got %s", activeConn.Name)
+	}
+	if activeConn.Host != "localhost" {
+		t.Errorf("Expected default host to be 'localhost', got %s", activeConn.Host)
+	}
+	
+	// Add a saved connection
+	savedConn := SavedConnection{
+		Name:     "Production",
+		Host:     "ldap.prod.com",
+		Port:     636,
+		BaseDN:   "dc=prod,dc=com",
+		UseSSL:   true,
+		UseTLS:   false,
+		BindUser: "cn=prodadmin,dc=prod,dc=com",
+		BindPass: "prodpass",
+	}
+	cfg.AddSavedConnection(savedConn)
+	
+	if len(cfg.LDAP.SavedConnections) != 1 {
+		t.Errorf("Expected 1 saved connection, got %d", len(cfg.LDAP.SavedConnections))
+	}
+	
+	// Test selecting the saved connection
+	cfg.SetActiveConnection(0)
+	activeConn = cfg.GetActiveConnection()
+	if activeConn.Name != "Production" {
+		t.Errorf("Expected active connection name to be 'Production', got %s", activeConn.Name)
+	}
+	if activeConn.Host != "ldap.prod.com" {
+		t.Errorf("Expected active host to be 'ldap.prod.com', got %s", activeConn.Host)
+	}
+	if activeConn.Port != 636 {
+		t.Errorf("Expected active port to be 636, got %d", activeConn.Port)
+	}
+	
+	// Test that the default connection fields are updated
+	if cfg.LDAP.Host != "ldap.prod.com" {
+		t.Errorf("Expected LDAP.Host to be updated to 'ldap.prod.com', got %s", cfg.LDAP.Host)
+	}
+	
+	// Test removing saved connection
+	cfg.RemoveSavedConnection(0)
+	if len(cfg.LDAP.SavedConnections) != 0 {
+		t.Errorf("Expected 0 saved connections after removal, got %d", len(cfg.LDAP.SavedConnections))
+	}
+	
+	// Should fall back to default connection
+	activeConn = cfg.GetActiveConnection()
+	if activeConn.Name != "Default" {
+		t.Errorf("Expected fallback to default connection, got %s", activeConn.Name)
+	}
+}
+
+func TestMultipleSavedConnections(t *testing.T) {
+	cfg := Default()
+	
+	// Add multiple connections
+	conn1 := SavedConnection{
+		Name:   "Development",
+		Host:   "ldap.dev.com",
+		Port:   389,
+		BaseDN: "dc=dev,dc=com",
+	}
+	conn2 := SavedConnection{
+		Name:   "Staging", 
+		Host:   "ldap.staging.com",
+		Port:   389,
+		BaseDN: "dc=staging,dc=com",
+	}
+	conn3 := SavedConnection{
+		Name:   "Production",
+		Host:   "ldap.prod.com", 
+		Port:   636,
+		BaseDN: "dc=prod,dc=com",
+		UseSSL: true,
+	}
+	
+	cfg.AddSavedConnection(conn1)
+	cfg.AddSavedConnection(conn2)
+	cfg.AddSavedConnection(conn3)
+	
+	if len(cfg.LDAP.SavedConnections) != 3 {
+		t.Errorf("Expected 3 saved connections, got %d", len(cfg.LDAP.SavedConnections))
+	}
+	
+	// Test selecting different connections
+	cfg.SetActiveConnection(1) // Staging
+	activeConn := cfg.GetActiveConnection()
+	if activeConn.Name != "Staging" {
+		t.Errorf("Expected active connection to be 'Staging', got %s", activeConn.Name)
+	}
+	if activeConn.Host != "ldap.staging.com" {
+		t.Errorf("Expected active host to be 'ldap.staging.com', got %s", activeConn.Host)
+	}
+	
+	// Test updating a saved connection
+	updatedConn := SavedConnection{
+		Name:   "Staging Updated",
+		Host:   "ldap2.staging.com",
+		Port:   636,
+		BaseDN: "dc=staging,dc=com",
+		UseSSL: true,
+	}
+	cfg.UpdateSavedConnection(1, updatedConn)
+	
+	if cfg.LDAP.SavedConnections[1].Name != "Staging Updated" {
+		t.Errorf("Expected connection name to be updated to 'Staging Updated', got %s", cfg.LDAP.SavedConnections[1].Name)
+	}
+	if cfg.LDAP.SavedConnections[1].Host != "ldap2.staging.com" {
+		t.Errorf("Expected connection host to be updated to 'ldap2.staging.com', got %s", cfg.LDAP.SavedConnections[1].Host)
+	}
+	
+	// Since this was the active connection, it should be updated automatically
+	activeConn = cfg.GetActiveConnection()
+	if activeConn.Name != "Staging Updated" {
+		t.Errorf("Expected active connection name to be updated to 'Staging Updated', got %s", activeConn.Name)
+	}
+	if activeConn.Host != "ldap2.staging.com" {
+		t.Errorf("Expected active host to be updated to 'ldap2.staging.com', got %s", activeConn.Host)
+	}
+	
+	// Test removing middle connection and index adjustment
+	cfg.RemoveSavedConnection(1) // Remove "Staging Updated"
+	if len(cfg.LDAP.SavedConnections) != 2 {
+		t.Errorf("Expected 2 saved connections after removal, got %d", len(cfg.LDAP.SavedConnections))
+	}
+	
+	// Should fall back to default since we removed the active connection
+	if cfg.LDAP.SelectedConnection != -1 {
+		t.Errorf("Expected selected connection to be reset to -1, got %d", cfg.LDAP.SelectedConnection)
+	}
+}
+
+func TestConfigWithSavedConnections(t *testing.T) {
+	// Create a config with saved connections in YAML
+	configYAML := `
+ldap:
+  host: "ldap.default.com"
+  port: 389
+  base_dn: "dc=default,dc=com"
+  use_ssl: false
+  use_tls: false
+  bind_user: "cn=admin,dc=default,dc=com"
+  bind_pass: "defaultpass"
+  selected_connection: 0
+  saved_connections:
+    - name: "Production"
+      host: "ldap.prod.com"
+      port: 636
+      base_dn: "dc=prod,dc=com"
+      use_ssl: true
+      use_tls: false
+      bind_user: "cn=prodadmin,dc=prod,dc=com"
+      bind_pass: "prodpass"
+    - name: "Development"
+      host: "ldap.dev.com"
+      port: 389
+      base_dn: "dc=dev,dc=com"
+      use_ssl: false
+      use_tls: true
+      bind_user: "cn=devadmin,dc=dev,dc=com"
+      bind_pass: "devpass"
+pagination:
+  page_size: 50
+retry:
+  enabled: true
+  max_attempts: 3
+  initial_delay_ms: 500
+  max_delay_ms: 5000
+`
+	
+	// Create a temporary file
+	tempDir, err := os.MkdirTemp("", "moribito-test")
+	if err != nil {
+		t.Fatalf("Failed to create temp dir: %v", err)
+	}
+	defer os.RemoveAll(tempDir)
+	
+	configPath := filepath.Join(tempDir, "config.yaml")
+	if err := os.WriteFile(configPath, []byte(configYAML), 0644); err != nil {
+		t.Fatalf("Failed to write config file: %v", err)
+	}
+	
+	// Load the config
+	cfg, err := Load(configPath)
+	if err != nil {
+		t.Fatalf("Failed to load config: %v", err)
+	}
+	
+	// Test that saved connections were loaded
+	if len(cfg.LDAP.SavedConnections) != 2 {
+		t.Errorf("Expected 2 saved connections, got %d", len(cfg.LDAP.SavedConnections))
+	}
+	
+	if cfg.LDAP.SelectedConnection != 0 {
+		t.Errorf("Expected selected connection to be 0, got %d", cfg.LDAP.SelectedConnection)
+	}
+	
+	// Test that the active connection is the selected one
+	activeConn := cfg.GetActiveConnection()
+	if activeConn.Name != "Production" {
+		t.Errorf("Expected active connection to be 'Production', got %s", activeConn.Name)
+	}
+	if activeConn.Host != "ldap.prod.com" {
+		t.Errorf("Expected active host to be 'ldap.prod.com', got %s", activeConn.Host)
+	}
+	if activeConn.Port != 636 {
+		t.Errorf("Expected active port to be 636, got %d", activeConn.Port)
+	}
+	if !activeConn.UseSSL {
+		t.Errorf("Expected active connection to use SSL")
+	}
+}
+
+func TestBackwardCompatibility(t *testing.T) {
+	// Test that old config format still works
+	oldConfigYAML := `
+ldap:
+  host: "ldap.legacy.com"
+  port: 389
+  base_dn: "dc=legacy,dc=com"
+  use_ssl: false
+  use_tls: true
+  bind_user: "cn=legacy,dc=legacy,dc=com"
+  bind_pass: "legacypass"
+pagination:
+  page_size: 100
+retry:
+  enabled: true
+  max_attempts: 5
+`
+	
+	// Create a temporary file
+	tempDir, err := os.MkdirTemp("", "moribito-test")
+	if err != nil {
+		t.Fatalf("Failed to create temp dir: %v", err)
+	}
+	defer os.RemoveAll(tempDir)
+	
+	configPath := filepath.Join(tempDir, "config.yaml")
+	if err := os.WriteFile(configPath, []byte(oldConfigYAML), 0644); err != nil {
+		t.Fatalf("Failed to write config file: %v", err)
+	}
+	
+	// Load the config
+	cfg, err := Load(configPath)
+	if err != nil {
+		t.Fatalf("Failed to load config: %v", err)
+	}
+	
+	// Test that old config fields are still accessible
+	if cfg.LDAP.Host != "ldap.legacy.com" {
+		t.Errorf("Expected host to be 'ldap.legacy.com', got %s", cfg.LDAP.Host)
+	}
+	
+	// Test that saved connections is empty
+	if len(cfg.LDAP.SavedConnections) != 0 {
+		t.Errorf("Expected no saved connections in legacy config, got %d", len(cfg.LDAP.SavedConnections))
+	}
+	
+	// Test that active connection returns the default values
+	activeConn := cfg.GetActiveConnection()
+	if activeConn.Name != "Default" {
+		t.Errorf("Expected active connection name to be 'Default', got %s", activeConn.Name)
+	}
+	if activeConn.Host != "ldap.legacy.com" {
+		t.Errorf("Expected active host to be 'ldap.legacy.com', got %s", activeConn.Host)
+	}
+	if activeConn.Port != 389 {
+		t.Errorf("Expected active port to be 389, got %d", activeConn.Port)
+	}
+}
