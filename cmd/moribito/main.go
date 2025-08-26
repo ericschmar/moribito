@@ -109,15 +109,15 @@ func main() {
 			log.Fatalf("Failed to read password: %v", err)
 		}
 		fmt.Println() // Add newline after password input
-		
+
 		// Update the password in the config
 		cfg.LDAP.BindPass = string(password)
-		
+
 		// If we have saved connections and one is selected, update it
 		if cfg.LDAP.SelectedConnection >= 0 && cfg.LDAP.SelectedConnection < len(cfg.LDAP.SavedConnections) {
 			cfg.LDAP.SavedConnections[cfg.LDAP.SelectedConnection].BindPass = string(password)
 		}
-		
+
 		// Refresh active connection after password update
 		activeConn = cfg.GetActiveConnection()
 	}

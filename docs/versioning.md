@@ -35,7 +35,9 @@ The GitHub Actions workflow will automatically:
 1. Run CI checks (format, lint, test)
 2. Build binaries for all platforms with embedded version info
 3. Create GitHub release with binaries and checksums
-4. Generate installation instructions
+4. **Generate and update Homebrew formula**
+5. **Update Homebrew tap repository for easy installation**
+6. Generate installation instructions
 
 ## Version Information
 
