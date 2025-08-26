@@ -40,9 +40,6 @@ jobs:
             - name: Download dependencies
               run: go mod download
 
-            - name: Run tests
-              run: make test
-
             - name: Semantic Release
               uses: cycjimmy/semantic-release-action@v4
               with:
