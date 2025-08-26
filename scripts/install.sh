@@ -120,6 +120,18 @@ ldap:
   bind_user: "cn=admin,dc=example,dc=com"
   bind_pass: "your-password-here"
 
+  # Multiple saved connections (optional)
+  # Uncomment and configure to save multiple connection profiles:
+  # selected_connection: 0
+  # saved_connections:
+  #   - name: "Production"
+  #     host: "ldap.prod.example.com"
+  #     port: 636
+  #     base_dn: "dc=prod,dc=example,dc=com"
+  #     use_ssl: true
+  #     bind_user: "cn=admin,dc=prod,dc=example,dc=com"
+  #     bind_pass: "prod-password"
+
 # Pagination settings for query results
 pagination:
   # Number of entries to load per page (default: 50)
