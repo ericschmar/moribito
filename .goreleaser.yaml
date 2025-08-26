@@ -1,0 +1,80 @@
+version: 2
+
+project_name: moribito
+
+before:
+  hooks:
+    # You may remove this if you don't use go modules.
+    - go mod tidy
+    # you may remove this if you don't need go generate
+    - go generate ./...
+
+builds:
+  - env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - windows
+      - darwin
+    goarch:
+      - amd64
+      - arm64
+    main: ./cmd/moribito
+
+archives:
+  - format: tar.gz
+    name_template: >-
+      {{ .ProjectName }}_
+      {{- title .Os }}_
+      {{- if eq .Arch "amd64" }}x86_64
+      {{- else if eq .Arch "386" }}i386
+      {{- else }}{{ .Arch }}{{ end }}
+      {{- if .Arm }}v{{ .Arm }}{{ end }}
+    # use zip for windows archives
+    format_overrides:
+      - goos: windows
+        format: zip
+
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - "^docs:"
+      - "^test:"
+      - "^chore:"
+      - "^ci:"
+
+checksum:
+  name_template: "checksums.txt"
+
+snapshot:
+  name_template: "{{ incpatch .Version }}-next"
+
+brews:
+  - name: moribito
+    commit_author:
+      name: ericschmar
+      email: eric.schmar@gmail.com
+    commit_msg_template: "Brew formula update for {{ .ProjectName }} version {{ .Tag }}"
+    directory: Formula
+    description: "LDAP CLI Explorer - Interactive terminal-based LDAP client with TUI"
+    homepage: "https://github.com/ericschmar/moribito"
+    license: "MIT"
+    install: |
+      bin.install "moribito"
+    test: |
+      system "#{bin}/moribito --version"
+    # Repository to push the generated files to.
+    repository:
+      owner: ericschmar
+      name: homebrew-tap
+      branch: main
+      token: "{{ .Env.HOMEBREW_GITHUB_API_TOKEN }}"
+
+release:
+  github:
+    owner: ericschmar
+    name: moribito
+  name_template: "Release {{.Tag}}"
+  draft: false
+  prerelease: auto
