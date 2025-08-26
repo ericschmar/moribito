@@ -1,35 +1,20 @@
-name: Release
+name: release
 
 on:
     push:
         branches:
             - main
 
-permissions:
-    contents: write
-    issues: write
-    pull-requests: write
-
 jobs:
-    release:
-        name: Release
+    main:
         runs-on: ubuntu-latest
+        environment:
+            name: Release
         steps:
             - name: Checkout
               uses: actions/checkout@v4
               with:
-                  fetch-depth: 0
                   persist-credentials: false
-
-            - name: Set up Go
-              uses: actions/setup-go@v5
-              with:
-                  go-version: "1.24"
-                  cache: true
-
-            - name: Download dependencies
-              run: go mod download
-
             - name: Semantic Release
               uses: cycjimmy/semantic-release-action@v4
               with:
@@ -39,7 +24,6 @@ jobs:
                       @semantic-release/changelog
               env:
                   GH_TOKEN: ${{ secrets.GH_TOKEN }}
-                  GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
             - name: Run GoReleaser
               env:
                   GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
