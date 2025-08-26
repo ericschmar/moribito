@@ -49,6 +49,7 @@ jobs:
                       @semantic-release/changelog
               env:
                   GH_TOKEN: ${{ secrets.GH_TOKEN }}
+                  GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
             - name: Run GoReleaser
               env:
                   GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
