@@ -1,7 +1,7 @@
 class Moribito < Formula
   desc "LDAP CLI Explorer - Interactive terminal-based LDAP client with TUI"
   homepage "https://github.com/ericschmar/moribito"
-  version "v0.2.1"
+  version "REPLACE_VERSION"
   license "MIT"
 
   on_macos do

@@ -63,9 +63,10 @@ fi
 # Function to get SHA256 for a file URL
 get_sha256() {
     local url="$1"
-    echo "Fetching SHA256 for $url..."
-    if curl -sL "$url" > /dev/null 2>&1; then
-        curl -sL "$url" | sha256sum | cut -d' ' -f1
+    echo "Fetching SHA256 for $url..." >&2
+    if curl -sL "$url" >/dev/null 2>&1; then
+        local sha256=$(curl -sL "$url" | sha256sum | cut -d' ' -f1)
+        echo "$sha256"
     else
         echo "Error: Could not fetch $url" >&2
         return 1
@@ -83,21 +84,38 @@ LINUX_ARM64_SHA256=""
 if [ "$RELEASE_EXISTS" = true ]; then
     # Try new naming convention first (moribito-*), then fall back to old (ldap-cli-*)
     echo "Attempting to fetch SHA256s for current binary names..."
-    DARWIN_AMD64_SHA256=$(get_sha256 "https://github.com/ericschmar/moribito/releases/download/v$VERSION/moribito-darwin-amd64" 2>/dev/null) || \
-    DARWIN_AMD64_SHA256=$(get_sha256 "https://github.com/ericschmar/moribito/releases/download/v$VERSION/ldap-cli-darwin-amd64" 2>/dev/null) || \
-    echo "Warning: Could not fetch darwin-amd64 binary"
     
-    DARWIN_ARM64_SHA256=$(get_sha256 "https://github.com/ericschmar/moribito/releases/download/v$VERSION/moribito-darwin-arm64" 2>/dev/null) || \
-    DARWIN_ARM64_SHA256=$(get_sha256 "https://github.com/ericschmar/moribito/releases/download/v$VERSION/ldap-cli-darwin-arm64" 2>/dev/null) || \
-    echo "Warning: Could not fetch darwin-arm64 binary"
+    DARWIN_AMD64_SHA256=$(get_sha256 "https://github.com/ericschmar/moribito/releases/download/v$VERSION/moribito-darwin-amd64" 2>/dev/null)
+    if [ -z "$DARWIN_AMD64_SHA256" ]; then
+        DARWIN_AMD64_SHA256=$(get_sha256 "https://github.com/ericschmar/moribito/releases/download/v$VERSION/ldap-cli-darwin-amd64" 2>/dev/null)
+    fi
+    if [ -z "$DARWIN_AMD64_SHA256" ]; then
+        echo "Warning: Could not fetch darwin-amd64 binary"
+    fi
     
-    LINUX_AMD64_SHA256=$(get_sha256 "https://github.com/ericschmar/moribito/releases/download/v$VERSION/moribito-linux-amd64" 2>/dev/null) || \
-    LINUX_AMD64_SHA256=$(get_sha256 "https://github.com/ericschmar/moribito/releases/download/v$VERSION/ldap-cli-linux-amd64" 2>/dev/null) || \
-    echo "Warning: Could not fetch linux-amd64 binary"
+    DARWIN_ARM64_SHA256=$(get_sha256 "https://github.com/ericschmar/moribito/releases/download/v$VERSION/moribito-darwin-arm64" 2>/dev/null)
+    if [ -z "$DARWIN_ARM64_SHA256" ]; then
+        DARWIN_ARM64_SHA256=$(get_sha256 "https://github.com/ericschmar/moribito/releases/download/v$VERSION/ldap-cli-darwin-arm64" 2>/dev/null)
+    fi
+    if [ -z "$DARWIN_ARM64_SHA256" ]; then
+        echo "Warning: Could not fetch darwin-arm64 binary"
+    fi
     
-    LINUX_ARM64_SHA256=$(get_sha256 "https://github.com/ericschmar/moribito/releases/download/v$VERSION/moribito-linux-arm64" 2>/dev/null) || \
-    LINUX_ARM64_SHA256=$(get_sha256 "https://github.com/ericschmar/moribito/releases/download/v$VERSION/ldap-cli-linux-arm64" 2>/dev/null) || \
-    echo "Warning: Could not fetch linux-arm64 binary"
+    LINUX_AMD64_SHA256=$(get_sha256 "https://github.com/ericschmar/moribito/releases/download/v$VERSION/moribito-linux-amd64" 2>/dev/null)
+    if [ -z "$LINUX_AMD64_SHA256" ]; then
+        LINUX_AMD64_SHA256=$(get_sha256 "https://github.com/ericschmar/moribito/releases/download/v$VERSION/ldap-cli-linux-amd64" 2>/dev/null)
+    fi
+    if [ -z "$LINUX_AMD64_SHA256" ]; then
+        echo "Warning: Could not fetch linux-amd64 binary"
+    fi
+    
+    LINUX_ARM64_SHA256=$(get_sha256 "https://github.com/ericschmar/moribito/releases/download/v$VERSION/moribito-linux-arm64" 2>/dev/null)
+    if [ -z "$LINUX_ARM64_SHA256" ]; then
+        LINUX_ARM64_SHA256=$(get_sha256 "https://github.com/ericschmar/moribito/releases/download/v$VERSION/ldap-cli-linux-arm64" 2>/dev/null)
+    fi
+    if [ -z "$LINUX_ARM64_SHA256" ]; then
+        echo "Warning: Could not fetch linux-arm64 binary"
+    fi
 else
     echo "Skipping SHA256 fetch - release not found"
 fi
@@ -119,11 +137,23 @@ if [ -f "$TEMPLATE_FILE" ]; then
     cp "$TEMPLATE_FILE" "$FORMULA_FILE"
     
     # Replace placeholders in the template
-    sed -i "s/REPLACE_VERSION/$VERSION/g" "$FORMULA_FILE"
-    sed -i "s/REPLACE_DARWIN_AMD64_SHA256/$DARWIN_AMD64_SHA256/g" "$FORMULA_FILE"
-    sed -i "s/REPLACE_DARWIN_ARM64_SHA256/$DARWIN_ARM64_SHA256/g" "$FORMULA_FILE"
-    sed -i "s/REPLACE_LINUX_AMD64_SHA256/$LINUX_AMD64_SHA256/g" "$FORMULA_FILE"
-    sed -i "s/REPLACE_LINUX_ARM64_SHA256/$LINUX_ARM64_SHA256/g" "$FORMULA_FILE"
+    # Use a different delimiter to avoid issues with forward slashes and special characters
+    # Use portable sed commands that work on both Linux and macOS
+    if [ "$(uname)" = "Darwin" ]; then
+        # macOS version
+        sed -i '' "s|REPLACE_VERSION|$VERSION|g" "$FORMULA_FILE"
+        sed -i '' "s|REPLACE_DARWIN_AMD64_SHA256|${DARWIN_AMD64_SHA256:-}|g" "$FORMULA_FILE"
+        sed -i '' "s|REPLACE_DARWIN_ARM64_SHA256|${DARWIN_ARM64_SHA256:-}|g" "$FORMULA_FILE"
+        sed -i '' "s|REPLACE_LINUX_AMD64_SHA256|${LINUX_AMD64_SHA256:-}|g" "$FORMULA_FILE"
+        sed -i '' "s|REPLACE_LINUX_ARM64_SHA256|${LINUX_ARM64_SHA256:-}|g" "$FORMULA_FILE"
+    else
+        # Linux version
+        sed -i "s|REPLACE_VERSION|$VERSION|g" "$FORMULA_FILE"
+        sed -i "s|REPLACE_DARWIN_AMD64_SHA256|${DARWIN_AMD64_SHA256:-}|g" "$FORMULA_FILE"
+        sed -i "s|REPLACE_DARWIN_ARM64_SHA256|${DARWIN_ARM64_SHA256:-}|g" "$FORMULA_FILE"
+        sed -i "s|REPLACE_LINUX_AMD64_SHA256|${LINUX_AMD64_SHA256:-}|g" "$FORMULA_FILE"
+        sed -i "s|REPLACE_LINUX_ARM64_SHA256|${LINUX_ARM64_SHA256:-}|g" "$FORMULA_FILE"
+    fi
 else
     echo "Template not found, generating from scratch"
     cat > "$FORMULA_FILE" << EOF
