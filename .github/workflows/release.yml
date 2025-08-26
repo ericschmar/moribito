@@ -51,6 +51,30 @@ jobs:
         sha256sum * > ../checksums.txt
         cd ..
 
+    - name: Generate Homebrew formula
+      run: |
+        # Generate the Homebrew formula with the new version
+        ./homebrew/generate-formula.sh -v ${{ steps.tag.outputs.version }} -f
+      
+    - name: Update Homebrew tap
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        # Configure git for the CI user
+        git config --global user.name "github-actions[bot]"
+        git config --global user.email "github-actions[bot]@users.noreply.github.com"
+        
+        # Set up GitHub CLI authentication
+        echo "$GITHUB_TOKEN" | gh auth login --with-token
+        
+        # Update the homebrew tap
+        # Use || true to make this step non-blocking in case of tap repository issues
+        ./homebrew/setup-tap.sh || {
+          echo "Warning: Failed to update Homebrew tap. This is non-critical."
+          echo "The formula has still been generated at homebrew/moribito.rb"
+          exit 0
+        }
+
     - name: Create Release
       uses: softprops/action-gh-release@v2
       with:
@@ -63,9 +87,17 @@ jobs:
 
           ## Installation
 
+          ### Homebrew (Recommended)
+          ```bash
+          # The formula is automatically updated with each release
+          brew install ericschmar/tap/moribito
+          ```
+          
+          ### Manual Installation
+          
           Download the appropriate binary for your platform from the assets below.
 
-          ### Linux/macOS
+          #### Linux/macOS
           ```bash
           # Linux
           wget https://github.com/ericschmar/moribito/releases/download/${{ steps.tag.outputs.tag }}/moribito-linux-amd64
@@ -88,13 +120,7 @@ jobs:
           sudo mv moribito-darwin-arm64 /usr/local/bin/moribito
           ```
 
-          ### Homebrew
-          ```bash
-          # Install from our custom tap
-          brew install ericschmar/tap/moribito
-          ```
-
-          ### Windows
+          #### Windows
           Download `moribito-windows-amd64.exe` and place it in your PATH.
 
           ## Verification

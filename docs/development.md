@@ -58,28 +58,44 @@ This project supports distribution via Homebrew. The `homebrew/` directory in th
 
 ### Creating a Release with Homebrew Support
 
-1. **Create the GitHub release** (done automatically by CI when you tag):
+1. **Create the GitHub release** (this triggers the automated process):
    ```bash
    git tag -a v1.0.0 -m "Release version 1.0.0"
    git push origin v1.0.0
    ```
 
-2. **Generate/update the Homebrew formula**:
-   ```bash
-   ./homebrew/generate-formula.sh -v 1.0.0 -f
-   ```
+The release workflow will automatically:
+- Build binaries for all platforms
+- Create GitHub release with binaries and checksums  
+- Generate and update the Homebrew formula
+- Update the Homebrew tap repository
 
-3. **Update your Homebrew tap** (if you have one):
+2. **Manual testing** (optional, for verification):
    ```bash
-   ./homebrew/setup-tap.sh
-   ```
-
-4. **Test the formula locally**:
-   ```bash
+   # Test the updated formula locally
    brew install --formula ./homebrew/moribito.rb
    brew test moribito
    moribito --version
    brew uninstall moribito
+   
+   # Or test from the tap
+   brew install ericschmar/tap/moribito
+   moribito --version
+   brew uninstall moribito
+   ```
+
+### Manual Homebrew Updates (if needed)
+
+If you need to manually update the homebrew formula outside of a release:
+
+1. **Generate/update the Homebrew formula**:
+   ```bash
+   ./homebrew/generate-formula.sh -v 1.0.0 -f
+   ```
+
+2. **Update your Homebrew tap**:
+   ```bash
+   ./homebrew/setup-tap.sh
    ```
 
 ## Continuous Integration
@@ -97,6 +113,8 @@ This project uses GitHub Actions for CI/CD:
   - Runs full CI checks
   - Builds for all platforms (Linux amd64/arm64, macOS amd64/arm64, Windows amd64)
   - Creates GitHub releases with binaries and checksums
+  - **Automatically generates and updates Homebrew formula**
+  - **Automatically updates the Homebrew tap repository**
   - Generates installation instructions
 
 ## Dependencies

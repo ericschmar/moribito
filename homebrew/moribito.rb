@@ -7,22 +7,22 @@ class Moribito < Formula
   on_macos do
     if Hardware::CPU.intel?
       url "https://github.com/ericschmar/moribito/releases/download/v#{version}/moribito-darwin-amd64"
-      sha256 "REPLACE_DARWIN_AMD64_SHA256"
+      sha256 ""
     end
     if Hardware::CPU.arm?
       url "https://github.com/ericschmar/moribito/releases/download/v#{version}/moribito-darwin-arm64"  
-      sha256 "REPLACE_DARWIN_ARM64_SHA256"
+      sha256 ""
     end
   end
 
   on_linux do
     if Hardware::CPU.intel?
       url "https://github.com/ericschmar/moribito/releases/download/v#{version}/moribito-linux-amd64"
-      sha256 "REPLACE_LINUX_AMD64_SHA256"
+      sha256 ""
     end
     if Hardware::CPU.arm? && Hardware::CPU.is_64_bit?
       url "https://github.com/ericschmar/moribito/releases/download/v#{version}/moribito-linux-arm64"
-      sha256 "REPLACE_LINUX_ARM64_SHA256"
+      sha256 ""
     end
   end
 
