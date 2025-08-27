@@ -26,6 +26,11 @@ A terminal-based LDAP server explorer built with Go and BubbleTea, providing an 
 ![Start Screen](screenshots/start.png)
 _Initial startup screen with connection options_
 
+### Adding Connections
+
+![Add Interface](screenshots/add.png)
+_Interface for adding new LDAP Connections
+
 ### Interactive Tree Navigation
 
 ![Tree View](screenshots/tree.png)
@@ -40,11 +45,6 @@ _View detailed LDAP entry attributes with clipboard integration_
 
 ![Query View](screenshots/query.png)
 _Execute custom LDAP queries with real-time results and formatting_
-
-### Adding Records
-
-![Add Interface](screenshots/add.png)
-_Interface for adding new LDAP entries_
 
 ## Installation
 
