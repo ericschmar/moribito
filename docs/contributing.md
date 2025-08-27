@@ -1,6 +1,6 @@
 # Contributing
 
-We welcome contributions to the LDAP CLI Explorer project! This guide outlines how to contribute to the project.
+We welcome contributions to the Moribito project! This guide outlines how to contribute to the project.
 
 ## Getting Started
 
@@ -41,10 +41,6 @@ When making changes that affect user-facing functionality:
 1. Update the relevant documentation in the `docs/` folder
 2. Update the main README.md if necessary
 3. Suggest changes to documentation when appropriate
-
-## Release Process
-
-This project follows [Semantic Versioning](https://semver.org/). See [Versioning](versioning.md) for details on the release process.
 
 ## License
 
