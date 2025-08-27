@@ -11,7 +11,6 @@ require (
 	github.com/lrstanley/bubblezone v1.0.0
 	github.com/lucasb-eyer/go-colorful v1.2.0
 	github.com/muesli/gamut v0.3.1
-	golang.org/x/term v0.34.0
 	gopkg.in/yaml.v3 v3.0.1
 )
 

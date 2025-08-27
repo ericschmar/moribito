@@ -9,6 +9,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/ericschmar/moribito/internal/config"
+	"github.com/ericschmar/moribito/internal/ldap"
 	zone "github.com/lrstanley/bubblezone"
 )
 
@@ -48,6 +49,7 @@ const (
 	FieldBindUser
 	FieldBindPass
 	FieldPageSize
+	FieldConnect
 	FieldCount
 )
 
@@ -78,6 +80,7 @@ var fields = []fieldConfig{
 	{name: "Bind User", placeholder: "cn=admin,dc=example,dc=com"},
 	{name: "Bind Password", isPassword: true},
 	{name: "Page Size", placeholder: "100"},
+	{name: "Connect", isAction: true},
 }
 
 // Define consistent styles
@@ -263,6 +266,8 @@ func (sv *StartView) getFieldValue(field int) string {
 		return sv.config.LDAP.BindPass
 	case FieldPageSize:
 		return strconv.Itoa(int(sv.config.Pagination.PageSize))
+	case FieldConnect:
+		return "Connect to LDAP"
 	}
 	return ""
 }
@@ -281,7 +286,7 @@ func (sv *StartView) getDisplayValue(field int) string {
 			return placeholderStyle.Render("No saved connections (using default)")
 		}
 		return sv.renderConnectionList()
-	case FieldAddConnection, FieldDeleteConnection, FieldSaveConnection:
+	case FieldAddConnection, FieldDeleteConnection, FieldSaveConnection, FieldConnect:
 		return value
 	case FieldConnectionSeparator:
 		return separatorStyle.Render(value)
@@ -645,6 +650,10 @@ func (sv *StartView) handleFieldAction() (tea.Model, tea.Cmd) {
 		sv.newConnectionName = ""
 		return sv, nil
 
+	case FieldConnect:
+		// Attempt to connect to LDAP
+		return sv.handleConnect()
+
 	default:
 		// For regular fields, start editing
 		if !fieldCfg.isHeader && !fieldCfg.isSeparator && !fieldCfg.isAction {
@@ -699,4 +708,52 @@ func (sv *StartView) handleNewConnectionDialog(msg tea.KeyMsg) (tea.Model, tea.C
 		}
 	}
 	return sv, nil
+}
+
+// handleConnect attempts to create an LDAP connection with current settings
+func (sv *StartView) handleConnect() (tea.Model, tea.Cmd) {
+	activeConn := sv.config.GetActiveConnection()
+
+	// Validate required fields
+	if activeConn.Host == "" {
+		return sv, func() tea.Msg {
+			return ErrorMsg{Err: fmt.Errorf("LDAP host is required")}
+		}
+	}
+	if activeConn.BaseDN == "" {
+		return sv, func() tea.Msg {
+			return ErrorMsg{Err: fmt.Errorf("Base DN is required")}
+		}
+	}
+
+	// Create LDAP configuration
+	ldapConfig := ldap.Config{
+		Host:           activeConn.Host,
+		Port:           activeConn.Port,
+		BaseDN:         activeConn.BaseDN,
+		UseSSL:         activeConn.UseSSL,
+		UseTLS:         activeConn.UseTLS,
+		BindUser:       activeConn.BindUser,
+		BindPass:       activeConn.BindPass,
+		RetryEnabled:   sv.config.Retry.Enabled,
+		MaxRetries:     sv.config.Retry.MaxAttempts,
+		InitialDelayMs: sv.config.Retry.InitialDelayMs,
+		MaxDelayMs:     sv.config.Retry.MaxDelayMs,
+	}
+
+	// Create LDAP client
+	client, err := ldap.NewClient(ldapConfig)
+	if err != nil {
+		return sv, func() tea.Msg {
+			return ErrorMsg{Err: fmt.Errorf("failed to connect to LDAP server: %w", err)}
+		}
+	}
+
+	// Send success message with client and config
+	return sv, func() tea.Msg {
+		return ConnectMsg{
+			Client: client,
+			Config: sv.config,
+		}
+	}
 }
