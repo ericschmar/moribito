@@ -545,6 +545,11 @@ func (sv *StartView) renderNewConnectionDialog() string {
 	return sv.container.RenderCentered(style.Render(content))
 }
 
+// IsEditing returns true if the start view is currently in editing mode
+func (sv *StartView) IsEditing() bool {
+	return sv.editing || sv.showNewConnectionDialog
+}
+
 // handleEditMode handles input when editing a configuration value
 func (sv *StartView) handleEditMode(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	switch msg.String() {

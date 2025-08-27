@@ -211,9 +211,12 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "tab":
 			return m.switchView(), nil
 		case "1", "2", "3", "4":
-			// Skip global navigation keys if we're in query view input mode
+			// Skip global navigation keys if we're in an input mode
 			if m.currentView == ViewModeQuery && m.queryView != nil && m.queryView.IsInputMode() {
 				break // Let the query view handle the input
+			}
+			if m.currentView == ViewModeStart && m.startView != nil && m.startView.IsEditing() {
+				break // Let the start view handle the input
 			}
 			// Handle navigation keys for view switching
 			switch msg.String() {
@@ -276,11 +279,19 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.tree = NewTreeView(msg.Client)
 		m.queryView = NewQueryViewWithPageSize(msg.Client, msg.Config.Pagination.PageSize)
 
+		// Set sizes for the new views (reserve space for tab bar, status bar, and help bar)
+		contentHeight := m.height - 5
+		m.tree.SetSize(m.width, contentHeight)
+		m.queryView.SetSize(m.width, contentHeight)
+
 		// Switch to tree view
 		m.currentView = ViewModeTree
 		m.statusMsg = "Successfully connected to LDAP server"
 
-		return m, nil
+		// Initialize the tree view to start loading the tree
+		treeInitCmd := m.tree.Init()
+
+		return m, treeInitCmd
 
 	// Handle tree-specific messages regardless of current view
 	// This ensures tree loading works even when user switches away before completion
@@ -362,7 +373,24 @@ func (m *Model) View() string {
 	// Help bar
 	help := m.renderHelpBar()
 
-	finalView := tabBar + "\n" + content + "\n" + status + "\n" + help
+	// Build the layout without manipulating content height
+	// The tab bar and content should display normally, with help bar positioned at bottom
+	mainContent := tabBar + "\n" + content + "\n" + status
+
+	// Calculate how much vertical space we have and position help bar at the bottom
+	mainContentLines := strings.Split(mainContent, "\n")
+	totalContentHeight := len(mainContentLines)
+
+	var finalView string
+	// If we have room, add padding to push help bar to bottom
+	if totalContentHeight < m.height-1 { // -1 for help bar itself
+		paddingNeeded := m.height - totalContentHeight - 1
+		padding := strings.Repeat("\n", paddingNeeded)
+		finalView = mainContent + padding + help
+	} else {
+		// If content is too tall, just append help bar normally
+		finalView = mainContent + "\n" + help
+	}
 
 	// Scan the final view with bubblezone
 	return zone.Scan(finalView)

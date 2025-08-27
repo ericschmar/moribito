@@ -117,6 +117,10 @@ func (tv *TreeView) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		tv.root = msg.Node
 		tv.loading = false
 		tv.rebuildFlattenedTree()
+		// Automatically expand the root node to show immediate children
+		if tv.root != nil && !tv.root.IsLoaded {
+			return tv, tv.loadChildren(tv.root)
+		}
 		return tv, SendStatus("Tree loaded")
 
 	case NodeChildrenLoadedMsg:
@@ -401,4 +405,27 @@ func (tv *TreeView) timerTickCmd() tea.Cmd {
 	return tea.Tick(100*time.Millisecond, func(t time.Time) tea.Msg {
 		return LoadingTimerTickMsg{Time: t}
 	})
+}
+
+// loadChildren loads children for a specific node
+func (tv *TreeView) loadChildren(node *ldap.TreeNode) tea.Cmd {
+	if node == nil || node.IsLoaded {
+		return nil
+	}
+
+	tv.loading = true
+	tv.loadingStartTime = time.Now()
+	tv.loadingElapsed = 0
+
+	// Return both the loading operation and the timer tick
+	return tea.Batch(
+		func() tea.Msg {
+			err := tv.client.LoadChildren(node)
+			if err != nil {
+				return ErrorMsg{Err: err}
+			}
+			return NodeChildrenLoadedMsg{Node: node}
+		},
+		tv.timerTickCmd(),
+	)
 }
