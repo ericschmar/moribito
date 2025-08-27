@@ -41,7 +41,6 @@ config/config.yaml
 
 # Node.js dependencies and build artifacts
 node_modules/
-package-lock.json
 npm-debug.log*
 
 # DocPress build output
@@ -50,3 +49,4 @@ _docpress/
 # Homebrew testing files
 *.bottle.tar.gz
 .homebrew_build_deps/
+_docpress

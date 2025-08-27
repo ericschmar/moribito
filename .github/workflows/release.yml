@@ -1,137 +1,32 @@
-name: Release
+name: release
 
 on:
-  push:
-    tags:
-      - 'v*'
-
-permissions:
-  contents: write
+    push:
+        branches:
+            - main
 
 jobs:
-  release:
-    name: Create Release
-    runs-on: ubuntu-latest
-    steps:
-    - uses: actions/checkout@v4
-      with:
-        fetch-depth: 0
-
-    - name: Set up Go
-      uses: actions/setup-go@v5
-      with:
-        go-version: '1.24'
-        cache: true
-
-    - name: Cache Go modules
-      uses: actions/cache@v4
-      with:
-        path: |
-          ~/.cache/go-build
-          ~/go/pkg/mod
-        key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
-        restore-keys: |
-          ${{ runner.os }}-go-
-
-    - name: Download dependencies
-      run: go mod download
-
-    - name: Get tag name and version
-      id: tag
-      run: |
-        echo "tag=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
-        echo "version=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
-
-    - name: Build for all platforms with version
-      run: make build-all VERSION=${{ steps.tag.outputs.version }}
-
-    - name: Create checksums
-      run: |
-        cd bin
-        sha256sum * > ../checksums.txt
-        cd ..
-
-    - name: Generate Homebrew formula
-      run: |
-        # Generate the Homebrew formula with the new version
-        ./homebrew/generate-formula.sh -v ${{ steps.tag.outputs.version }} -f
-      
-    - name: Update Homebrew tap
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      run: |
-        # Configure git for the CI user
-        git config --global user.name "github-actions[bot]"
-        git config --global user.email "github-actions[bot]@users.noreply.github.com"
-        
-        # Update the homebrew tap
-        # Use || true to make this step non-blocking in case of tap repository issues
-        ./homebrew/setup-tap.sh || {
-          echo "Warning: Failed to update Homebrew tap. This is non-critical."
-          echo "The formula has still been generated at homebrew/moribito.rb"
-          exit 0
-        }
-
-    - name: Create Release
-      uses: softprops/action-gh-release@v2
-      with:
-        tag_name: ${{ steps.tag.outputs.tag }}
-        name: Release ${{ steps.tag.outputs.tag }}
-        body: |
-          ## Changes
-
-          See [CHANGELOG.md](https://github.com/ericschmar/moribito/blob/main/CHANGELOG.md) for details.
-
-          ## Installation
-
-          ### Homebrew (Recommended)
-          ```bash
-          # The formula is automatically updated with each release
-          brew install ericschmar/tap/moribito
-          ```
-          
-          ### Manual Installation
-          
-          Download the appropriate binary for your platform from the assets below.
-
-          #### Linux/macOS
-          ```bash
-          # Linux
-          wget https://github.com/ericschmar/moribito/releases/download/${{ steps.tag.outputs.tag }}/moribito-linux-amd64
-          chmod +x moribito-linux-amd64
-          sudo mv moribito-linux-amd64 /usr/local/bin/moribito
-
-          # Linux ARM64
-          wget https://github.com/ericschmar/moribito/releases/download/${{ steps.tag.outputs.tag }}/moribito-linux-arm64
-          chmod +x moribito-linux-arm64
-          sudo mv moribito-linux-arm64 /usr/local/bin/moribito
-
-          # macOS Intel
-          wget https://github.com/ericschmar/moribito/releases/download/${{ steps.tag.outputs.tag }}/moribito-darwin-amd64
-          chmod +x moribito-darwin-amd64
-          sudo mv moribito-darwin-amd64 /usr/local/bin/moribito
-
-          # macOS Apple Silicon
-          wget https://github.com/ericschmar/moribito/releases/download/${{ steps.tag.outputs.tag }}/moribito-darwin-arm64
-          chmod +x moribito-darwin-arm64
-          sudo mv moribito-darwin-arm64 /usr/local/bin/moribito
-          ```
-
-          #### Windows
-          Download `moribito-windows-amd64.exe` and place it in your PATH.
-
-          ## Verification
-
-          Verify the download with the included checksums:
-          ```bash
-          sha256sum -c checksums.txt
-          ```
-        files: |
-          bin/moribito-linux-amd64
-          bin/moribito-linux-arm64
-          bin/moribito-darwin-amd64
-          bin/moribito-darwin-arm64
-          bin/moribito-windows-amd64.exe
-          checksums.txt
-        draft: false
-        prerelease: false
+    main:
+        runs-on: ubuntu-latest
+        environment:
+            name: Release
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v4
+              with:
+                  persist-credentials: false
+            - name: Semantic Release
+              uses: cycjimmy/semantic-release-action@v4
+              with:
+                  extra_plugins: |
+                      @semantic-release/git
+                      @semantic-release/exec
+                      @semantic-release/changelog
+              env:
+                  GH_TOKEN: ${{ secrets.GH_TOKEN }}
+            - name: Run GoReleaser
+              env:
+                  GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
+                  HOMEBREW_GITHUB_API_TOKEN: ${{ secrets.GH_TOKEN }}
+              run: |
+                  curl -sL https://git.io/goreleaser | bash

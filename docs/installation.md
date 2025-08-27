@@ -93,7 +93,7 @@ moribito --create-config
 
 This will create a configuration file in the appropriate OS-specific location:
 - **Linux**: `~/.config/moribito/config.yaml`
-- **macOS**: `~/.moribito/config.yaml` 
+- **macOS**: `~/.moribito/config.yaml`
 - **Windows**: `%APPDATA%\moribito\config.yaml`
 
 Edit the configuration file with your LDAP server details and run:

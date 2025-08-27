@@ -1,12 +1,14 @@
 {
-  "title": "Moribito",
-  "description": "Terminal-based LDAP server explorer documentation",
-  "github": "ericschmar/moribito",
-  "plugins": {
-    "docpress-core": {},
-    "docpress-base": {}
-  },
-  "markdown": {
-    "typographer": true
-  }
+	"title": "Moribito",
+	"description": "Terminal-based LDAP server explorer documentation",
+	"github": "ericschmar/moribito",
+	"plugins": {
+		"docpress-core": {},
+		"docpress-base": {}
+	},
+	"markdown": {
+		"typographer": true
+	},
+	"src": "docs",
+	"dest": "_docpress"
 }

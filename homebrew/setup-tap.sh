@@ -35,24 +35,32 @@ usage() {
 }
 
 check_prerequisites() {
-    # Check if gh CLI is available
-    if ! command -v gh >/dev/null 2>&1; then
-        echo "Error: GitHub CLI (gh) is not installed."
-        echo "Please install it from: https://cli.github.com/"
-        exit 1
-    fi
-
-    # Check if authenticated
-    if ! gh auth status >/dev/null 2>&1; then
-        echo "Error: GitHub CLI is not authenticated."
-        echo "Please run: gh auth login"
-        exit 1
-    fi
-
     # Check if formula exists
     if [ ! -f "homebrew/moribito.rb" ]; then
         echo "Error: Formula file not found at homebrew/moribito.rb"
         echo "Please run ./homebrew/generate-formula.sh first"
+        exit 1
+    fi
+
+    # If running in GitHub Actions, we don't need gh CLI
+    if [ -n "$GITHUB_TOKEN" ]; then
+        echo "Running in GitHub Actions environment with token authentication"
+        return 0
+    fi
+
+    # Check if gh CLI is available (for local usage)
+    if ! command -v gh >/dev/null 2>&1; then
+        echo "Error: GitHub CLI (gh) is not installed."
+        echo "Please install it from: https://cli.github.com/"
+        echo "Or set GITHUB_TOKEN environment variable for token-based authentication"
+        exit 1
+    fi
+
+    # Check if authenticated (for local usage)
+    if ! gh auth status >/dev/null 2>&1; then
+        echo "Error: GitHub CLI is not authenticated."
+        echo "Please run: gh auth login"
+        echo "Or set GITHUB_TOKEN environment variable for token-based authentication"
         exit 1
     fi
 }
@@ -65,21 +73,36 @@ create_or_update_tap() {
 
     # Try to clone existing repository
     echo "Checking if tap repository exists..."
-    if gh repo clone "$TAP_REPO" 2>/dev/null; then
-        echo "Found existing tap repository"
-        cd "$REPO_NAME"
+    
+    if [ -n "$GITHUB_TOKEN" ]; then
+        # Use token-based authentication (GitHub Actions)
+        echo "Using GitHub token authentication..."
+        if git clone "https://${GITHUB_TOKEN}@github.com/${TAP_REPO}.git" "$REPO_NAME" 2>/dev/null; then
+            echo "Found existing tap repository"
+            cd "$REPO_NAME"
+        else
+            echo "Tap repository not found. You'll need to create it manually."
+            echo "Please create repository: https://github.com/$TAP_REPO"
+            echo "Then re-run this script."
+            exit 1
+        fi
     else
-        echo "Tap repository not found. Creating new repository..."
-        
-        # Create the repository
-        gh repo create "$TAP_REPO" --public --description "Homebrew tap for $OWNER's packages" --confirm
-        
-        # Clone the newly created repository
-        gh repo clone "$TAP_REPO"
-        cd "$REPO_NAME"
-        
-        # Create initial README
-        cat > README.md << 'EOF'
+        # Use gh CLI (local development)
+        if gh repo clone "$TAP_REPO" 2>/dev/null; then
+            echo "Found existing tap repository"
+            cd "$REPO_NAME"
+        else
+            echo "Tap repository not found. Creating new repository..."
+            
+            # Create the repository
+            gh repo create "$TAP_REPO" --public --description "Homebrew tap for $OWNER's packages" --confirm
+            
+            # Clone the newly created repository
+            gh repo clone "$TAP_REPO"
+            cd "$REPO_NAME"
+            
+            # Create initial README
+            cat > README.md << 'EOF'
 # Homebrew Tap
 
 This is a Homebrew tap for various packages.
@@ -98,9 +121,10 @@ brew install moribito
 
 - **moribito** - LDAP CLI Explorer with TUI
 EOF
-        git add README.md
-        git commit -m "Initial commit: Add README"
-        git push origin main
+            git add README.md
+            git commit -m "Initial commit: Add README"
+            git push origin main
+        fi
     fi
 
     # Create Formula directory if it doesn't exist
