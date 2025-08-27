@@ -34,6 +34,12 @@ type (
 		url       string
 		err       error
 	}
+
+	// ConnectMsg is sent when the start view successfully connects to LDAP
+	ConnectMsg struct {
+		Client *ldap.Client
+		Config *config.Config
+	}
 )
 
 // checkForUpdatesCmd creates a command to check for updates
@@ -256,6 +262,24 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		} else {
 			m.updateStatus = ""
 		}
+		return m, nil
+
+	case ConnectMsg:
+		// Handle successful LDAP connection from start view
+		if m.client != nil {
+			m.client.Close() // Close existing connection if any
+		}
+
+		m.client = msg.Client
+
+		// Initialize tree and query views with new client
+		m.tree = NewTreeView(msg.Client)
+		m.queryView = NewQueryViewWithPageSize(msg.Client, msg.Config.Pagination.PageSize)
+
+		// Switch to tree view
+		m.currentView = ViewModeTree
+		m.statusMsg = "Successfully connected to LDAP server"
+
 		return m, nil
 
 	// Handle tree-specific messages regardless of current view
