@@ -1,9 +1,11 @@
 package tui
 
 import (
+	"context"
 	"fmt"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/atotto/clipboard"
 	tea "github.com/charmbracelet/bubbletea"
@@ -717,43 +719,62 @@ func (sv *StartView) handleConnect() (tea.Model, tea.Cmd) {
 	// Validate required fields
 	if activeConn.Host == "" {
 		return sv, func() tea.Msg {
-			return ErrorMsg{Err: fmt.Errorf("LDAP host is required")}
+			return StatusMsg{Message: "Error: LDAP host is required"}
 		}
 	}
 	if activeConn.BaseDN == "" {
 		return sv, func() tea.Msg {
-			return ErrorMsg{Err: fmt.Errorf("Base DN is required")}
+			return StatusMsg{Message: "Error: Base DN is required"}
 		}
 	}
 
-	// Create LDAP configuration
-	ldapConfig := ldap.Config{
-		Host:           activeConn.Host,
-		Port:           activeConn.Port,
-		BaseDN:         activeConn.BaseDN,
-		UseSSL:         activeConn.UseSSL,
-		UseTLS:         activeConn.UseTLS,
-		BindUser:       activeConn.BindUser,
-		BindPass:       activeConn.BindPass,
-		RetryEnabled:   sv.config.Retry.Enabled,
-		MaxRetries:     sv.config.Retry.MaxAttempts,
-		InitialDelayMs: sv.config.Retry.InitialDelayMs,
-		MaxDelayMs:     sv.config.Retry.MaxDelayMs,
-	}
-
-	// Create LDAP client
-	client, err := ldap.NewClient(ldapConfig)
-	if err != nil {
-		return sv, func() tea.Msg {
-			return ErrorMsg{Err: fmt.Errorf("failed to connect to LDAP server: %w", err)}
-		}
-	}
-
-	// Send success message with client and config
+	// Return command that will attempt connection in background
 	return sv, func() tea.Msg {
-		return ConnectMsg{
-			Client: client,
-			Config: sv.config,
+		// Create LDAP configuration
+		ldapConfig := ldap.Config{
+			Host:           activeConn.Host,
+			Port:           activeConn.Port,
+			BaseDN:         activeConn.BaseDN,
+			UseSSL:         activeConn.UseSSL,
+			UseTLS:         activeConn.UseTLS,
+			BindUser:       activeConn.BindUser,
+			BindPass:       activeConn.BindPass,
+			RetryEnabled:   sv.config.Retry.Enabled,
+			MaxRetries:     sv.config.Retry.MaxAttempts,
+			InitialDelayMs: sv.config.Retry.InitialDelayMs,
+			MaxDelayMs:     sv.config.Retry.MaxDelayMs,
+		}
+
+		// Create channel to receive result or timeout
+		resultChan := make(chan struct {
+			client *ldap.Client
+			err    error
+		}, 1)
+
+		// Start connection attempt in goroutine
+		go func() {
+			client, err := ldap.NewClient(ldapConfig)
+			resultChan <- struct {
+				client *ldap.Client
+				err    error
+			}{client, err}
+		}()
+
+		// Wait for result or timeout (5 seconds)
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+
+		select {
+		case result := <-resultChan:
+			if result.err != nil {
+				return StatusMsg{Message: fmt.Sprintf("Connection failed: %v", result.err)}
+			}
+			return ConnectMsg{
+				Client: result.client,
+				Config: sv.config,
+			}
+		case <-ctx.Done():
+			return StatusMsg{Message: "Connection timeout after 5 seconds"}
 		}
 	}
 }
