@@ -63,10 +63,19 @@ brew install https://raw.githubusercontent.com/ericschmar/moribito/main/homebrew
 ```
 
 ### Arch Linux (AUR)
-you can find an AUR package [here](https://aur.archlinux.org/packages/moribito}
+
+#### Last Release
 ```bash
 yay -S moribito
 ```
+
+#### Development Version
+```bash
+yay -S moribito-git
+```
+PKGBUILDS are available here:
+ - https://aur.archlinux.org/packages/moribito
+ - https://aur.archlinux.org/packages/moribito-git
 
 ### From GitHub Releases
 
