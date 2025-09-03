@@ -62,6 +62,12 @@ brew install ericschmar/tap/moribito
 brew install https://raw.githubusercontent.com/ericschmar/moribito/main/homebrew/moribito.rb
 ```
 
+### Arch Linux (AUR)
+you can find an AUR package [here](https://aur.archlinux.org/packages/moribito}
+```bash
+yay -S moribito
+```
+
 ### From GitHub Releases
 
 Download the latest pre-built binary from [GitHub Releases](https://github.com/ericschmar/moribito/releases):
