@@ -1,6 +1,7 @@
 package tui
 
 import (
+	"fmt"
 	"strings"
 	"testing"
 
@@ -376,6 +377,9 @@ func TestRecordView_ClickableZones(t *testing.T) {
 }
 
 func TestRecordView_ViewportScrolling(t *testing.T) {
+	// Initialize bubblezone for test environment
+	zone.NewGlobal()
+
 	// Create an entry with many attributes to test scrolling
 	entry := &ldap.Entry{
 		DN: "cn=test user,ou=users,dc=example,dc=com",
@@ -441,5 +445,77 @@ func TestRecordView_ViewportScrolling(t *testing.T) {
 	
 	if rv.viewport < 0 {
 		t.Errorf("Viewport should not be negative, got %d", rv.viewport)
+	}
+
+	// Test that renderTable shows pagination info when needed
+	view := rv.renderTable()
+	if !strings.Contains(view, "Showing") || !strings.Contains(view, "attributes") {
+		t.Error("Expected pagination info in view when attributes exceed available height")
+	}
+
+	// Test that visible range is correct
+	visibleAttributeCount := strings.Count(view, "attr")
+	t.Logf("Available height: %d, Visible attribute count: %d", availableHeight, visibleAttributeCount)
+	t.Logf("View content:\n%s", view)
+	
+	// The header contains "Attribute", so we need to subtract 1 for the header
+	actualVisibleAttributes := visibleAttributeCount - 1
+	if actualVisibleAttributes > availableHeight {
+		t.Errorf("Too many attributes visible: got %d, expected max %d", actualVisibleAttributes, availableHeight)
+	}
+}
+
+func TestRecordView_ViewportScrollingDemo(t *testing.T) {
+	// Initialize bubblezone for test environment
+	zone.NewGlobal()
+
+	// Create an entry with enough attributes to force scrolling
+	entry := &ldap.Entry{
+		DN: "cn=user with many attributes,ou=people,dc=example,dc=com",
+		Attributes: make(map[string][]string),
+	}
+
+	// Add 30 attributes to ensure scrolling is needed
+	for i := 1; i <= 30; i++ {
+		attrName := fmt.Sprintf("attr%02d", i)
+		entry.Attributes[attrName] = []string{fmt.Sprintf("value%02d", i)}
+	}
+
+	rv := NewRecordView()
+	rv.SetSize(80, 10) // Small height to force scrolling
+	rv.SetEntry(entry)
+
+	totalAttribs := len(entry.Attributes)
+	t.Logf("Total attributes: %d", totalAttribs)
+	
+	// Test initial view - should show first few attributes
+	rv.table.SetCursor(0)
+	rv.adjustViewport()
+	if rv.viewport != 0 {
+		t.Error("Initial viewport should be 0")
+	}
+
+	// Test scrolling to an attribute definitely past visible area
+	rv.table.SetCursor(20) // Should definitely need scrolling
+	rv.adjustViewport()
+	if rv.viewport == 0 {
+		t.Errorf("Viewport should have adjusted when cursor moved to %d, but stayed at %d", 20, rv.viewport)
+	}
+
+	// Test that viewport is working by checking render output
+	rv.table.SetCursor(totalAttribs - 1)
+	rv.adjustViewport()
+	renderOutput := rv.renderTable() // Test renderTable directly
+	
+	t.Logf("Direct renderTable output (last position):\n%s", renderOutput)
+	
+	// Should show pagination info in the render output
+	if !strings.Contains(renderOutput, "Showing") {
+		t.Error("Should show pagination info in renderTable output when scrolled")
+	}
+	
+	// Viewport should be positioned to show the last attribute
+	if rv.viewport < 0 {
+		t.Error("Viewport should not be negative")
 	}
 }
