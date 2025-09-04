@@ -205,7 +205,17 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case tea.KeyMsg:
 		switch msg.String() {
-		case "ctrl+c", "q":
+		case "ctrl+c":
+			m.quitting = true
+			return m, tea.Quit
+		case "q":
+			// Skip global quit key if we're in an input mode
+			if m.currentView == ViewModeQuery && m.queryView != nil && m.queryView.IsInputMode() {
+				break // Let the query view handle the input
+			}
+			if m.currentView == ViewModeStart && m.startView != nil && m.startView.IsEditing() {
+				break // Let the start view handle the input
+			}
 			m.quitting = true
 			return m, tea.Quit
 		case "tab":

@@ -43,6 +43,114 @@ func TestModel_NavigationKeysWithQueryInputMode(t *testing.T) {
 	}
 }
 
+func TestModel_QuitKeyDuringStartViewEditing(t *testing.T) {
+	// Create a model
+	var client *ldap.Client
+	cfg := config.Default()
+	model := NewModel(client, cfg)
+
+	// Set to start view (configuration mode)
+	model.currentView = ViewModeStart
+
+	// Start editing a field
+	model.startView.editing = true
+	model.startView.editingField = FieldHost
+	model.startView.inputValue = "localhost"
+
+	// Verify we're in editing mode
+	if !model.startView.IsEditing() {
+		t.Fatal("StartView should be in editing mode for this test")
+	}
+
+	// Test that 'q' key doesn't quit when in editing mode
+	originalQuitting := model.quitting
+	qKeyMsg := tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'q'}}
+
+	// Update the model
+	_, cmd := model.Update(qKeyMsg)
+
+	// Application should NOT quit when in editing mode
+	if model.quitting != originalQuitting {
+		t.Error("Application should not quit when pressing 'q' in editing mode")
+	}
+
+	// Command should not be tea.Quit
+	if cmd != nil {
+		// We need to check if the command would quit the app
+		// Since we can't easily inspect the command, we check if quitting flag changed
+		if model.quitting {
+			t.Error("Quit command should not be returned when in editing mode")
+		}
+	}
+}
+
+func TestModel_QuitKeyWhenNotEditing(t *testing.T) {
+	// Create a model
+	var client *ldap.Client
+	cfg := config.Default()
+	model := NewModel(client, cfg)
+
+	// Set to start view but NOT editing
+	model.currentView = ViewModeStart
+	model.startView.editing = false
+
+	// Verify we're NOT in editing mode
+	if model.startView.IsEditing() {
+		t.Fatal("StartView should NOT be in editing mode for this test")
+	}
+
+	// Test that 'q' key DOES quit when not in editing mode
+	qKeyMsg := tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'q'}}
+
+	// Update the model
+	_, cmd := model.Update(qKeyMsg)
+
+	// Application SHOULD quit when not in editing mode
+	if !model.quitting {
+		t.Error("Application should quit when pressing 'q' when not in editing mode")
+	}
+
+	// Command should be tea.Quit (we can't easily check this, but quitting flag should be true)
+	if cmd == nil {
+		t.Error("Quit command should be returned when not in editing mode")
+	}
+}
+
+func TestModel_QuitKeyDuringQueryViewEditing(t *testing.T) {
+	// Create a model
+	var client *ldap.Client
+	cfg := config.Default()
+	model := NewModel(client, cfg)
+
+	// Create query view manually since client is nil
+	model.queryView = NewQueryView(client)
+
+	// Set to query view
+	model.currentView = ViewModeQuery
+
+	// Verify query view is in input mode (should be by default)
+	if !model.queryView.IsInputMode() {
+		t.Fatal("QueryView should be in input mode for this test")
+	}
+
+	// Test that 'q' key doesn't quit when in query input mode
+	originalQuitting := model.quitting
+	qKeyMsg := tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'q'}}
+
+	// Update the model
+	_, cmd := model.Update(qKeyMsg)
+
+	// Application should NOT quit when in query input mode
+	if model.quitting != originalQuitting {
+		t.Error("Application should not quit when pressing 'q' in query input mode")
+	}
+
+	// Command should not be tea.Quit
+	if cmd != nil && model.quitting {
+		t.Error("Quit command should not be returned when in query input mode")
+	}
+}
+
 func TestModel_NavigationKeysWithQueryBrowseMode(t *testing.T) {
 	// Create a model with a mock client
 	var client *ldap.Client
