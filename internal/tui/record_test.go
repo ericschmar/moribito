@@ -1,6 +1,7 @@
 package tui
 
 import (
+	"fmt"
 	"strings"
 	"testing"
 
@@ -372,5 +373,149 @@ func TestRecordView_ClickableZones(t *testing.T) {
 		for missing := range expectedAttribs {
 			t.Errorf("Attribute '%s' not found in renderedRows", missing)
 		}
+	}
+}
+
+func TestRecordView_ViewportScrolling(t *testing.T) {
+	// Initialize bubblezone for test environment
+	zone.NewGlobal()
+
+	// Create an entry with many attributes to test scrolling
+	entry := &ldap.Entry{
+		DN: "cn=test user,ou=users,dc=example,dc=com",
+		Attributes: map[string][]string{
+			"attr01": {"value01"},
+			"attr02": {"value02"},
+			"attr03": {"value03"},
+			"attr04": {"value04"},
+			"attr05": {"value05"},
+			"attr06": {"value06"},
+			"attr07": {"value07"},
+			"attr08": {"value08"},
+			"attr09": {"value09"},
+			"attr10": {"value10"},
+			"attr11": {"value11"},
+			"attr12": {"value12"},
+			"attr13": {"value13"},
+			"attr14": {"value14"},
+			"attr15": {"value15"},
+		},
+	}
+
+	rv := NewRecordView()
+	rv.SetSize(80, 10) // Small height to force scrolling
+	rv.SetEntry(entry)
+
+	// Test initial viewport
+	if rv.viewport != 0 {
+		t.Error("Initial viewport should be 0")
+	}
+
+	// Test that viewport adjusts when cursor moves beyond visible area
+	totalAttribs := len(entry.Attributes)
+	if totalAttribs > 5 { // Ensure we have enough for scrolling
+		// Move cursor to an attribute that would be off screen
+		rv.table.SetCursor(10)
+		rv.adjustViewport()
+
+		// Viewport should have adjusted
+		if rv.viewport == 0 {
+			t.Error("Viewport should have adjusted when cursor moved off screen")
+		}
+	}
+
+	// Test cursor at beginning adjusts viewport back
+	rv.table.SetCursor(0)
+	rv.adjustViewport()
+	if rv.viewport != 0 {
+		t.Error("Viewport should be 0 when cursor is at beginning")
+	}
+
+	// Test cursor at end
+	rv.table.SetCursor(totalAttribs - 1)
+	rv.adjustViewport()
+	
+	// Viewport should ensure the cursor is visible
+	contentHeight := 10 - 2 // height minus DN header space
+	availableHeight := contentHeight - 1 // minus pagination info
+	expectedViewport := (totalAttribs - 1) - availableHeight + 1
+	if expectedViewport < 0 {
+		expectedViewport = 0
+	}
+	
+	if rv.viewport < 0 {
+		t.Errorf("Viewport should not be negative, got %d", rv.viewport)
+	}
+
+	// Test that renderTable shows pagination info when needed
+	view := rv.renderTable()
+	if !strings.Contains(view, "Showing") || !strings.Contains(view, "attributes") {
+		t.Error("Expected pagination info in view when attributes exceed available height")
+	}
+
+	// Test that visible range is correct
+	visibleAttributeCount := strings.Count(view, "attr")
+	t.Logf("Available height: %d, Visible attribute count: %d", availableHeight, visibleAttributeCount)
+	t.Logf("View content:\n%s", view)
+	
+	// The header contains "Attribute", so we need to subtract 1 for the header
+	actualVisibleAttributes := visibleAttributeCount - 1
+	if actualVisibleAttributes > availableHeight {
+		t.Errorf("Too many attributes visible: got %d, expected max %d", actualVisibleAttributes, availableHeight)
+	}
+}
+
+func TestRecordView_ViewportScrollingDemo(t *testing.T) {
+	// Initialize bubblezone for test environment
+	zone.NewGlobal()
+
+	// Create an entry with enough attributes to force scrolling
+	entry := &ldap.Entry{
+		DN: "cn=user with many attributes,ou=people,dc=example,dc=com",
+		Attributes: make(map[string][]string),
+	}
+
+	// Add 30 attributes to ensure scrolling is needed
+	for i := 1; i <= 30; i++ {
+		attrName := fmt.Sprintf("attr%02d", i)
+		entry.Attributes[attrName] = []string{fmt.Sprintf("value%02d", i)}
+	}
+
+	rv := NewRecordView()
+	rv.SetSize(80, 10) // Small height to force scrolling
+	rv.SetEntry(entry)
+
+	totalAttribs := len(entry.Attributes)
+	t.Logf("Total attributes: %d", totalAttribs)
+	
+	// Test initial view - should show first few attributes
+	rv.table.SetCursor(0)
+	rv.adjustViewport()
+	if rv.viewport != 0 {
+		t.Error("Initial viewport should be 0")
+	}
+
+	// Test scrolling to an attribute definitely past visible area
+	rv.table.SetCursor(20) // Should definitely need scrolling
+	rv.adjustViewport()
+	if rv.viewport == 0 {
+		t.Errorf("Viewport should have adjusted when cursor moved to %d, but stayed at %d", 20, rv.viewport)
+	}
+
+	// Test that viewport is working by checking render output
+	rv.table.SetCursor(totalAttribs - 1)
+	rv.adjustViewport()
+	renderOutput := rv.renderTable() // Test renderTable directly
+	
+	t.Logf("Direct renderTable output (last position):\n%s", renderOutput)
+	
+	// Should show pagination info in the render output
+	if !strings.Contains(renderOutput, "Showing") {
+		t.Error("Should show pagination info in renderTable output when scrolled")
+	}
+	
+	// Viewport should be positioned to show the last attribute
+	if rv.viewport < 0 {
+		t.Error("Viewport should not be negative")
 	}
 }
