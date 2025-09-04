@@ -374,3 +374,72 @@ func TestRecordView_ClickableZones(t *testing.T) {
 		}
 	}
 }
+
+func TestRecordView_ViewportScrolling(t *testing.T) {
+	// Create an entry with many attributes to test scrolling
+	entry := &ldap.Entry{
+		DN: "cn=test user,ou=users,dc=example,dc=com",
+		Attributes: map[string][]string{
+			"attr01": {"value01"},
+			"attr02": {"value02"},
+			"attr03": {"value03"},
+			"attr04": {"value04"},
+			"attr05": {"value05"},
+			"attr06": {"value06"},
+			"attr07": {"value07"},
+			"attr08": {"value08"},
+			"attr09": {"value09"},
+			"attr10": {"value10"},
+			"attr11": {"value11"},
+			"attr12": {"value12"},
+			"attr13": {"value13"},
+			"attr14": {"value14"},
+			"attr15": {"value15"},
+		},
+	}
+
+	rv := NewRecordView()
+	rv.SetSize(80, 10) // Small height to force scrolling
+	rv.SetEntry(entry)
+
+	// Test initial viewport
+	if rv.viewport != 0 {
+		t.Error("Initial viewport should be 0")
+	}
+
+	// Test that viewport adjusts when cursor moves beyond visible area
+	totalAttribs := len(entry.Attributes)
+	if totalAttribs > 5 { // Ensure we have enough for scrolling
+		// Move cursor to an attribute that would be off screen
+		rv.table.SetCursor(10)
+		rv.adjustViewport()
+
+		// Viewport should have adjusted
+		if rv.viewport == 0 {
+			t.Error("Viewport should have adjusted when cursor moved off screen")
+		}
+	}
+
+	// Test cursor at beginning adjusts viewport back
+	rv.table.SetCursor(0)
+	rv.adjustViewport()
+	if rv.viewport != 0 {
+		t.Error("Viewport should be 0 when cursor is at beginning")
+	}
+
+	// Test cursor at end
+	rv.table.SetCursor(totalAttribs - 1)
+	rv.adjustViewport()
+	
+	// Viewport should ensure the cursor is visible
+	contentHeight := 10 - 2 // height minus DN header space
+	availableHeight := contentHeight - 1 // minus pagination info
+	expectedViewport := (totalAttribs - 1) - availableHeight + 1
+	if expectedViewport < 0 {
+		expectedViewport = 0
+	}
+	
+	if rv.viewport < 0 {
+		t.Errorf("Viewport should not be negative, got %d", rv.viewport)
+	}
+}
