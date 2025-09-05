@@ -155,7 +155,6 @@ EOF
 install_via_homebrew() {
     if command -v brew >/dev/null 2>&1; then
         print_info "Homebrew detected. You can also install via:"
-        print_info "  brew tap ericschmar/moribito"
         print_info "  brew install moribito"
     else
         print_info "Consider installing Homebrew for easier package management:"
