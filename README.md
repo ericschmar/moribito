@@ -50,16 +50,8 @@ _Execute custom LDAP queries with real-time results and formatting_
 
 ### Homebrew (Recommended for macOS/Linux)
 
-#### From Custom Tap
-
 ```bash
-brew install ericschmar/tap/moribito
-```
-
-#### From Formula URL (if tap not available)
-
-```bash
-brew install https://raw.githubusercontent.com/ericschmar/moribito/main/homebrew/moribito.rb
+brew install moribito
 ```
 
 ### Arch Linux (AUR)
