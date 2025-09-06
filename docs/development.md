@@ -4,7 +4,7 @@ This guide covers setting up the development environment for Moribito.
 
 ## Prerequisites
 
-- Go 1.24.6 or later
+- Go 1.25.1 or later
 - Git
 - Make (for build automation)
 
