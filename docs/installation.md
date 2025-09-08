@@ -2,18 +2,8 @@
 
 ## Homebrew (Recommended for macOS/Linux)
 
-### Mac
-
 ```bash
-# Install from custom tap
-brew install ericschmar/tap/moribito
-```
-
-### Linux
-
-```bash
-# Install from custom tap
-brew install ericschmar/tap/moribito
+brew install moribito
 ```
 
 ## Windows
