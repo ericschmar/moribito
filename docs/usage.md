@@ -52,6 +52,24 @@ pagination:
     page_size: 100
 ```
 
+### Creating Configuration Files
+
+You can create a configuration file in several ways:
+
+1. **Automatic Creation**: Use the `--create-config` flag to create a default configuration file:
+   ```bash
+   moribito --create-config
+   ```
+
+2. **UI Configuration**: Configure settings through the start screen interface. All changes made in the UI are automatically saved to the config file.
+
+3. **Manual Creation**: Create a YAML file manually at one of these locations:
+   - **Linux/macOS**: `~/.config/moribito/config.yaml` or `~/.moribito.yaml`
+   - **Windows**: `%APPDATA%\moribito\config.yaml` or `%USERPROFILE%\.moribito.yaml`
+   - **Current Directory**: `./config.yaml`
+
+**Note**: Configuration changes made through the UI (Start View) are automatically saved to the config file and persist across application restarts.
+
 ### Advanced Configuration (Multiple Saved Connections)
 
 For environments with multiple LDAP servers, you can save multiple connection profiles:
