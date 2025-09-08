@@ -292,7 +292,7 @@ func (qv *QueryView) handleInputMode(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		}
 		return qv, nil
 
-	case "ctrl+v":
+	case "ctrl+v", "cmd+v", "shift+insert", "insert":
 		// Handle paste
 		if clipboardText, err := clipboard.ReadAll(); err == nil {
 			qv.textarea.SetValue(qv.textarea.Value() + clipboardText)
@@ -424,7 +424,7 @@ func (qv *QueryView) View() string {
 	if qv.inputMode {
 		instructions = "Press [Enter] to execute • [Esc] to clear • [Tab] to browse results"
 		if len(qv.results) > 0 {
-			instructions += " • [Ctrl+V] to paste"
+			instructions += " • [Ctrl+V/Cmd+V] to paste"
 		}
 	} else {
 		instructions = "Press [↑↓] to navigate • [Enter/Space] to view record • [Esc] to edit query"

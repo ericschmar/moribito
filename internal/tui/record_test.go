@@ -434,15 +434,15 @@ func TestRecordView_ViewportScrolling(t *testing.T) {
 	// Test cursor at end
 	rv.table.SetCursor(totalAttribs - 1)
 	rv.adjustViewport()
-	
+
 	// Viewport should ensure the cursor is visible
-	contentHeight := 10 - 2 // height minus DN header space
+	contentHeight := 10 - 2              // height minus DN header space
 	availableHeight := contentHeight - 1 // minus pagination info
 	expectedViewport := (totalAttribs - 1) - availableHeight + 1
 	if expectedViewport < 0 {
 		expectedViewport = 0
 	}
-	
+
 	if rv.viewport < 0 {
 		t.Errorf("Viewport should not be negative, got %d", rv.viewport)
 	}
@@ -457,7 +457,7 @@ func TestRecordView_ViewportScrolling(t *testing.T) {
 	visibleAttributeCount := strings.Count(view, "attr")
 	t.Logf("Available height: %d, Visible attribute count: %d", availableHeight, visibleAttributeCount)
 	t.Logf("View content:\n%s", view)
-	
+
 	// The header contains "Attribute", so we need to subtract 1 for the header
 	actualVisibleAttributes := visibleAttributeCount - 1
 	if actualVisibleAttributes > availableHeight {
@@ -471,7 +471,7 @@ func TestRecordView_ViewportScrollingDemo(t *testing.T) {
 
 	// Create an entry with enough attributes to force scrolling
 	entry := &ldap.Entry{
-		DN: "cn=user with many attributes,ou=people,dc=example,dc=com",
+		DN:         "cn=user with many attributes,ou=people,dc=example,dc=com",
 		Attributes: make(map[string][]string),
 	}
 
@@ -487,7 +487,7 @@ func TestRecordView_ViewportScrollingDemo(t *testing.T) {
 
 	totalAttribs := len(entry.Attributes)
 	t.Logf("Total attributes: %d", totalAttribs)
-	
+
 	// Test initial view - should show first few attributes
 	rv.table.SetCursor(0)
 	rv.adjustViewport()
@@ -506,14 +506,14 @@ func TestRecordView_ViewportScrollingDemo(t *testing.T) {
 	rv.table.SetCursor(totalAttribs - 1)
 	rv.adjustViewport()
 	renderOutput := rv.renderTable() // Test renderTable directly
-	
+
 	t.Logf("Direct renderTable output (last position):\n%s", renderOutput)
-	
+
 	// Should show pagination info in the render output
 	if !strings.Contains(renderOutput, "Showing") {
 		t.Error("Should show pagination info in renderTable output when scrolled")
 	}
-	
+
 	// Viewport should be positioned to show the last attribute
 	if rv.viewport < 0 {
 		t.Error("Viewport should not be negative")
