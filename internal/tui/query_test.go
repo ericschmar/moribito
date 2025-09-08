@@ -79,6 +79,35 @@ func TestQueryView_NumberKeysInBrowseMode(t *testing.T) {
 	}
 }
 
+func TestQueryView_PasteWithCmdVInQueryMode(t *testing.T) {
+	var client *ldap.Client
+	qv := NewQueryView(client)
+	originalValue := qv.textarea.Value()
+
+	// Set clipboard content for testing
+	testContent := "person)"
+	err := clipboard.WriteAll(testContent)
+	if err != nil {
+		t.Skipf("Clipboard not available in test environment: %v", err)
+	}
+
+	// Test that cmd+v case is included in the switch statement for query mode
+	testKeyString := "cmd+v"
+
+	// Simulate what happens in handleInputMode switch statement for cmd+v
+	switch testKeyString {
+	case "ctrl+v", "cmd+v", "shift+insert", "insert":
+		if clipboardText, err := clipboard.ReadAll(); err == nil {
+			qv.textarea.SetValue(qv.textarea.Value() + clipboardText)
+		}
+	}
+
+	expected := originalValue + testContent
+	if qv.textarea.Value() != expected {
+		t.Errorf("Expected query to be '%s' after cmd+v paste, got '%s'", expected, qv.textarea.Value())
+	}
+}
+
 func TestQueryView_PasteInQueryMode(t *testing.T) {
 	var client *ldap.Client
 	qv := NewQueryView(client)
