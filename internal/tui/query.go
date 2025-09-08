@@ -292,7 +292,7 @@ func (qv *QueryView) handleInputMode(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		}
 		return qv, nil
 
-	case "ctrl+v":
+	case "ctrl+v", "shift+insert", "insert":
 		// Handle paste
 		if clipboardText, err := clipboard.ReadAll(); err == nil {
 			qv.textarea.SetValue(qv.textarea.Value() + clipboardText)

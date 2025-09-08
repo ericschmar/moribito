@@ -569,7 +569,7 @@ func (sv *StartView) handleEditMode(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			sv.inputValue = sv.inputValue[:len(sv.inputValue)-1]
 		}
 
-	case "ctrl+v":
+	case "ctrl+v", "shift+insert", "insert":
 		if clipboardText, err := clipboard.ReadAll(); err == nil {
 			sv.inputValue += clipboardText
 		}
@@ -706,6 +706,11 @@ func (sv *StartView) handleNewConnectionDialog(msg tea.KeyMsg) (tea.Model, tea.C
 	case "backspace":
 		if len(sv.newConnectionName) > 0 {
 			sv.newConnectionName = sv.newConnectionName[:len(sv.newConnectionName)-1]
+		}
+
+	case "ctrl+v", "shift+insert", "insert":
+		if clipboardText, err := clipboard.ReadAll(); err == nil {
+			sv.newConnectionName += clipboardText
 		}
 
 	default:
