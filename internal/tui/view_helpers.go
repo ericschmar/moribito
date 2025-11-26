@@ -27,7 +27,17 @@ func (vc *ViewContainer) RenderWithPadding(content string) string {
 	// For properly styled content (like our refactored StartView),
 	// we should avoid aggressive processing and let LipGloss handle the layout
 
-	// However, we MUST enforce height constraints to prevent content from pushing UI elements off screen
+	// Only apply container styling for content that doesn't have proper styling already
+	if vc.shouldApplyContainerStyling(content) {
+		style := lipgloss.NewStyle().
+			MaxWidth(vc.width).
+			MaxHeight(vc.height).
+			Padding(0, vc.padding)
+		content = style.Render(content)
+	}
+
+	// CRITICAL: Enforce height constraints AFTER styling to prevent content from pushing UI elements off screen
+	// This accounts for borders, padding, and other styling that lipgloss adds
 	lines := strings.Split(content, "\n")
 
 	// Enforce maximum height to prevent UI overflow
@@ -36,28 +46,35 @@ func (vc *ViewContainer) RenderWithPadding(content string) string {
 		// Add truncation indicator if content was cut off
 		if vc.height > 0 {
 			lastLine := lines[vc.height-1]
-			if len(lastLine) > 3 {
-				lines[vc.height-1] = lastLine[:len(lastLine)-3] + "..."
+			// Find the actual content in the line (skip ANSI codes and box drawing)
+			visibleLen := lipgloss.Width(lastLine)
+			if visibleLen > 3 {
+				// Truncate visible content and add ellipsis
+				lines[vc.height-1] = truncateWithEllipsis(lastLine, visibleLen-3)
 			} else {
 				lines[vc.height-1] = "..."
 			}
 		}
 	}
 
-	// Rejoin the content
-	content = strings.Join(lines, "\n")
+	// Return the height-enforced content
+	return strings.Join(lines, "\n")
+}
 
-	// Only apply container styling for content that doesn't have proper styling already
-	if vc.shouldApplyContainerStyling(content) {
-		style := lipgloss.NewStyle().
-			MaxWidth(vc.width).
-			MaxHeight(vc.height).
-			Padding(0, vc.padding)
-		return style.Render(content)
+// truncateWithEllipsis truncates a line to the specified visible width and adds ellipsis
+func truncateWithEllipsis(line string, targetWidth int) string {
+	// Simple truncation - for styled text, we keep the beginning which usually has the ANSI codes
+	currentWidth := lipgloss.Width(line)
+	if currentWidth <= targetWidth+3 {
+		return line + "..."
 	}
 
-	// For content that already has proper styling (borders, etc.), return with height enforcement
-	return content
+	// Truncate by removing characters from the end until we fit
+	runes := []rune(line)
+	for len(runes) > 0 && lipgloss.Width(string(runes)) > targetWidth {
+		runes = runes[:len(runes)-1]
+	}
+	return string(runes) + "..."
 }
 
 // shouldApplyContainerStyling determines if the container should apply additional styling
