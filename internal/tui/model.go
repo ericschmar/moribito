@@ -167,20 +167,25 @@ func (m *Model) Init() tea.Cmd {
 }
 
 func (m *Model) SetSize(width, height int) {
-	// Set minimum height to prevent layout issues
-	minHeight := 35 // Adjust this value as needed
-	if height < minHeight {
-		height = minHeight
-	}
-
 	m.width = width
 	m.height = height
 
-	// Update all view sizes with the potentially adjusted height
-	m.startView.SetSize(width, height)
-	m.tree.SetSize(width, height)
-	m.recordView.SetSize(width, height)
-	m.queryView.SetSize(width, height)
+	// Calculate content height (reserve space for tab bar, status bar, and help bar)
+	// Tab bar: 3 lines, Status bar: 1 line, Help bar: 1 line = 5 lines total
+	contentHeight := height - 5
+	if contentHeight < 1 {
+		contentHeight = 1
+	}
+
+	// Update all view sizes with content height (not full height)
+	m.startView.SetSize(width, contentHeight)
+	if m.tree != nil {
+		m.tree.SetSize(width, contentHeight)
+	}
+	m.recordView.SetSize(width, contentHeight)
+	if m.queryView != nil {
+		m.queryView.SetSize(width, contentHeight)
+	}
 }
 
 // Update handles messages
@@ -340,6 +345,26 @@ func (m *Model) View() string {
 		return "Goodbye!\n"
 	}
 
+	// Check for minimum terminal size
+	minWidth := 60
+	minHeight := 15
+	if m.width < minWidth || m.height < minHeight {
+		warningStyle := lipgloss.NewStyle().
+			Foreground(lipgloss.Color("11")).
+			Bold(true).
+			Align(lipgloss.Center).
+			Width(m.width)
+
+		message := fmt.Sprintf(
+			"Terminal too small!\n\n"+
+				"Current: %dx%d\n"+
+				"Minimum: %dx%d\n\n"+
+				"Please resize your terminal.",
+			m.width, m.height, minWidth, minHeight)
+
+		return zone.Scan(warningStyle.Render(message))
+	}
+
 	// Reset bubblezone for this frame
 	zone.Clear("")
 
@@ -373,8 +398,29 @@ func (m *Model) View() string {
 	// Help bar
 	help := m.renderHelpBar()
 
-	// Build the layout without manipulating content height
-	// The tab bar and content should display normally, with help bar positioned at bottom
+	// CRITICAL: Strictly enforce height limits to prevent UI chrome from being pushed off screen
+	// Reserve: Tab bar (3 lines) + Status bar (1 line) + Help bar (1 line) = 5 lines
+	// Content gets the remainder
+	contentMaxLines := m.height - 5
+	if contentMaxLines < 1 {
+		contentMaxLines = 1
+	}
+
+	// Enforce content height limit
+	contentLines := strings.Split(content, "\n")
+	if len(contentLines) > contentMaxLines {
+		contentLines = contentLines[:contentMaxLines]
+		// Add truncation indicator
+		if contentMaxLines > 0 {
+			contentLines[contentMaxLines-1] = lipgloss.NewStyle().
+				Foreground(lipgloss.Color("8")).
+				Render("... (content truncated, resize terminal)")
+		}
+	}
+	content = strings.Join(contentLines, "\n")
+
+	// Build the layout with strictly controlled heights
+	// Tab bar (3 lines) + content (contentMaxLines) + status (1 line) + help (1 line)
 	mainContent := tabBar + "\n" + content + "\n" + status
 
 	// Calculate how much vertical space we have and position help bar at the bottom
@@ -385,10 +431,14 @@ func (m *Model) View() string {
 	// If we have room, add padding to push help bar to bottom
 	if totalContentHeight < m.height-1 { // -1 for help bar itself
 		paddingNeeded := m.height - totalContentHeight - 1
-		padding := strings.Repeat("\n", paddingNeeded)
-		finalView = mainContent + padding + help
+		if paddingNeeded > 0 {
+			padding := strings.Repeat("\n", paddingNeeded)
+			finalView = mainContent + padding + help
+		} else {
+			finalView = mainContent + "\n" + help
+		}
 	} else {
-		// If content is too tall, just append help bar normally
+		// Should not happen with our strict enforcement, but handle gracefully
 		finalView = mainContent + "\n" + help
 	}
 
