@@ -58,7 +58,7 @@ func main() {
 
 	if *configPath != "" || (*host == "" && *baseDN == "") {
 		// Try to load from config file
-		cfg, err = config.Load(*configPath)
+		cfg, actualConfigPath, err = config.Load(*configPath)
 		if err != nil {
 			if *configPath != "" {
 				log.Fatalf("Failed to load config file: %v", err)
@@ -66,14 +66,6 @@ func main() {
 			// No config file specified and none found, use defaults
 			cfg = config.Default()
 			actualConfigPath = config.GetDefaultConfigPath()
-		} else {
-			// Successfully loaded config, determine actual path used
-			if *configPath != "" {
-				actualConfigPath = *configPath
-			} else {
-				// Config was found by searching, need to determine which path was used
-				actualConfigPath = config.GetDefaultConfigPath()
-			}
 		}
 	} else {
 		// Use command line arguments

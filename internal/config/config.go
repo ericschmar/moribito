@@ -57,8 +57,8 @@ type RetryConfig struct {
 	Enabled        bool `yaml:"enabled"`          // Whether retries are enabled
 }
 
-// Load loads configuration from a YAML file
-func Load(configPath string) (*Config, error) {
+// Load loads configuration from a YAML file and returns the config and actual path used
+func Load(configPath string) (*Config, string, error) {
 	// If no config path provided, look for default locations
 	if configPath == "" {
 		configPath = findConfigFile()
@@ -66,12 +66,12 @@ func Load(configPath string) (*Config, error) {
 
 	data, err := os.ReadFile(configPath)
 	if err != nil {
-		return nil, fmt.Errorf("failed to read config file %s: %w", configPath, err)
+		return nil, "", fmt.Errorf("failed to read config file %s: %w", configPath, err)
 	}
 
 	var config Config
 	if err := yaml.Unmarshal(data, &config); err != nil {
-		return nil, fmt.Errorf("failed to parse config file %s: %w", configPath, err)
+		return nil, "", fmt.Errorf("failed to parse config file %s: %w", configPath, err)
 	}
 
 	// Set defaults
@@ -106,7 +106,7 @@ func Load(configPath string) (*Config, error) {
 		config.Retry.MaxDelayMs = 5000
 	}
 
-	return &config, nil
+	return &config, configPath, nil
 }
 
 // GetActiveConnection returns the currently active LDAP connection settings

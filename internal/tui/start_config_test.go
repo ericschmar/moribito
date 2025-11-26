@@ -39,7 +39,7 @@ func TestStartView_SaveConfigToDisk(t *testing.T) {
 	sv.saveValue()
 
 	// Verify the config was saved to disk by reloading
-	reloadedCfg, err := config.Load(configPath)
+	reloadedCfg, _, err := config.Load(configPath)
 	if err != nil {
 		t.Fatalf("Failed to reload config: %v", err)
 	}
@@ -110,7 +110,7 @@ func TestStartView_ConnectionManagementSaving(t *testing.T) {
 	sv.saveConfigToDisk()
 
 	// Verify the config was saved to disk by reloading
-	reloadedCfg, err := config.Load(configPath)
+	reloadedCfg, _, err := config.Load(configPath)
 	if err != nil {
 		t.Fatalf("Failed to reload config: %v", err)
 	}
