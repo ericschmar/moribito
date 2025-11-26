@@ -54,20 +54,23 @@ func main() {
 	// Load configuration
 	var cfg *config.Config
 	var err error
+	var actualConfigPath string
 
 	if *configPath != "" || (*host == "" && *baseDN == "") {
 		// Try to load from config file
-		cfg, err = config.Load(*configPath)
+		cfg, actualConfigPath, err = config.Load(*configPath)
 		if err != nil {
 			if *configPath != "" {
 				log.Fatalf("Failed to load config file: %v", err)
 			}
 			// No config file specified and none found, use defaults
 			cfg = config.Default()
+			actualConfigPath = config.GetDefaultConfigPath()
 		}
 	} else {
 		// Use command line arguments
 		cfg = config.Default()
+		actualConfigPath = config.GetDefaultConfigPath()
 	}
 
 	// Override config with command line arguments if provided
@@ -112,7 +115,7 @@ func main() {
 	fmt.Println("Starting in configuration mode - use the start screen to connect to LDAP...")
 
 	// Create and run the TUI
-	model := tui.NewModelWithUpdateCheck(client, cfg, *checkUpdates)
+	model := tui.NewModelWithUpdateCheckAndConfigPath(client, cfg, *checkUpdates, actualConfigPath)
 	program := tea.NewProgram(model, tea.WithAltScreen(), tea.WithMouseCellMotion())
 
 	if _, err := program.Run(); err != nil {

@@ -130,6 +130,25 @@ func NewModelWithUpdateCheck(client *ldap.Client, cfg *config.Config, checkUpdat
 	return model
 }
 
+// NewModelWithUpdateCheckAndConfigPath creates a new model with page size configuration, update checking, and config path
+func NewModelWithUpdateCheckAndConfigPath(client *ldap.Client, cfg *config.Config, checkUpdates bool, configPath string) *Model {
+	model := &Model{
+		client:       client,
+		startView:    NewStartViewWithConfigPath(cfg, configPath),
+		recordView:   NewRecordView(),
+		currentView:  ViewModeStart,
+		checkUpdates: checkUpdates,
+	}
+
+	// Initialize tree and query views if client is available
+	if client != nil {
+		model.tree = NewTreeView(client)
+		model.queryView = NewQueryViewWithPageSize(client, cfg.Pagination.PageSize)
+	}
+
+	return model
+}
+
 // Init initializes the model
 func (m *Model) Init() tea.Cmd {
 	// Initialize bubblezone manager to prevent panics
