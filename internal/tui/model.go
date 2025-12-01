@@ -728,11 +728,13 @@ func (m *Model) handleStartViewClick(zoneID string) (tea.Model, tea.Cmd) {
 	// Handle config field clicks
 	if len(zoneID) > 13 && zoneID[:13] == "config-field-" {
 		if fieldIndex, err := strconv.Atoi(zoneID[13:]); err == nil {
-			// Set cursor to clicked field and enter edit mode
+			// Set cursor to clicked field
 			m.startView.cursor = fieldIndex
-			m.startView.editing = true
-			m.startView.editingField = fieldIndex
-			m.startView.inputValue = m.startView.getFieldValue(fieldIndex)
+
+			// Use the field action handler to properly initialize editing
+			// This will handle textinput initialization for regular fields
+			// and boolean toggles appropriately
+			return m.startView.handleFieldAction()
 		}
 	}
 	return m, nil

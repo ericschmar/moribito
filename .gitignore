@@ -50,3 +50,4 @@ _docpress/
 *.bottle.tar.gz
 .homebrew_build_deps/
 _docpress
+.env
