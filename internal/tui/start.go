@@ -7,8 +7,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/atotto/clipboard"
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/bubbles/textinput"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/ericschmar/moribito/internal/config"
 	"github.com/ericschmar/moribito/internal/ldap"
@@ -24,21 +24,17 @@ type StartView struct {
 	cursor     int
 	editing    bool
 	editingField int
-	inputValue string
+	textInput  textinput.Model // Text input for editing fields
 	container  *ViewContainer
 
 	// Connection management state
 	connectionCursor        int    // Which saved connection is highlighted
 	showNewConnectionDialog bool   // Whether to show new connection name dialog
-	newConnectionName       string // Name for new connection being created
+	newConnInput            textinput.Model // Text input for new connection name
 
 	// Error tracking
 	saveError     error     // Last save error
 	saveErrorTime time.Time // When the error occurred
-
-	// Config warnings
-	configWarnings     []string  // Config validation warnings
-	configWarningsTime time.Time // When warnings were generated
 }
 
 // Field indices for editing
@@ -188,16 +184,23 @@ func NewStartView(cfg *config.Config) *StartView {
 	// Try to get default config path to enable saving
 	defaultPath := config.GetDefaultConfigPath()
 
-	sv := &StartView{
-		config:     cfg,
-		configPath: defaultPath,
-		cursor:     0,
-	}
+	// Create text inputs
+	ti := textinput.New()
+	ti.Placeholder = ""
+	ti.CharLimit = 256
+	ti.Width = 50
 
-	// Validate config and store warnings
-	sv.configWarnings = cfg.ValidateAndRepair()
-	if len(sv.configWarnings) > 0 {
-		sv.configWarningsTime = time.Now()
+	newConnInput := textinput.New()
+	newConnInput.Placeholder = "Connection name"
+	newConnInput.CharLimit = 64
+	newConnInput.Width = 40
+
+	sv := &StartView{
+		config:       cfg,
+		configPath:   defaultPath,
+		cursor:       0,
+		textInput:    ti,
+		newConnInput: newConnInput,
 	}
 
 	return sv
@@ -205,16 +208,23 @@ func NewStartView(cfg *config.Config) *StartView {
 
 // NewStartViewWithConfigPath creates a new start view with config path for saving
 func NewStartViewWithConfigPath(cfg *config.Config, configPath string) *StartView {
-	sv := &StartView{
-		config:     cfg,
-		configPath: configPath,
-		cursor:     0,
-	}
+	// Create text inputs
+	ti := textinput.New()
+	ti.Placeholder = ""
+	ti.CharLimit = 256
+	ti.Width = 50
 
-	// Validate config and store warnings
-	sv.configWarnings = cfg.ValidateAndRepair()
-	if len(sv.configWarnings) > 0 {
-		sv.configWarningsTime = time.Now()
+	newConnInput := textinput.New()
+	newConnInput.Placeholder = "Connection name"
+	newConnInput.CharLimit = 64
+	newConnInput.Width = 40
+
+	sv := &StartView{
+		config:       cfg,
+		configPath:   configPath,
+		cursor:       0,
+		textInput:    ti,
+		newConnInput: newConnInput,
 	}
 
 	return sv
@@ -553,21 +563,18 @@ func (sv *StartView) renderConnectionList() string {
 
 // renderEditingField renders the field currently being edited
 func (sv *StartView) renderEditingField() string {
-	// Show input value with cursor
-	return sv.inputValue + "█"
+	// For boolean fields, show toggle instructions instead of text input
+	if fields[sv.editingField].isBool {
+		currentValue := sv.getFieldValue(sv.editingField)
+		return fmt.Sprintf("%s (press Space/Y/N to toggle)", currentValue)
+	}
+	// Use textinput view for regular fields
+	return sv.textInput.View()
 }
 
 // renderInstructions renders the instruction text
 func (sv *StartView) renderInstructions() string {
 	var parts []string
-
-	// Show config warnings if they exist and are recent (within last 10 seconds)
-	if len(sv.configWarnings) > 0 && time.Since(sv.configWarningsTime) < 10*time.Second {
-		for _, warning := range sv.configWarnings {
-			warningMsg := fmt.Sprintf("⚠ Config: %s", warning)
-			parts = append(parts, errorStyle.Render(warningMsg))
-		}
-	}
 
 	// Show error message if there is one and it's recent (within last 5 seconds)
 	if sv.saveError != nil && time.Since(sv.saveErrorTime) < 5*time.Second {
@@ -578,9 +585,10 @@ func (sv *StartView) renderInstructions() string {
 	// Show regular instructions
 	var instructions string
 	if sv.editing {
-		instructions = "Press [Enter] to save • [Esc] to cancel • [Ctrl+V/Cmd+V] to paste"
 		if fields[sv.editingField].isBool {
-			instructions += " • [Y/N] or [T/F] for boolean values"
+			instructions = "Press [Space] to toggle • [Y/N] or [T/F] to set • [Enter] or [Esc] to finish"
+		} else {
+			instructions = "Press [Enter] to save • [Esc] to cancel • Arrow keys to navigate • Cmd+V to paste"
 		}
 	} else {
 		instructions = "Press [↑↓] or [j/k] to navigate • [Enter] to edit/select • [←→] or [h/l] for connections • [1-4] to switch views"
@@ -596,7 +604,7 @@ func (sv *StartView) renderNewConnectionDialog() string {
 		"New Connection",
 		"",
 		"Enter connection name:",
-		sv.newConnectionName + "█",
+		sv.newConnInput.View(),
 		"",
 		"Press [Enter] to save • [Esc] to cancel",
 	}, "\n")
@@ -620,76 +628,90 @@ func (sv *StartView) IsEditing() bool {
 
 // handleEditMode handles input when editing a configuration value
 func (sv *StartView) handleEditMode(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+	// Handle boolean fields differently - use toggles instead of text input
+	if fields[sv.editingField].isBool {
+		switch msg.String() {
+		case "enter", "esc":
+			sv.editing = false
+			return sv, nil
+		case " ", "y", "n", "t", "f", "1", "0":
+			// Toggle or set boolean value
+			currentValue := sv.getFieldValue(sv.editingField)
+			var newValue bool
+			switch strings.ToLower(msg.String()) {
+			case " ":
+				// Toggle current value
+				newValue = currentValue != "true"
+			case "y", "t", "1":
+				newValue = true
+			case "n", "f", "0":
+				newValue = false
+			}
+
+			// Update the config value directly
+			switch sv.editingField {
+			case FieldUseSSL:
+				sv.config.LDAP.UseSSL = newValue
+			case FieldUseTLS:
+				sv.config.LDAP.UseTLS = newValue
+			}
+
+			// Save the configuration to disk
+			sv.saveConfigToDisk()
+		}
+		return sv, nil
+	}
+
+	// Handle regular fields with textinput
 	switch msg.String() {
 	case "enter":
 		sv.saveValue()
 		sv.editing = false
-		sv.inputValue = ""
 		return sv, nil
 
 	case "esc":
 		sv.editing = false
-		sv.inputValue = ""
 		return sv, nil
 
-	case "backspace":
-		if len(sv.inputValue) > 0 {
-			sv.inputValue = sv.inputValue[:len(sv.inputValue)-1]
-		}
-
-	case "ctrl+v", "cmd+v", "shift+insert", "insert":
-		if clipboardText, err := clipboard.ReadAll(); err == nil {
-			sv.inputValue += clipboardText
-		}
-
 	default:
-		// Handle boolean fields with shortcuts
-		if fields[sv.editingField].isBool {
-			switch strings.ToLower(msg.String()) {
-			case "y", "t", "1":
-				sv.inputValue = "true"
-			case "n", "f", "0":
-				sv.inputValue = "false"
-			}
-		} else {
-			// Handle regular character input
-			if len(msg.String()) == 1 && msg.String() >= " " {
-				sv.inputValue += msg.String()
-			}
-		}
+		// Delegate to textinput for all other key handling
+		var cmd tea.Cmd
+		sv.textInput, cmd = sv.textInput.Update(msg)
+		return sv, cmd
 	}
-	return sv, nil
 }
 
 // saveValue saves the edited value to the config
 func (sv *StartView) saveValue() {
+	inputValue := sv.textInput.Value()
+
 	switch sv.editingField {
 	case FieldHost:
-		sv.config.LDAP.Host = sv.inputValue
+		sv.config.LDAP.Host = inputValue
 	case FieldPort:
-		if port, err := strconv.Atoi(sv.inputValue); err == nil && port > 0 && port < 65536 {
+		if port, err := strconv.Atoi(inputValue); err == nil && port > 0 && port < 65536 {
 			sv.config.LDAP.Port = port
 		}
 	case FieldBaseDN:
-		sv.config.LDAP.BaseDN = sv.inputValue
+		sv.config.LDAP.BaseDN = inputValue
 	case FieldUseSSL:
-		if useSSL, err := strconv.ParseBool(sv.inputValue); err == nil {
+		if useSSL, err := strconv.ParseBool(inputValue); err == nil {
 			sv.config.LDAP.UseSSL = useSSL
 		}
 	case FieldUseTLS:
-		if useTLS, err := strconv.ParseBool(sv.inputValue); err == nil {
+		if useTLS, err := strconv.ParseBool(inputValue); err == nil {
 			sv.config.LDAP.UseTLS = useTLS
 		}
 	case FieldBindUser:
-		sv.config.LDAP.BindUser = sv.inputValue
+		sv.config.LDAP.BindUser = inputValue
 	case FieldBindPass:
-		sv.config.LDAP.BindPass = sv.inputValue
+		sv.config.LDAP.BindPass = inputValue
 	case FieldPageSize:
-		if pageSize, err := strconv.Atoi(sv.inputValue); err == nil && pageSize > 0 {
+		if pageSize, err := strconv.Atoi(inputValue); err == nil && pageSize > 0 {
 			sv.config.Pagination.PageSize = uint32(pageSize)
 		}
 	}
-	
+
 	// Save the configuration to disk
 	sv.saveConfigToDisk()
 }
@@ -744,7 +766,8 @@ func (sv *StartView) handleFieldAction() (tea.Model, tea.Cmd) {
 		} else {
 			// No saved connection selected, create a new one
 			sv.showNewConnectionDialog = true
-			sv.newConnectionName = ""
+			sv.newConnInput.SetValue("")
+			sv.newConnInput.Focus()
 		}
 		return sv, nil
 
@@ -770,7 +793,23 @@ func (sv *StartView) handleFieldAction() (tea.Model, tea.Cmd) {
 		if !fieldCfg.isHeader && !fieldCfg.isSeparator && !fieldCfg.isAction {
 			sv.editing = true
 			sv.editingField = sv.cursor
-			sv.inputValue = sv.getFieldValue(sv.cursor)
+
+			// Initialize textinput with current value
+			sv.textInput.SetValue(sv.getFieldValue(sv.cursor))
+
+			// Configure textinput for password fields
+			if fieldCfg.isPassword {
+				sv.textInput.EchoMode = textinput.EchoPassword
+				sv.textInput.EchoCharacter = '*'
+			} else {
+				sv.textInput.EchoMode = textinput.EchoNormal
+			}
+
+			// Set placeholder for the field
+			sv.textInput.Placeholder = fieldCfg.placeholder
+
+			// Focus the textinput
+			sv.textInput.Focus()
 		}
 		return sv, nil
 	}
@@ -780,10 +819,11 @@ func (sv *StartView) handleFieldAction() (tea.Model, tea.Cmd) {
 func (sv *StartView) handleNewConnectionDialog(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	switch msg.String() {
 	case "enter":
-		if sv.newConnectionName != "" {
+		connName := sv.newConnInput.Value()
+		if connName != "" {
 			// Create new connection from current settings
 			newConn := config.SavedConnection{
-				Name:     sv.newConnectionName,
+				Name:     connName,
 				Host:     sv.config.LDAP.Host,
 				Port:     sv.config.LDAP.Port,
 				BaseDN:   sv.config.LDAP.BaseDN,
@@ -797,36 +837,23 @@ func (sv *StartView) handleNewConnectionDialog(msg tea.KeyMsg) (tea.Model, tea.C
 			// Set as active connection
 			sv.config.SetActiveConnection(len(sv.config.LDAP.SavedConnections) - 1)
 			sv.connectionCursor = len(sv.config.LDAP.SavedConnections) - 1
-			
+
 			// Save the configuration to disk
 			sv.saveConfigToDisk()
 		}
 		sv.showNewConnectionDialog = false
-		sv.newConnectionName = ""
 		return sv, nil
 
 	case "esc":
 		sv.showNewConnectionDialog = false
-		sv.newConnectionName = ""
 		return sv, nil
 
-	case "backspace":
-		if len(sv.newConnectionName) > 0 {
-			sv.newConnectionName = sv.newConnectionName[:len(sv.newConnectionName)-1]
-		}
-
-	case "ctrl+v", "cmd+v", "shift+insert", "insert":
-		if clipboardText, err := clipboard.ReadAll(); err == nil {
-			sv.newConnectionName += clipboardText
-		}
-
 	default:
-		// Handle regular character input
-		if len(msg.String()) == 1 && msg.String() >= " " {
-			sv.newConnectionName += msg.String()
-		}
+		// Delegate to textinput for all other key handling
+		var cmd tea.Cmd
+		sv.newConnInput, cmd = sv.newConnInput.Update(msg)
+		return sv, cmd
 	}
-	return sv, nil
 }
 
 // handleConnect attempts to create an LDAP connection with current settings
