@@ -491,7 +491,18 @@ func (sv *StartView) renderField(field int) string {
 // renderHeaderField renders a header field
 func (sv *StartView) renderHeaderField(field int) string {
 	value := sv.getFieldValue(field)
-	return headerStyle2.Render(value)
+	headerText := headerStyle2.Render(value)
+
+	// Add config path for connection management header
+	if field == FieldConnectionHeader && sv.configPath != "" {
+		configPathText := placeholderStyle.Render(fmt.Sprintf("  Config: %s", sv.configPath))
+		return headerText + "\n" + configPathText
+	} else if field == FieldConnectionHeader && sv.configPath == "" {
+		warningText := errorStyle.Render("  ⚠ Config file not set - changes will not persist")
+		return headerText + "\n" + warningText
+	}
+
+	return headerText
 }
 
 // renderSeparatorField renders a separator field
