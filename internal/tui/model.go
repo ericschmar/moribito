@@ -644,7 +644,7 @@ func (m *Model) renderHelpBar() string {
 			helpText = "Tree view requires LDAP connection"
 		}
 	case ViewModeRecord:
-		helpText = "View LDAP record details • [↑↓] navigate attributes"
+		helpText = "View LDAP record details • [↑↓] navigate attributes • [C] copy value"
 	}
 
 	style := lipgloss.NewStyle().
