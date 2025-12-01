@@ -31,6 +31,14 @@ type StartView struct {
 	connectionCursor        int    // Which saved connection is highlighted
 	showNewConnectionDialog bool   // Whether to show new connection name dialog
 	newConnectionName       string // Name for new connection being created
+
+	// Error tracking
+	saveError     error     // Last save error
+	saveErrorTime time.Time // When the error occurred
+
+	// Config warnings
+	configWarnings     []string  // Config validation warnings
+	configWarningsTime time.Time // When warnings were generated
 }
 
 // Field indices for editing
@@ -169,23 +177,49 @@ var (
 				Background(lipgloss.Color("12")).
 				Bold(true).
 				Padding(0, 1)
+
+	errorStyle = lipgloss.NewStyle().
+			Foreground(lipgloss.Color("196")). // Bright red
+			Bold(true).
+			Margin(1, 0, 0, 0)
 )
 
 // NewStartView creates a new start view
+// Deprecated: Use NewStartViewWithConfigPath instead to ensure config persistence
 func NewStartView(cfg *config.Config) *StartView {
-	return &StartView{
-		config: cfg,
-		cursor: 0,
+	// Try to get default config path to enable saving
+	defaultPath := config.GetDefaultConfigPath()
+
+	sv := &StartView{
+		config:     cfg,
+		configPath: defaultPath,
+		cursor:     0,
 	}
+
+	// Validate config and store warnings
+	sv.configWarnings = cfg.ValidateAndRepair()
+	if len(sv.configWarnings) > 0 {
+		sv.configWarningsTime = time.Now()
+	}
+
+	return sv
 }
 
 // NewStartViewWithConfigPath creates a new start view with config path for saving
 func NewStartViewWithConfigPath(cfg *config.Config, configPath string) *StartView {
-	return &StartView{
+	sv := &StartView{
 		config:     cfg,
 		configPath: configPath,
 		cursor:     0,
 	}
+
+	// Validate config and store warnings
+	sv.configWarnings = cfg.ValidateAndRepair()
+	if len(sv.configWarnings) > 0 {
+		sv.configWarningsTime = time.Now()
+	}
+
+	return sv
 }
 
 // Init initializes the start view
@@ -518,8 +552,24 @@ func (sv *StartView) renderEditingField() string {
 
 // renderInstructions renders the instruction text
 func (sv *StartView) renderInstructions() string {
-	var instructions string
+	var parts []string
 
+	// Show config warnings if they exist and are recent (within last 10 seconds)
+	if len(sv.configWarnings) > 0 && time.Since(sv.configWarningsTime) < 10*time.Second {
+		for _, warning := range sv.configWarnings {
+			warningMsg := fmt.Sprintf("⚠ Config: %s", warning)
+			parts = append(parts, errorStyle.Render(warningMsg))
+		}
+	}
+
+	// Show error message if there is one and it's recent (within last 5 seconds)
+	if sv.saveError != nil && time.Since(sv.saveErrorTime) < 5*time.Second {
+		errorMsg := fmt.Sprintf("⚠ %s", sv.saveError.Error())
+		parts = append(parts, errorStyle.Render(errorMsg))
+	}
+
+	// Show regular instructions
+	var instructions string
 	if sv.editing {
 		instructions = "Press [Enter] to save • [Esc] to cancel • [Ctrl+V/Cmd+V] to paste"
 		if fields[sv.editingField].isBool {
@@ -528,8 +578,9 @@ func (sv *StartView) renderInstructions() string {
 	} else {
 		instructions = "Press [↑↓] or [j/k] to navigate • [Enter] to edit/select • [←→] or [h/l] for connections • [1-4] to switch views"
 	}
+	parts = append(parts, instructionStyle.Render(instructions))
 
-	return instructionStyle.Render(instructions)
+	return strings.Join(parts, "\n")
 }
 
 // renderNewConnectionDialog renders the dialog for creating a new connection
@@ -638,11 +689,19 @@ func (sv *StartView) saveValue() {
 
 // saveConfigToDisk saves the current configuration to the config file
 func (sv *StartView) saveConfigToDisk() {
-	if sv.configPath != "" {
-		if err := sv.config.Save(sv.configPath); err != nil {
-			// Note: In a real implementation, we might want to show this error to the user
-			// For now, we silently continue since the in-memory config is still updated
-		}
+	if sv.configPath == "" {
+		sv.saveError = fmt.Errorf("no config file path set - changes will not persist")
+		sv.saveErrorTime = time.Now()
+		return
+	}
+
+	if err := sv.config.Save(sv.configPath); err != nil {
+		sv.saveError = fmt.Errorf("failed to save config: %w", err)
+		sv.saveErrorTime = time.Now()
+	} else {
+		// Clear any previous errors on successful save
+		sv.saveError = nil
+		sv.saveErrorTime = time.Time{}
 	}
 }
 
