@@ -285,7 +285,7 @@ func TestStartView_LayoutAndAlignment(t *testing.T) {
 
 	// Should contain all field names (including new connection management fields)
 	expectedFields := []string{
-		"Connection Management", "Add New Connection", "Delete Connection", "Save Current as New",
+		"Connection Management", "Save", "Delete",
 		"Host:", "Port:", "Base DN:", "Use SSL:", "Use TLS:",
 		"Bind User:", "Bind Password:", "Page Size:",
 	}

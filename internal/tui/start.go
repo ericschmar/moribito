@@ -46,9 +46,8 @@ const (
 	// Connection management fields
 	FieldConnectionHeader = iota
 	FieldConnectionList
-	FieldAddConnection
-	FieldDeleteConnection
 	FieldSaveConnection
+	FieldDeleteConnection
 	FieldConnectionSeparator
 
 	// LDAP configuration fields
@@ -79,9 +78,8 @@ type fieldConfig struct {
 var fields = []fieldConfig{
 	{name: "Connection Management", isHeader: true},
 	{name: "Saved Connections", placeholder: "Select connection"},
-	{name: "Add New Connection", isAction: true},
-	{name: "Delete Connection", isAction: true},
-	{name: "Save Current as New", isAction: true},
+	{name: "Save", isAction: true},
+	{name: "Delete", isAction: true},
 	{name: "", isSeparator: true},
 	{name: "Host", placeholder: "ldap.example.com"},
 	{name: "Port", placeholder: "389"},
@@ -288,12 +286,10 @@ func (sv *StartView) getFieldValue(field int) string {
 		}
 		activeConn := sv.config.GetActiveConnection()
 		return fmt.Sprintf("Current: %s", activeConn.Name)
-	case FieldAddConnection:
-		return "Add New Connection"
-	case FieldDeleteConnection:
-		return "Delete Connection"
 	case FieldSaveConnection:
-		return "Save Current as New"
+		return "Save"
+	case FieldDeleteConnection:
+		return "Delete"
 	case FieldConnectionSeparator:
 		return "────────────────────────"
 	case FieldHost:
@@ -332,7 +328,7 @@ func (sv *StartView) getDisplayValue(field int) string {
 			return placeholderStyle.Render("No saved connections (using default)")
 		}
 		return sv.renderConnectionList()
-	case FieldAddConnection, FieldDeleteConnection, FieldSaveConnection, FieldConnect:
+	case FieldSaveConnection, FieldDeleteConnection, FieldConnect:
 		return value
 	case FieldConnectionSeparator:
 		return separatorStyle.Render(value)
@@ -718,14 +714,31 @@ func (sv *StartView) handleFieldAction() (tea.Model, tea.Cmd) {
 		}
 		return sv, nil
 
-	case FieldAddConnection:
-		// Start new connection dialog
-		sv.showNewConnectionDialog = true
-		sv.newConnectionName = ""
+	case FieldSaveConnection:
+		// Save current settings to the currently selected connection
+		if len(sv.config.LDAP.SavedConnections) > 0 && sv.config.LDAP.SelectedConnection >= 0 && sv.config.LDAP.SelectedConnection < len(sv.config.LDAP.SavedConnections) {
+			// Update the currently selected saved connection with current settings
+			updated := config.SavedConnection{
+				Name:     sv.config.LDAP.SavedConnections[sv.config.LDAP.SelectedConnection].Name,
+				Host:     sv.config.LDAP.Host,
+				Port:     sv.config.LDAP.Port,
+				BaseDN:   sv.config.LDAP.BaseDN,
+				UseSSL:   sv.config.LDAP.UseSSL,
+				UseTLS:   sv.config.LDAP.UseTLS,
+				BindUser: sv.config.LDAP.BindUser,
+				BindPass: sv.config.LDAP.BindPass,
+			}
+			sv.config.UpdateSavedConnection(sv.config.LDAP.SelectedConnection, updated)
+			sv.saveConfigToDisk()
+		} else {
+			// No saved connection selected, create a new one
+			sv.showNewConnectionDialog = true
+			sv.newConnectionName = ""
+		}
 		return sv, nil
 
 	case FieldDeleteConnection:
-		// Delete the selected connection
+		// Delete the currently selected saved connection
 		if len(sv.config.LDAP.SavedConnections) > 0 && sv.connectionCursor < len(sv.config.LDAP.SavedConnections) {
 			sv.config.RemoveSavedConnection(sv.connectionCursor)
 			if sv.connectionCursor >= len(sv.config.LDAP.SavedConnections) && len(sv.config.LDAP.SavedConnections) > 0 {
@@ -735,13 +748,9 @@ func (sv *StartView) handleFieldAction() (tea.Model, tea.Cmd) {
 		}
 		return sv, nil
 
-	case FieldSaveConnection:
-		// Save current settings as new connection dialog
-		sv.showNewConnectionDialog = true
-		sv.newConnectionName = ""
-		return sv, nil
-
 	case FieldConnect:
+		// Save config before connecting to LDAP
+		sv.saveConfigToDisk()
 		// Attempt to connect to LDAP
 		return sv.handleConnect()
 
