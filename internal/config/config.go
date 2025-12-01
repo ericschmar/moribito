@@ -215,6 +215,20 @@ func (c *Config) UpdateSavedConnection(index int, conn SavedConnection) {
 	}
 }
 
+// ValidateAndRepair checks the config for issues and repairs them, returning warnings
+func (c *Config) ValidateAndRepair() []string {
+	var warnings []string
+
+	// Check if selected connection index is out of bounds
+	if len(c.LDAP.SavedConnections) > 0 && c.LDAP.SelectedConnection >= len(c.LDAP.SavedConnections) {
+		oldIndex := c.LDAP.SelectedConnection
+		c.LDAP.SelectedConnection = 0
+		warnings = append(warnings, fmt.Sprintf("Selected connection index %d was invalid (only %d connections exist). Reset to first connection.", oldIndex, len(c.LDAP.SavedConnections)))
+	}
+
+	return warnings
+}
+
 // findConfigFile looks for configuration files in standard locations
 func findConfigFile() string {
 	// Check current directory first

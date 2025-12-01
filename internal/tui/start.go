@@ -31,6 +31,14 @@ type StartView struct {
 	connectionCursor        int    // Which saved connection is highlighted
 	showNewConnectionDialog bool   // Whether to show new connection name dialog
 	newConnectionName       string // Name for new connection being created
+
+	// Error tracking
+	saveError     error     // Last save error
+	saveErrorTime time.Time // When the error occurred
+
+	// Config warnings
+	configWarnings     []string  // Config validation warnings
+	configWarningsTime time.Time // When warnings were generated
 }
 
 // Field indices for editing
@@ -38,9 +46,8 @@ const (
 	// Connection management fields
 	FieldConnectionHeader = iota
 	FieldConnectionList
-	FieldAddConnection
-	FieldDeleteConnection
 	FieldSaveConnection
+	FieldDeleteConnection
 	FieldConnectionSeparator
 
 	// LDAP configuration fields
@@ -71,9 +78,8 @@ type fieldConfig struct {
 var fields = []fieldConfig{
 	{name: "Connection Management", isHeader: true},
 	{name: "Saved Connections", placeholder: "Select connection"},
-	{name: "Add New Connection", isAction: true},
-	{name: "Delete Connection", isAction: true},
-	{name: "Save Current as New", isAction: true},
+	{name: "Save", isAction: true},
+	{name: "Delete", isAction: true},
 	{name: "", isSeparator: true},
 	{name: "Host", placeholder: "ldap.example.com"},
 	{name: "Port", placeholder: "389"},
@@ -169,23 +175,49 @@ var (
 				Background(lipgloss.Color("12")).
 				Bold(true).
 				Padding(0, 1)
+
+	errorStyle = lipgloss.NewStyle().
+			Foreground(lipgloss.Color("196")). // Bright red
+			Bold(true).
+			Margin(1, 0, 0, 0)
 )
 
 // NewStartView creates a new start view
+// Deprecated: Use NewStartViewWithConfigPath instead to ensure config persistence
 func NewStartView(cfg *config.Config) *StartView {
-	return &StartView{
-		config: cfg,
-		cursor: 0,
+	// Try to get default config path to enable saving
+	defaultPath := config.GetDefaultConfigPath()
+
+	sv := &StartView{
+		config:     cfg,
+		configPath: defaultPath,
+		cursor:     0,
 	}
+
+	// Validate config and store warnings
+	sv.configWarnings = cfg.ValidateAndRepair()
+	if len(sv.configWarnings) > 0 {
+		sv.configWarningsTime = time.Now()
+	}
+
+	return sv
 }
 
 // NewStartViewWithConfigPath creates a new start view with config path for saving
 func NewStartViewWithConfigPath(cfg *config.Config, configPath string) *StartView {
-	return &StartView{
+	sv := &StartView{
 		config:     cfg,
 		configPath: configPath,
 		cursor:     0,
 	}
+
+	// Validate config and store warnings
+	sv.configWarnings = cfg.ValidateAndRepair()
+	if len(sv.configWarnings) > 0 {
+		sv.configWarningsTime = time.Now()
+	}
+
+	return sv
 }
 
 // Init initializes the start view
@@ -254,12 +286,10 @@ func (sv *StartView) getFieldValue(field int) string {
 		}
 		activeConn := sv.config.GetActiveConnection()
 		return fmt.Sprintf("Current: %s", activeConn.Name)
-	case FieldAddConnection:
-		return "Add New Connection"
-	case FieldDeleteConnection:
-		return "Delete Connection"
 	case FieldSaveConnection:
-		return "Save Current as New"
+		return "Save"
+	case FieldDeleteConnection:
+		return "Delete"
 	case FieldConnectionSeparator:
 		return "────────────────────────"
 	case FieldHost:
@@ -298,7 +328,7 @@ func (sv *StartView) getDisplayValue(field int) string {
 			return placeholderStyle.Render("No saved connections (using default)")
 		}
 		return sv.renderConnectionList()
-	case FieldAddConnection, FieldDeleteConnection, FieldSaveConnection, FieldConnect:
+	case FieldSaveConnection, FieldDeleteConnection, FieldConnect:
 		return value
 	case FieldConnectionSeparator:
 		return separatorStyle.Render(value)
@@ -461,7 +491,18 @@ func (sv *StartView) renderField(field int) string {
 // renderHeaderField renders a header field
 func (sv *StartView) renderHeaderField(field int) string {
 	value := sv.getFieldValue(field)
-	return headerStyle2.Render(value)
+	headerText := headerStyle2.Render(value)
+
+	// Add config path for connection management header
+	if field == FieldConnectionHeader && sv.configPath != "" {
+		configPathText := placeholderStyle.Render(fmt.Sprintf("  Config: %s", sv.configPath))
+		return headerText + "\n" + configPathText
+	} else if field == FieldConnectionHeader && sv.configPath == "" {
+		warningText := errorStyle.Render("  ⚠ Config file not set - changes will not persist")
+		return headerText + "\n" + warningText
+	}
+
+	return headerText
 }
 
 // renderSeparatorField renders a separator field
@@ -518,8 +559,24 @@ func (sv *StartView) renderEditingField() string {
 
 // renderInstructions renders the instruction text
 func (sv *StartView) renderInstructions() string {
-	var instructions string
+	var parts []string
 
+	// Show config warnings if they exist and are recent (within last 10 seconds)
+	if len(sv.configWarnings) > 0 && time.Since(sv.configWarningsTime) < 10*time.Second {
+		for _, warning := range sv.configWarnings {
+			warningMsg := fmt.Sprintf("⚠ Config: %s", warning)
+			parts = append(parts, errorStyle.Render(warningMsg))
+		}
+	}
+
+	// Show error message if there is one and it's recent (within last 5 seconds)
+	if sv.saveError != nil && time.Since(sv.saveErrorTime) < 5*time.Second {
+		errorMsg := fmt.Sprintf("⚠ %s", sv.saveError.Error())
+		parts = append(parts, errorStyle.Render(errorMsg))
+	}
+
+	// Show regular instructions
+	var instructions string
 	if sv.editing {
 		instructions = "Press [Enter] to save • [Esc] to cancel • [Ctrl+V/Cmd+V] to paste"
 		if fields[sv.editingField].isBool {
@@ -528,8 +585,9 @@ func (sv *StartView) renderInstructions() string {
 	} else {
 		instructions = "Press [↑↓] or [j/k] to navigate • [Enter] to edit/select • [←→] or [h/l] for connections • [1-4] to switch views"
 	}
+	parts = append(parts, instructionStyle.Render(instructions))
 
-	return instructionStyle.Render(instructions)
+	return strings.Join(parts, "\n")
 }
 
 // renderNewConnectionDialog renders the dialog for creating a new connection
@@ -638,11 +696,19 @@ func (sv *StartView) saveValue() {
 
 // saveConfigToDisk saves the current configuration to the config file
 func (sv *StartView) saveConfigToDisk() {
-	if sv.configPath != "" {
-		if err := sv.config.Save(sv.configPath); err != nil {
-			// Note: In a real implementation, we might want to show this error to the user
-			// For now, we silently continue since the in-memory config is still updated
-		}
+	if sv.configPath == "" {
+		sv.saveError = fmt.Errorf("no config file path set - changes will not persist")
+		sv.saveErrorTime = time.Now()
+		return
+	}
+
+	if err := sv.config.Save(sv.configPath); err != nil {
+		sv.saveError = fmt.Errorf("failed to save config: %w", err)
+		sv.saveErrorTime = time.Now()
+	} else {
+		// Clear any previous errors on successful save
+		sv.saveError = nil
+		sv.saveErrorTime = time.Time{}
 	}
 }
 
@@ -659,14 +725,31 @@ func (sv *StartView) handleFieldAction() (tea.Model, tea.Cmd) {
 		}
 		return sv, nil
 
-	case FieldAddConnection:
-		// Start new connection dialog
-		sv.showNewConnectionDialog = true
-		sv.newConnectionName = ""
+	case FieldSaveConnection:
+		// Save current settings to the currently selected connection
+		if len(sv.config.LDAP.SavedConnections) > 0 && sv.config.LDAP.SelectedConnection >= 0 && sv.config.LDAP.SelectedConnection < len(sv.config.LDAP.SavedConnections) {
+			// Update the currently selected saved connection with current settings
+			updated := config.SavedConnection{
+				Name:     sv.config.LDAP.SavedConnections[sv.config.LDAP.SelectedConnection].Name,
+				Host:     sv.config.LDAP.Host,
+				Port:     sv.config.LDAP.Port,
+				BaseDN:   sv.config.LDAP.BaseDN,
+				UseSSL:   sv.config.LDAP.UseSSL,
+				UseTLS:   sv.config.LDAP.UseTLS,
+				BindUser: sv.config.LDAP.BindUser,
+				BindPass: sv.config.LDAP.BindPass,
+			}
+			sv.config.UpdateSavedConnection(sv.config.LDAP.SelectedConnection, updated)
+			sv.saveConfigToDisk()
+		} else {
+			// No saved connection selected, create a new one
+			sv.showNewConnectionDialog = true
+			sv.newConnectionName = ""
+		}
 		return sv, nil
 
 	case FieldDeleteConnection:
-		// Delete the selected connection
+		// Delete the currently selected saved connection
 		if len(sv.config.LDAP.SavedConnections) > 0 && sv.connectionCursor < len(sv.config.LDAP.SavedConnections) {
 			sv.config.RemoveSavedConnection(sv.connectionCursor)
 			if sv.connectionCursor >= len(sv.config.LDAP.SavedConnections) && len(sv.config.LDAP.SavedConnections) > 0 {
@@ -676,13 +759,9 @@ func (sv *StartView) handleFieldAction() (tea.Model, tea.Cmd) {
 		}
 		return sv, nil
 
-	case FieldSaveConnection:
-		// Save current settings as new connection dialog
-		sv.showNewConnectionDialog = true
-		sv.newConnectionName = ""
-		return sv, nil
-
 	case FieldConnect:
+		// Save config before connecting to LDAP
+		sv.saveConfigToDisk()
 		// Attempt to connect to LDAP
 		return sv.handleConnect()
 
