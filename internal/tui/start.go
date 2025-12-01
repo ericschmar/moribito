@@ -482,7 +482,31 @@ func (sv *StartView) renderConnectionList() string {
 	lines = append(lines, "")
 	lines = append(lines, "Saved connections:")
 
+	// Limit the number of connections displayed to prevent overflow
+	// Reserve space for header (3 lines) + other fields (~12 lines) + instructions (2 lines) = ~17 lines
+	// If container height is less than that, show fewer connections
+	maxConnectionsToShow := 5 // Reasonable default
+	if sv.container != nil {
+		_, containerHeight := sv.container.GetContentDimensions()
+		// Calculate max connections based on available space
+		// Each field takes 1 line, we have about FieldCount fields
+		availableForConnections := containerHeight - FieldCount - 5 // Leave some buffer
+		if availableForConnections > 0 && availableForConnections < maxConnectionsToShow {
+			maxConnectionsToShow = availableForConnections
+		}
+	}
+
+	connectionsShown := 0
 	for i, conn := range sv.config.LDAP.SavedConnections {
+		if connectionsShown >= maxConnectionsToShow {
+			// Add indicator that there are more connections
+			moreCount := len(sv.config.LDAP.SavedConnections) - connectionsShown
+			lines = append(lines, lipgloss.NewStyle().
+				Foreground(lipgloss.Color("8")).
+				Render(fmt.Sprintf("   ... and %d more", moreCount)))
+			break
+		}
+
 		indicator := "  "
 		if i == sv.connectionCursor && sv.cursor == FieldConnectionList {
 			indicator = "▶ "
@@ -495,6 +519,7 @@ func (sv *StartView) renderConnectionList() string {
 			connLine = selectedConnectionStyle.Render(connLine)
 		}
 		lines = append(lines, connLine)
+		connectionsShown++
 	}
 
 	return strings.Join(lines, "\n")
