@@ -421,7 +421,8 @@ func (m *Model) View() string {
 
 	// Build the layout with strictly controlled heights
 	// Tab bar (3 lines) + content (contentMaxLines) + status (1 line) + help (1 line)
-	mainContent := tabBar + "\n" + content + "\n" + status
+	// Note: tabBar already ends with "\n", so don't add extra newline
+	mainContent := tabBar + content + "\n" + status
 
 	// Calculate how much vertical space we have and position help bar at the bottom
 	mainContentLines := strings.Split(mainContent, "\n")
