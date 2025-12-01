@@ -17,14 +17,15 @@ import (
 
 // StartView provides the start page with configuration editing
 type StartView struct {
-	config       *config.Config
-	width        int
-	height       int
-	cursor       int
-	editing      bool
+	config     *config.Config
+	configPath string // Path to config file for saving changes
+	width      int
+	height     int
+	cursor     int
+	editing    bool
 	editingField int
-	inputValue   string
-	container    *ViewContainer
+	inputValue string
+	container  *ViewContainer
 
 	// Connection management state
 	connectionCursor        int    // Which saved connection is highlighted
@@ -175,6 +176,15 @@ func NewStartView(cfg *config.Config) *StartView {
 	return &StartView{
 		config: cfg,
 		cursor: 0,
+	}
+}
+
+// NewStartViewWithConfigPath creates a new start view with config path for saving
+func NewStartViewWithConfigPath(cfg *config.Config, configPath string) *StartView {
+	return &StartView{
+		config:     cfg,
+		configPath: configPath,
+		cursor:     0,
 	}
 }
 
@@ -536,7 +546,7 @@ func (sv *StartView) renderInstructions() string {
 	var instructions string
 
 	if sv.editing {
-		instructions = "Press [Enter] to save • [Esc] to cancel • [Ctrl+V] to paste"
+		instructions = "Press [Enter] to save • [Esc] to cancel • [Ctrl+V/Cmd+V] to paste"
 		if fields[sv.editingField].isBool {
 			instructions += " • [Y/N] or [T/F] for boolean values"
 		}
@@ -594,7 +604,7 @@ func (sv *StartView) handleEditMode(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			sv.inputValue = sv.inputValue[:len(sv.inputValue)-1]
 		}
 
-	case "ctrl+v":
+	case "ctrl+v", "cmd+v", "shift+insert", "insert":
 		if clipboardText, err := clipboard.ReadAll(); err == nil {
 			sv.inputValue += clipboardText
 		}
@@ -646,6 +656,19 @@ func (sv *StartView) saveValue() {
 			sv.config.Pagination.PageSize = uint32(pageSize)
 		}
 	}
+	
+	// Save the configuration to disk
+	sv.saveConfigToDisk()
+}
+
+// saveConfigToDisk saves the current configuration to the config file
+func (sv *StartView) saveConfigToDisk() {
+	if sv.configPath != "" {
+		if err := sv.config.Save(sv.configPath); err != nil {
+			// Note: In a real implementation, we might want to show this error to the user
+			// For now, we silently continue since the in-memory config is still updated
+		}
+	}
 }
 
 // handleFieldAction handles enter key press on different field types
@@ -657,6 +680,7 @@ func (sv *StartView) handleFieldAction() (tea.Model, tea.Cmd) {
 		// Select the highlighted connection
 		if len(sv.config.LDAP.SavedConnections) > 0 && sv.connectionCursor < len(sv.config.LDAP.SavedConnections) {
 			sv.config.SetActiveConnection(sv.connectionCursor)
+			sv.saveConfigToDisk()
 		}
 		return sv, nil
 
@@ -673,6 +697,7 @@ func (sv *StartView) handleFieldAction() (tea.Model, tea.Cmd) {
 			if sv.connectionCursor >= len(sv.config.LDAP.SavedConnections) && len(sv.config.LDAP.SavedConnections) > 0 {
 				sv.connectionCursor = len(sv.config.LDAP.SavedConnections) - 1
 			}
+			sv.saveConfigToDisk()
 		}
 		return sv, nil
 
@@ -718,6 +743,9 @@ func (sv *StartView) handleNewConnectionDialog(msg tea.KeyMsg) (tea.Model, tea.C
 			// Set as active connection
 			sv.config.SetActiveConnection(len(sv.config.LDAP.SavedConnections) - 1)
 			sv.connectionCursor = len(sv.config.LDAP.SavedConnections) - 1
+			
+			// Save the configuration to disk
+			sv.saveConfigToDisk()
 		}
 		sv.showNewConnectionDialog = false
 		sv.newConnectionName = ""
@@ -731,6 +759,11 @@ func (sv *StartView) handleNewConnectionDialog(msg tea.KeyMsg) (tea.Model, tea.C
 	case "backspace":
 		if len(sv.newConnectionName) > 0 {
 			sv.newConnectionName = sv.newConnectionName[:len(sv.newConnectionName)-1]
+		}
+
+	case "ctrl+v", "cmd+v", "shift+insert", "insert":
+		if clipboardText, err := clipboard.ReadAll(); err == nil {
+			sv.newConnectionName += clipboardText
 		}
 
 	default:

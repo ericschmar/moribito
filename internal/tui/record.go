@@ -24,6 +24,7 @@ type RecordView struct {
 	width     int
 	height    int
 	container *ViewContainer
+	viewport  int // Viewport offset for scrolling through attributes
 	// For clickable zones
 	renderedRows []RowData // Store row data for click handling
 }
@@ -78,7 +79,8 @@ func NewRecordView() *RecordView {
 	t.SetStyles(s)
 
 	return &RecordView{
-		table: t,
+		table:    t,
+		viewport: 0,
 	}
 }
 
@@ -138,6 +140,82 @@ func (rv *RecordView) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		switch msg.String() {
 		case "c", "C":
 			return rv, rv.copyCurrentValue()
+		case "up", "k":
+			if len(rv.renderedRows) > 0 {
+				cursor := rv.table.Cursor()
+				if cursor > 0 {
+					rv.table.SetCursor(cursor - 1)
+					rv.adjustViewport()
+				}
+			}
+			return rv, nil
+		case "down", "j":
+			if len(rv.renderedRows) > 0 {
+				cursor := rv.table.Cursor()
+				if cursor < len(rv.renderedRows)-1 {
+					rv.table.SetCursor(cursor + 1)
+					rv.adjustViewport()
+				}
+			}
+			return rv, nil
+		case "page_up":
+			if len(rv.renderedRows) > 0 {
+				_, contentHeight := rv.container.GetContentDimensions()
+				if rv.container == nil {
+					contentHeight = rv.height
+				}
+				availableHeight := contentHeight - 2
+				if len(rv.renderedRows) > availableHeight {
+					availableHeight = availableHeight - 1
+				}
+				if availableHeight < 1 {
+					availableHeight = 1
+				}
+
+				cursor := rv.table.Cursor()
+				cursor -= availableHeight
+				if cursor < 0 {
+					cursor = 0
+				}
+				rv.table.SetCursor(cursor)
+				rv.adjustViewport()
+			}
+			return rv, nil
+		case "page_down":
+			if len(rv.renderedRows) > 0 {
+				_, contentHeight := rv.container.GetContentDimensions()
+				if rv.container == nil {
+					contentHeight = rv.height
+				}
+				availableHeight := contentHeight - 2
+				if len(rv.renderedRows) > availableHeight {
+					availableHeight = availableHeight - 1
+				}
+				if availableHeight < 1 {
+					availableHeight = 1
+				}
+
+				cursor := rv.table.Cursor()
+				cursor += availableHeight
+				if cursor >= len(rv.renderedRows) {
+					cursor = len(rv.renderedRows) - 1
+				}
+				rv.table.SetCursor(cursor)
+				rv.adjustViewport()
+			}
+			return rv, nil
+		case "home":
+			if len(rv.renderedRows) > 0 {
+				rv.table.SetCursor(0)
+				rv.adjustViewport()
+			}
+			return rv, nil
+		case "end":
+			if len(rv.renderedRows) > 0 {
+				rv.table.SetCursor(len(rv.renderedRows) - 1)
+				rv.adjustViewport()
+			}
+			return rv, nil
 		}
 	}
 
@@ -221,14 +299,26 @@ func (rv *RecordView) renderTable() string {
 		return "No attributes to display"
 	}
 
-	contentWidth, _ := rv.container.GetContentDimensions()
+	// Get content dimensions
+	contentWidth, contentHeight := rv.container.GetContentDimensions()
 	nameWidth := contentWidth / 3
 	if nameWidth < 15 {
 		nameWidth = 15
 	}
 	valueWidth := contentWidth - nameWidth - 4
 
-	// Create table header (unchanged)
+	// Calculate available height for rows
+	availableHeight := contentHeight - 2 // Reserve space for DN header
+	showPagination := len(rv.renderedRows) > availableHeight
+	if showPagination {
+		availableHeight = availableHeight - 1 // Reserve 1 line for pagination info
+	}
+
+	if availableHeight < 1 {
+		availableHeight = 1
+	}
+
+	// Create table header
 	headerStyle := lipgloss.NewStyle().
 		Border(lipgloss.NormalBorder()).
 		BorderForeground(lipgloss.Color("240")).
@@ -244,9 +334,19 @@ func (rv *RecordView) renderTable() string {
 	var rows []string
 	rows = append(rows, header)
 
+	// Calculate visible range based on viewport
+	visibleStart := rv.viewport
+	visibleEnd := visibleStart + availableHeight
+	if visibleEnd > len(rv.renderedRows) {
+		visibleEnd = len(rv.renderedRows)
+	}
+
 	currentCursor := rv.table.Cursor()
 
-	for i, rowData := range rv.renderedRows {
+	// Render only visible rows
+	for i := visibleStart; i < visibleEnd; i++ {
+		rowData := rv.renderedRows[i]
+
 		// Create value display
 		var valueText string
 		if len(rowData.Values) == 1 {
@@ -299,7 +399,19 @@ func (rv *RecordView) renderTable() string {
 		rows = append(rows, clickableRow)
 	}
 
-	return strings.Join(rows, "\n")
+	content := strings.Join(rows, "\n")
+
+	// Add pagination info if needed
+	if showPagination {
+		paginationText := fmt.Sprintf("Showing %d-%d of %d attributes (↑/↓ to scroll)",
+			visibleStart+1, visibleEnd, len(rv.renderedRows))
+		paginationStyle := lipgloss.NewStyle().
+			Foreground(lipgloss.Color("244")).
+			Italic(true)
+		content += "\n" + paginationStyle.Render(paginationText)
+	}
+
+	return content
 }
 
 // copyCurrentValue copies the current row's value to clipboard
@@ -355,4 +467,40 @@ func colorsToHex(colors []color.Color) []string {
 		}
 	}
 	return hexColors
+}
+
+// adjustViewport adjusts the viewport to keep the cursor visible
+func (rv *RecordView) adjustViewport() {
+	if len(rv.renderedRows) == 0 {
+		return
+	}
+
+	// Get content dimensions
+	_, contentHeight := rv.container.GetContentDimensions()
+	if rv.container == nil {
+		contentHeight = rv.height
+	}
+
+	// Reserve space for DN header (2 lines) and potential pagination info
+	availableHeight := contentHeight - 2
+	if len(rv.renderedRows) > availableHeight {
+		availableHeight = availableHeight - 1 // Reserve 1 line for pagination info
+	}
+
+	if availableHeight < 1 {
+		availableHeight = 1
+	}
+
+	cursor := rv.table.Cursor()
+
+	// Adjust viewport to keep cursor visible
+	if cursor < rv.viewport {
+		rv.viewport = cursor
+	} else if cursor >= rv.viewport+availableHeight {
+		rv.viewport = cursor - availableHeight + 1
+	}
+
+	if rv.viewport < 0 {
+		rv.viewport = 0
+	}
 }

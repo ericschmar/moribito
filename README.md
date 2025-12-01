@@ -26,6 +26,11 @@ A terminal-based LDAP server explorer built with Go and BubbleTea, providing an 
 ![Start Screen](screenshots/start.png)
 _Initial startup screen with connection options_
 
+### Adding Connections
+
+![Add Interface](screenshots/add.png)
+_Interface for adding new LDAP Connections
+
 ### Interactive Tree Navigation
 
 ![Tree View](screenshots/tree.png)
@@ -41,26 +46,28 @@ _View detailed LDAP entry attributes with clipboard integration_
 ![Query View](screenshots/query.png)
 _Execute custom LDAP queries with real-time results and formatting_
 
-### Adding Records
-
-![Add Interface](screenshots/add.png)
-_Interface for adding new LDAP entries_
-
 ## Installation
 
 ### Homebrew (Recommended for macOS/Linux)
 
-#### From Custom Tap
-
 ```bash
-brew install ericschmar/tap/moribito
+brew install moribito
 ```
 
-#### From Formula URL (if tap not available)
+### Arch Linux (AUR)
 
+#### Last Release
 ```bash
-brew install https://raw.githubusercontent.com/ericschmar/moribito/main/homebrew/moribito.rb
+yay -S moribito
 ```
+
+#### Development Version
+```bash
+yay -S moribito-git
+```
+PKGBUILDS are available here:
+ - https://aur.archlinux.org/packages/moribito
+ - https://aur.archlinux.org/packages/moribito-git
 
 ### From GitHub Releases
 

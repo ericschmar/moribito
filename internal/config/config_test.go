@@ -66,7 +66,7 @@ pagination:
 	}
 
 	// Load the config
-	cfg, err := Load(configPath)
+	cfg, _, err := Load(configPath)
 	if err != nil {
 		t.Fatalf("Failed to load config: %v", err)
 	}
@@ -103,7 +103,7 @@ func TestConfigLoadWithoutPagination(t *testing.T) {
 	}
 
 	// Load the config
-	cfg, err := Load(configPath)
+	cfg, _, err := Load(configPath)
 	if err != nil {
 		t.Fatalf("Failed to load config: %v", err)
 	}
@@ -144,7 +144,7 @@ retry:
 	}
 
 	// Load the config
-	cfg, err := Load(configPath)
+	cfg, _, err := Load(configPath)
 	if err != nil {
 		t.Fatalf("Failed to load config: %v", err)
 	}
@@ -200,7 +200,7 @@ pagination:
 	}
 
 	// Load the config
-	cfg, err := Load(configPath)
+	cfg, _, err := Load(configPath)
 	if err != nil {
 		t.Fatalf("Failed to load config: %v", err)
 	}
@@ -304,7 +304,7 @@ func TestCreateDefaultConfigCore(t *testing.T) {
 	}
 
 	// Try to load the created config
-	cfg, err := Load(testConfigPath)
+	cfg, _, err := Load(testConfigPath)
 	if err != nil {
 		t.Errorf("Failed to load created config: %v", err)
 	}
@@ -505,7 +505,7 @@ retry:
 	}
 
 	// Load the config
-	cfg, err := Load(configPath)
+	cfg, _, err := Load(configPath)
 	if err != nil {
 		t.Fatalf("Failed to load config: %v", err)
 	}
@@ -566,7 +566,7 @@ retry:
 	}
 
 	// Load the config
-	cfg, err := Load(configPath)
+	cfg, _, err := Load(configPath)
 	if err != nil {
 		t.Fatalf("Failed to load config: %v", err)
 	}
@@ -591,5 +591,94 @@ retry:
 	}
 	if activeConn.Port != 389 {
 		t.Errorf("Expected active port to be 389, got %d", activeConn.Port)
+	}
+}
+
+func TestLoadReturnsActualPath(t *testing.T) {
+	// Test that Load() returns the actual path that was used
+	tempDir, err := os.MkdirTemp("", "moribito-test")
+	if err != nil {
+		t.Fatalf("Failed to create temp dir: %v", err)
+	}
+	defer os.RemoveAll(tempDir)
+
+	configPath := filepath.Join(tempDir, "config.yaml")
+	configContent := `ldap:
+  host: test.example.com
+  port: 389
+  base_dn: dc=test,dc=com
+`
+
+	err = os.WriteFile(configPath, []byte(configContent), 0644)
+	if err != nil {
+		t.Fatalf("Failed to write config file: %v", err)
+	}
+
+	// Test with explicit path
+	cfg, actualPath, err := Load(configPath)
+	if err != nil {
+		t.Fatalf("Failed to load config: %v", err)
+	}
+
+	if cfg == nil {
+		t.Fatal("Config is nil")
+	}
+
+	if actualPath != configPath {
+		t.Errorf("Expected path to be '%s', got '%s'", configPath, actualPath)
+	}
+}
+
+func TestLoadReturnsActualPathWhenAutoDiscovered(t *testing.T) {
+	// Test that Load() returns the correct path when auto-discovering config
+	// Create a config file in current directory
+	tempDir, err := os.MkdirTemp("", "moribito-test")
+	if err != nil {
+		t.Fatalf("Failed to create temp dir: %v", err)
+	}
+	defer os.RemoveAll(tempDir)
+
+	// Save current directory
+	oldWd, err := os.Getwd()
+	if err != nil {
+		t.Fatalf("Failed to get working directory: %v", err)
+	}
+	defer os.Chdir(oldWd)
+
+	// Change to temp directory
+	if err := os.Chdir(tempDir); err != nil {
+		t.Fatalf("Failed to change directory: %v", err)
+	}
+
+	// Create config.yaml in current directory
+	configContent := `ldap:
+  host: currentdir.example.com
+  port: 389
+  base_dn: dc=test,dc=com
+`
+	err = os.WriteFile("config.yaml", []byte(configContent), 0644)
+	if err != nil {
+		t.Fatalf("Failed to write config file: %v", err)
+	}
+
+	// Load with empty path (should auto-discover)
+	cfg, actualPath, err := Load("")
+	if err != nil {
+		t.Fatalf("Failed to load config: %v", err)
+	}
+
+	if cfg == nil {
+		t.Fatal("Config is nil")
+	}
+
+	// Verify it found the config.yaml in current directory
+	expectedPath := filepath.Join(tempDir, "config.yaml")
+	if actualPath != expectedPath && actualPath != "./config.yaml" {
+		t.Errorf("Expected path to be '%s' or './config.yaml', got '%s'", expectedPath, actualPath)
+	}
+
+	// Verify it loaded the right file
+	if cfg.LDAP.Host != "currentdir.example.com" {
+		t.Errorf("Expected host 'currentdir.example.com', got '%s' - loaded wrong file?", cfg.LDAP.Host)
 	}
 }

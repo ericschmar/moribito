@@ -130,6 +130,25 @@ func NewModelWithUpdateCheck(client *ldap.Client, cfg *config.Config, checkUpdat
 	return model
 }
 
+// NewModelWithUpdateCheckAndConfigPath creates a new model with page size configuration, update checking, and config path
+func NewModelWithUpdateCheckAndConfigPath(client *ldap.Client, cfg *config.Config, checkUpdates bool, configPath string) *Model {
+	model := &Model{
+		client:       client,
+		startView:    NewStartViewWithConfigPath(cfg, configPath),
+		recordView:   NewRecordView(),
+		currentView:  ViewModeStart,
+		checkUpdates: checkUpdates,
+	}
+
+	// Initialize tree and query views if client is available
+	if client != nil {
+		model.tree = NewTreeView(client)
+		model.queryView = NewQueryViewWithPageSize(client, cfg.Pagination.PageSize)
+	}
+
+	return model
+}
+
 // Init initializes the model
 func (m *Model) Init() tea.Cmd {
 	// Initialize bubblezone manager to prevent panics
@@ -210,7 +229,17 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case tea.KeyMsg:
 		switch msg.String() {
-		case "ctrl+c", "q":
+		case "ctrl+c":
+			m.quitting = true
+			return m, tea.Quit
+		case "q":
+			// Skip global quit key if we're in an input mode
+			if m.currentView == ViewModeQuery && m.queryView != nil && m.queryView.IsInputMode() {
+				break // Let the query view handle the input
+			}
+			if m.currentView == ViewModeStart && m.startView != nil && m.startView.IsEditing() {
+				break // Let the start view handle the input
+			}
 			m.quitting = true
 			return m, tea.Quit
 		case "tab":
