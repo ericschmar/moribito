@@ -55,7 +55,7 @@ func TestModel_QuitKeyDuringStartViewEditing(t *testing.T) {
 	// Start editing a field
 	model.startView.editing = true
 	model.startView.editingField = FieldHost
-	model.startView.inputValue = "localhost"
+	model.startView.textInput.SetValue("localhost")
 
 	// Verify we're in editing mode
 	if !model.startView.IsEditing() {

@@ -33,7 +33,7 @@ func TestStartView_SaveConfigToDisk(t *testing.T) {
 	// Simulate editing the host field
 	sv.editing = true
 	sv.editingField = FieldHost
-	sv.inputValue = "modified.example.com"
+	sv.textInput.SetValue("modified.example.com")
 
 	// Call saveValue (which should save to disk)
 	sv.saveValue()
@@ -59,7 +59,7 @@ func TestStartView_BackwardCompatibilityWithoutConfigPath(t *testing.T) {
 	// Simulate editing
 	sv.editing = true
 	sv.editingField = FieldHost
-	sv.inputValue = "modified.example.com"
+	sv.textInput.SetValue("modified.example.com")
 
 	// Call saveValue - should not panic and should update in-memory config
 	sv.saveValue()
