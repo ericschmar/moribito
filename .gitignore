@@ -51,3 +51,81 @@ _docpress/
 .homebrew_build_deps/
 _docpress
 .env
+
+# Kotlin/Gradle specific
+.gradle/
+build/
+!gradle/wrapper/gradle-wrapper.jar
+*.class
+*.jar
+!gradle-wrapper.jar
+*.war
+*.nar
+*.ear
+*.zip
+*.tar.gz
+*.rar
+
+# Gradle wrapper
+!gradle/wrapper/gradle-wrapper.properties
+!gradlew
+!gradlew.bat
+
+# IntelliJ IDEA
+*.iml
+*.ipr
+*.iws
+.idea/
+out/
+*.log
+
+# Eclipse
+.classpath
+.project
+.settings/
+bin/
+
+# NetBeans
+nbproject/private/
+nbbuild/
+nbdist/
+.nb-gradle/
+
+# VS Code (additional)
+.history/
+
+# Maven (if needed later)
+target/
+pom.xml.tag
+pom.xml.releaseBackup
+pom.xml.versionsBackup
+pom.xml.next
+release.properties
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Linux
+*~
+.fuse_hidden*
+.directory
+.Trash-*
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# Kotlin
+*.kotlin_module
+*.kotlin_metadata
+
+# JVM crash logs
+hs_err_pid*
+replay_pid*
+
+# Local configuration
+local.properties
