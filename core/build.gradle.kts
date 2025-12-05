@@ -4,6 +4,8 @@ plugins {
 }
 
 kotlin {
+    jvmToolchain(21)
+
     jvm {
         compilations.all {
             kotlinOptions.jvmTarget = "21"
@@ -14,8 +16,8 @@ kotlin {
     sourceSets {
         val commonMain by getting {
             dependencies {
-                // LDAP client
-                implementation("com.unboundid:unboundid-ldapsdk:6.0.11")
+                // LDAP client - ldaptive
+                implementation("org.ldaptive:ldaptive:2.3.2")
 
                 // YAML configuration
                 implementation("com.charleskorn.kaml:kaml:0.55.0")
@@ -51,6 +53,7 @@ kotlin {
         val jvmTest by getting {
             dependencies {
                 // UnboundID In-Memory Directory Server for integration tests
+                // (ldaptive doesn't have a built-in in-memory server, so we use unboundid for tests)
                 implementation("com.unboundid:unboundid-ldapsdk:6.0.11")
             }
         }
