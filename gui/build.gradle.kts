@@ -7,11 +7,11 @@ dependencies {
     implementation(project(":core"))
 
     // Doodle framework
-    implementation("io.nacular.doodle:core:0.9.1")
-    implementation("io.nacular.doodle:browser:0.9.1")
-    implementation("io.nacular.doodle:controls:0.9.1")
-    implementation("io.nacular.doodle:themes:0.9.1")
-    implementation("io.nacular.doodle:animation:0.9.1")
+    implementation("io.nacular.doodle:core:0.11.0")
+    implementation("io.nacular.doodle:browser:0.11.0")
+    implementation("io.nacular.doodle:controls:0.11.0")
+    implementation("io.nacular.doodle:themes:0.11.0")
+    implementation("io.nacular.doodle:animation:0.11.0")
 
     // Coroutines
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.8.0")
