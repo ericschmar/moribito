@@ -1,17 +1,22 @@
+import org.jetbrains.compose.desktop.application.dsl.TargetFormat
+
 plugins {
     kotlin("jvm")
+    id("org.jetbrains.compose")
+    id("org.jetbrains.kotlin.plugin.compose")
 }
 
 dependencies {
     // Core module
     implementation(project(":core"))
 
-    // Doodle framework
-    implementation("io.nacular.doodle:core:0.11.0")
-    implementation("io.nacular.doodle:browser:0.11.0")
-    implementation("io.nacular.doodle:controls:0.11.0")
-    implementation("io.nacular.doodle:themes:0.11.0")
-    implementation("io.nacular.doodle:animation:0.11.0")
+    implementation("io.github.compose-fluent:fluent:v0.1.0")
+    implementation("io.github.compose-fluent:fluent-icons-extended:v0.1.0") // If you want to use full fluent icons.
+
+    // Compose Desktop
+    implementation(compose.desktop.currentOs)
+    implementation(compose.material3)
+    implementation(compose.materialIconsExtended)
 
     // Coroutines
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.8.0")
@@ -31,6 +36,34 @@ kotlin {
 java {
     sourceCompatibility = JavaVersion.VERSION_21
     targetCompatibility = JavaVersion.VERSION_21
+}
+
+compose.desktop {
+    application {
+        mainClass = "com.moribito.gui.MainKt"
+
+        nativeDistributions {
+            targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb)
+            packageName = "Moribito"
+            packageVersion = "2.0.0"
+            description = "LDAP Directory Explorer"
+            vendor = "Moribito"
+
+            macOS {
+                iconFile.set(project.file("icons/icon.icns"))
+                bundleID = "com.moribito.gui"
+            }
+
+            windows {
+                iconFile.set(project.file("icons/icon.ico"))
+                menuGroup = "Moribito"
+            }
+
+            linux {
+                iconFile.set(project.file("icons/icon.png"))
+            }
+        }
+    }
 }
 
 tasks.withType<Test> {

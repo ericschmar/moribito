@@ -21,6 +21,9 @@ class MainViewModel(private var config: Config) {
     private val _state = MutableStateFlow(AppState())
     val state: StateFlow<AppState> = _state.asStateFlow()
 
+    // Expose current config
+    fun getConfig(): Config = config
+
     /**
      * Updates the LDAP configuration.
      */
