@@ -1,0 +1,18 @@
+[package]
+name = "moribito-core"
+version = "0.1.0"
+edition = "2021"
+authors = ["Moribito Contributors"]
+description = "Core LDAP operations library for Moribito"
+license = "MIT OR Apache-2.0"
+
+[dependencies]
+ldap3 = "0.11"
+serde = { workspace = true }
+serde_yaml = "0.9"
+thiserror = "1"
+tokio = { workspace = true }
+dirs = "5"
+
+[dev-dependencies]
+tempfile = "3"

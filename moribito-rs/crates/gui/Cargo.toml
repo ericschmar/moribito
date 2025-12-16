@@ -1,0 +1,25 @@
+[package]
+name = "moribito-gui"
+version = "0.1.0"
+edition = "2021"
+authors = ["Moribito Contributors"]
+description = "GPUI-based GUI for Moribito LDAP Explorer"
+license = "MIT OR Apache-2.0"
+
+[[bin]]
+name = "moribito"
+path = "src/main.rs"
+
+[dependencies]
+moribito-core = { path = "../core" }
+gpui = "0.2.2"
+gpui-component = "0.5.0"
+gpui-component-assets = "0.5.0"
+anyhow = "1"
+tokio = { workspace = true }
+serde = { workspace = true }
+schemars = "1.1"
+parking_lot = "0.12"
+env_logger = "0.11"
+ldap3 = "0.11"
+once_cell = "1.19"

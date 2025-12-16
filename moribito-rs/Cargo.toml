@@ -1,0 +1,7 @@
+[workspace]
+members = ["crates/core", "crates/gui"]
+resolver = "2"
+
+[workspace.dependencies]
+serde = { version = "1", features = ["derive"] }
+tokio = { version = "1", features = ["rt-multi-thread", "macros"] }

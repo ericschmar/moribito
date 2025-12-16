@@ -1,0 +1,6 @@
+[alias]
+# Hot reload the GUI - watches for changes and rebuilds/runs automatically
+dev = "watch -x 'run --package moribito-gui'"
+
+# Clear screen between runs for cleaner output
+dev-clear = "watch -c -x 'run --package moribito-gui'"

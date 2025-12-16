@@ -1,0 +1,18 @@
+[
+  {
+    "label": "Run GUI (Hot Reload)",
+    "command": "cargo watch -c -x 'run --package moribito-gui'",
+    "cwd": "${ZED_WORKTREE_ROOT}/moribito-rs",
+    "use_new_terminal": false,
+    "allow_concurrent_runs": false,
+    "reveal": "always"
+  },
+  {
+    "label": "Build GUI",
+    "command": "cargo build --package moribito-gui",
+    "cwd": "${ZED_WORKTREE_ROOT}/moribito-rs",
+    "use_new_terminal": false,
+    "allow_concurrent_runs": false,
+    "reveal": "always"
+  }
+]
