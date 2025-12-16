@@ -27,6 +27,7 @@ pub struct BrowserView {
     search_bar: SearchBar,
     status_bar: StatusBar,
     focus_handle: FocusHandle,
+    last_initialized_base_dn: Option<String>,
 }
 
 impl BrowserView {
@@ -48,6 +49,7 @@ impl BrowserView {
             search_bar,
             status_bar,
             focus_handle,
+            last_initialized_base_dn: None,
         }
     }
 
@@ -87,6 +89,43 @@ impl BrowserView {
     /// Initialize the browser with a base DN
     pub fn initialize(&mut self, base_dn: &str, window: &mut Window, cx: &mut App) {
         self.tree_view.reload_tree(base_dn, window, cx);
+        self.last_initialized_base_dn = Some(base_dn.to_string());
+    }
+
+    /// Check if tree needs initialization and trigger it if needed
+    fn check_and_initialize(&mut self, window: &mut Window, cx: &mut App) {
+        // Determine if initialization is needed and get base DN
+        let should_init = {
+            let app_state = self.app_state.read();
+
+            // Only initialize if:
+            // 1. Connected to LDAP server
+            // 2. Have a base DN
+            // 3. Haven't initialized with this base DN yet
+            if app_state.is_connected {
+                if let Some(ref current_base_dn) = app_state.current_base_dn {
+                    let needs_init = match &self.last_initialized_base_dn {
+                        None => true,  // Never initialized
+                        Some(last_dn) => last_dn != current_base_dn,  // Different base DN
+                    };
+
+                    if needs_init {
+                        Some(current_base_dn.clone())
+                    } else {
+                        None
+                    }
+                } else {
+                    None
+                }
+            } else {
+                None
+            }
+        };
+
+        // Now that app_state lock is released, we can call initialize
+        if let Some(base_dn) = should_init {
+            self.initialize(&base_dn, window, cx);
+        }
     }
 
     /// Open the configuration window
@@ -118,6 +157,9 @@ impl BrowserView {
 
 impl Render for BrowserView {
     fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
+        // Check if we need to initialize the tree when connection is established
+        self.check_and_initialize(window, cx);
+
         let background = cx.theme().background;
         let border = cx.theme().border;
         let app_state = self.app_state.clone();
@@ -213,6 +255,7 @@ impl Clone for BrowserView {
             search_bar: self.search_bar.clone(),
             status_bar: self.status_bar.clone(),
             focus_handle: self.focus_handle.clone(),
+            last_initialized_base_dn: self.last_initialized_base_dn.clone(),
         }
     }
 }
