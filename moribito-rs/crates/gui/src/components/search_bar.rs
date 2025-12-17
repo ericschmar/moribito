@@ -2,6 +2,7 @@
 //!
 //! Provides search interface for LDAP queries with filter and base DN inputs.
 
+use crate::views::browser_view::BrowserView;
 use gpui::*;
 use gpui_component::{
     button::{Button, ButtonVariants},
@@ -10,7 +11,6 @@ use gpui_component::{
     theme::ActiveTheme,
     Disableable, Sizable,
 };
-use crate::views::browser_view::BrowserView;
 
 /// Search bar component for LDAP searches
 pub struct SearchBar {

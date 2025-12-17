@@ -16,7 +16,7 @@ use once_cell::sync::Lazy;
 
 use crate::actions::*;
 use crate::app_state::SharedAppState;
-use gpui::{EventEmitter, Entity};
+use gpui::{Entity, EventEmitter};
 
 /// Row data for the attributes table
 #[derive(Clone, Debug)]
@@ -217,7 +217,11 @@ impl EntryDetailsTable {
                                         .label("Refresh")
                                         .on_click({
                                             let entity = entity.clone();
-                                            move |_event, _window, cx| cx.update_entity(&entity, |_table, cx| cx.emit(RefreshEntry))
+                                            move |_event, _window, cx| {
+                                                cx.update_entity(&entity, |_table, cx| {
+                                                    cx.emit(RefreshEntry)
+                                                })
+                                            }
                                         }),
                                 )
                                 .child(
@@ -227,7 +231,11 @@ impl EntryDetailsTable {
                                         .label("Export")
                                         .on_click({
                                             let entity = entity.clone();
-                                            move |_event, _window, cx| cx.update_entity(&entity, |_table, cx| cx.emit(ExportEntry))
+                                            move |_event, _window, cx| {
+                                                cx.update_entity(&entity, |_table, cx| {
+                                                    cx.emit(ExportEntry)
+                                                })
+                                            }
                                         }),
                                 )
                                 .child(
@@ -237,7 +245,11 @@ impl EntryDetailsTable {
                                         .label("Delete")
                                         .on_click({
                                             let entity = entity.clone();
-                                            move |_event, _window, cx| cx.update_entity(&entity, |_table, cx| cx.emit(DeleteEntry))
+                                            move |_event, _window, cx| {
+                                                cx.update_entity(&entity, |_table, cx| {
+                                                    cx.emit(DeleteEntry)
+                                                })
+                                            }
                                         }),
                                 ),
                         ),
@@ -264,7 +276,8 @@ impl EntryDetailsTable {
                                 .child("Select an entry to view details"),
                         ),
                 )
-            }).into_any_element()
+            })
+            .into_any_element()
     }
 }
 

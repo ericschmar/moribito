@@ -10,7 +10,7 @@ use moribito_core::types::TreeNode;
 
 use crate::actions::*;
 use crate::app_state::SharedAppState;
-use gpui::{EventEmitter, Entity};
+use gpui::{Entity, EventEmitter};
 
 /// Tree view component for LDAP directory navigation
 pub struct TreeView {
@@ -198,12 +198,16 @@ impl TreeView {
 
                             // If expanding and not loaded, load children
                             if !is_expanded {
-                                cx.update_entity(&tree_entity, |tree, cx| tree.load_children(&dn, window, cx));
+                                cx.update_entity(&tree_entity, |tree, cx| {
+                                    tree.load_children(&dn, window, cx)
+                                });
                             }
                         }
 
                         // Emit selection action
-                        cx.update_entity(&tree_entity, |tree, cx| cx.emit(SelectTreeEntry { dn: dn.to_string() }));
+                        cx.update_entity(&tree_entity, |tree, cx| {
+                            cx.emit(SelectTreeEntry { dn: dn.to_string() })
+                        });
                     }
                 })
                 .child(

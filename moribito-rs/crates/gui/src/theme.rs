@@ -39,10 +39,7 @@ impl FontConfig {
                     .get("mono_family")
                     .and_then(|v| v.as_str())
                     .map(|s| s.to_string());
-                let size = map
-                    .get("size")
-                    .and_then(|v| v.as_f64())
-                    .map(|s| s as f32);
+                let size = map.get("size").and_then(|v| v.as_f64()).map(|s| s as f32);
                 let mono_size = map
                     .get("mono_size")
                     .and_then(|v| v.as_f64())
