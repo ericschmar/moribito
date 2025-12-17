@@ -18,7 +18,7 @@ use std::path::PathBuf;
 
 use app_state::SharedAppState;
 use menus::build_menus;
-use views::BrowserView;
+use views::AppView;
 
 fn main() {
     env_logger::init();
@@ -73,13 +73,11 @@ fn main() {
                     true // Allow the window to close
                 });
 
-                // Create the browser view and wrap it in Root component
+                // Create the app view and wrap it in Root component
                 cx.new(|cx| {
-                    let browser_view =
-                        cx.new(|inner_cx| BrowserView::new(app_state, window, inner_cx));
-                    // Focus the browser view so menu actions work
-                    window.focus(&browser_view.focus_handle(cx));
-                    Root::new(browser_view, window, cx)
+                    let app_view = cx.new(|inner_cx| AppView::new(app_state, window, inner_cx));
+                    window.focus(&app_view.focus_handle(cx));
+                    Root::new(app_view, window, cx)
                 })
             },
         )

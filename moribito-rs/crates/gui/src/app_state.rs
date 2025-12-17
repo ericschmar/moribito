@@ -241,6 +241,14 @@ impl SharedAppState {
     pub fn write(&self) -> parking_lot::RwLockWriteGuard<AppState> {
         self.inner.write()
     }
+
+    /// Apply a connection result and update the status
+    pub fn apply_connection(&self, name: String, client: LdapClient, base_dn: String) {
+        let mut state = self.write();
+        state.selected_connection = Some(name.clone());
+        state.set_client(client, base_dn);
+        state.set_status(format!("Connected to {}", name));
+    }
 }
 
 impl Default for SharedAppState {

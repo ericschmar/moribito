@@ -17,8 +17,8 @@ use crate::components::{
     entry_details_table::EntryDetailsTable, search_bar::SearchBar, status_bar::StatusBar,
     tree_view::TreeView,
 };
-use gpui::Entity;
 use crate::views::ConfigView;
+use gpui::Entity;
 
 /// Main browser view for LDAP navigation
 pub struct BrowserView {
@@ -68,7 +68,8 @@ impl BrowserView {
     fn handle_refresh(&mut self, _: &Refresh, window: &mut Window, cx: &mut Context<Self>) {
         let base_dn = self.app_state.read().current_base_dn.clone();
         if let Some(base_dn) = base_dn {
-            self.tree_view.update(cx, |tree, cx| tree.reload_tree(&base_dn, window, cx));
+            self.tree_view
+                .update(cx, |tree, cx| tree.reload_tree(&base_dn, window, cx));
         }
     }
 
@@ -98,7 +99,8 @@ impl BrowserView {
 
     /// Initialize the browser with a base DN
     pub fn initialize(&mut self, base_dn: &str, window: &mut Window, cx: &mut Context<Self>) {
-        self.tree_view.update(cx, |tree, cx| tree.reload_tree(base_dn, window, cx));
+        self.tree_view
+            .update(cx, |tree, cx| tree.reload_tree(base_dn, window, cx));
         self.last_initialized_base_dn = Some(base_dn.to_string());
     }
 
@@ -114,15 +116,19 @@ impl BrowserView {
             // 3. Haven't initialized with this base DN yet
             if app_state.is_connected {
                 if let Some(ref current_base_dn) = app_state.current_base_dn {
-                    let needs_init = match &self.last_initialized_base_dn {
-                        None => true,  // Never initialized
-                        Some(last_dn) => last_dn != current_base_dn,  // Different base DN
-                    };
-
-                    if needs_init {
-                        Some(current_base_dn.clone())
-                    } else {
+                    if current_base_dn.trim().is_empty() {
                         None
+                    } else {
+                        let needs_init = match &self.last_initialized_base_dn {
+                            None => true,                                // Never initialized
+                            Some(last_dn) => last_dn != current_base_dn, // Different base DN
+                        };
+
+                        if needs_init {
+                            Some(current_base_dn.clone())
+                        } else {
+                            None
+                        }
                     }
                 } else {
                     None
@@ -139,27 +145,52 @@ impl BrowserView {
     }
 
     /// Handle refreshing the selected entry
-    fn handle_refresh_entry(&mut self, _: &RefreshEntry, window: &mut Window, cx: &mut Context<Self>) {
-        let dn = self.app_state.read().selected_entry.as_ref().map(|e| e.dn.clone());
+    fn handle_refresh_entry(
+        &mut self,
+        _: &RefreshEntry,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) {
+        let dn = self
+            .app_state
+            .read()
+            .selected_entry
+            .as_ref()
+            .map(|e| e.dn.clone());
         if let Some(dn) = dn {
             self.handle_entry_selection(dn, window, cx);
         }
     }
 
     /// Handle deleting the selected entry
-    fn handle_delete_entry(&mut self, _: &DeleteEntry, _window: &mut Window, _cx: &mut Context<Self>) {
+    fn handle_delete_entry(
+        &mut self,
+        _: &DeleteEntry,
+        _window: &mut Window,
+        _cx: &mut Context<Self>,
+    ) {
         // TODO: Implement entry deletion
         println!("Delete entry not implemented yet");
     }
 
     /// Handle exporting the selected entry
-    fn handle_export_entry(&mut self, _: &ExportEntry, _window: &mut Window, _cx: &mut Context<Self>) {
+    fn handle_export_entry(
+        &mut self,
+        _: &ExportEntry,
+        _window: &mut Window,
+        _cx: &mut Context<Self>,
+    ) {
         // TODO: Implement entry export
         println!("Export entry not implemented yet");
     }
 
     /// Handle entry selection from the tree view
-    fn handle_select_entry(&mut self, action: &SelectTreeEntry, window: &mut Window, cx: &mut Context<Self>) {
+    fn handle_select_entry(
+        &mut self,
+        action: &SelectTreeEntry,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) {
         self.handle_entry_selection(action.dn.clone(), window, cx);
     }
 
@@ -268,14 +299,22 @@ impl Render for BrowserView {
                                         .border_r_1()
                                         .border_color(border)
                                         .overflow_y_scroll()
-                                                                                 .child(self.tree_view.update(cx, |tree, cx| tree.render(window, cx))),                                ),
+                                        .child(
+                                            self.tree_view
+                                                .update(cx, |tree, cx| tree.render(window, cx)),
+                                        ),
+                                ),
                         )
                         .child(
                             // Right panel: Details view
                             v_flex()
                                 .h_full()
                                 .w_full()
-                                                                 .child(self.details_table.update(cx, |table, cx| table.render(window, cx)))                                .into_any_element(),
+                                .child(
+                                    self.details_table
+                                        .update(cx, |table, cx| table.render(window, cx)),
+                                )
+                                .into_any_element(),
                         ),
                 ),
             )
