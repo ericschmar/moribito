@@ -8,12 +8,16 @@ use gpui_component::tree::{tree, TreeItem, TreeState};
 use gpui_component::{h_flex, list::ListItem, theme::ActiveTheme, Icon, IconName};
 use moribito_core::types::TreeNode;
 
+use crate::actions::*;
 use crate::app_state::SharedAppState;
+use gpui::{EventEmitter, Entity};
 
 /// Tree view component for LDAP directory navigation
 pub struct TreeView {
     app_state: SharedAppState,
     tree_state: Entity<TreeState>,
+    focus_handle: FocusHandle,
+    pub(crate) entity: Entity<Self>,
 }
 
 impl TreeView {
@@ -21,10 +25,13 @@ impl TreeView {
     pub fn new(app_state: SharedAppState, window: &mut Window, cx: &mut App) -> Self {
         // Initialize with empty tree state
         let tree_state = cx.new(|cx| TreeState::new(cx));
+        let focus_handle = cx.focus_handle();
 
         Self {
             app_state,
             tree_state,
+            focus_handle,
+            entity: unsafe { std::mem::zeroed() }, // Will be set later
         }
     }
 
@@ -65,7 +72,7 @@ impl TreeView {
     }
 
     /// Load children for a node
-    pub fn load_children(&self, dn: &str, window: &mut Window, cx: &mut App) {
+    pub fn load_children(&self, dn: &str, window: &mut Window, cx: &mut Context<Self>) {
         let mut state = self.app_state.write();
 
         // Check if already loading or already cached
@@ -108,7 +115,7 @@ impl TreeView {
     }
 
     /// Reload the tree from the base DN
-    pub fn reload_tree(&self, base_dn: &str, window: &mut Window, cx: &mut App) {
+    pub fn reload_tree(&self, base_dn: &str, window: &mut Window, cx: &mut Context<Self>) {
         let mut state = self.app_state.write();
 
         // Get the LDAP client
@@ -151,14 +158,12 @@ impl TreeView {
     }
 
     /// Render the tree view
-    pub fn render<F>(&self, on_select: F, window: &mut Window, cx: &mut App) -> impl IntoElement
-    where
-        F: Fn(String) + 'static + Clone,
-    {
+    pub fn render_tree(&self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         let foreground = cx.theme().foreground;
         let muted_foreground = cx.theme().muted_foreground;
         let app_state = self.app_state.clone();
         let tree_view_self = self.clone();
+        let entity_id = cx.entity_id();
 
         tree(&self.tree_state, move |ix, entry, selected, window, cx| {
             let item = entry.item();
@@ -178,7 +183,6 @@ impl TreeView {
             // Check if this node is loading
             let is_loading = app_state.read().is_node_loading(&dn);
 
-            let on_select = on_select.clone();
             let tree_view = tree_view_self.clone();
 
             ListItem::new(SharedString::from(format!("tree-item-{}", ix)))
@@ -197,12 +201,12 @@ impl TreeView {
 
                             // If expanding and not loaded, load children
                             if !is_expanded {
-                                tree_view.load_children(&dn, window, cx);
+                                cx.update_entity(&tree_view.entity, |tree, cx| tree.load_children(&dn, window, cx));
                             }
                         }
 
-                        // Notify selection
-                        on_select(dn.to_string());
+                        // Emit selection action
+                        cx.update_entity(&tree_view.entity, |tree, cx| cx.emit(SelectTreeEntry { dn: dn.to_string() }));
                     }
                 })
                 .child(
@@ -231,11 +235,27 @@ impl TreeView {
     }
 }
 
+impl Render for TreeView {
+    fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
+        self.render_tree(window, cx)
+    }
+}
+
+impl Focusable for TreeView {
+    fn focus_handle(&self, _cx: &gpui::App) -> FocusHandle {
+        self.focus_handle.clone()
+    }
+}
+
+impl EventEmitter<SelectTreeEntry> for TreeView {}
+
 impl Clone for TreeView {
     fn clone(&self) -> Self {
         Self {
             app_state: self.app_state.clone(),
             tree_state: self.tree_state.clone(),
+            focus_handle: self.focus_handle.clone(),
+            entity: self.entity.clone(),
         }
     }
 }

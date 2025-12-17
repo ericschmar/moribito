@@ -35,6 +35,8 @@ actions!(
         ExpandNode,
         CollapseNode,
         RefreshTree,
+        RefreshEntry,
+        ExportEntry,
         Search,
         ClearSearch,
         SelectEntry,
@@ -58,6 +60,13 @@ actions!(
 #[action(namespace = moribito)]
 pub struct SelectConnection {
     pub name: String,
+}
+
+/// Action to select an entry in the tree
+#[derive(Clone, Action, PartialEq, Eq, Deserialize, JsonSchema)]
+#[action(namespace = moribito)]
+pub struct SelectTreeEntry {
+    pub dn: String,
 }
 
 /// Action to update a field value

@@ -14,6 +14,10 @@ use gpui_component::{
 use moribito_core::types::Entry;
 use once_cell::sync::Lazy;
 
+use crate::actions::*;
+use crate::app_state::SharedAppState;
+use gpui::{EventEmitter, Entity};
+
 /// Row data for the attributes table
 #[derive(Clone, Debug)]
 struct AttributeRow {
@@ -102,31 +106,31 @@ impl TableDelegate for AttributesTableDelegate {
 
 /// Entry details table component for displaying LDAP entry attributes
 pub struct EntryDetailsTable {
-    entry: Option<Entry>,
+    app_state: SharedAppState,
     table_state: Entity<TableState<AttributesTableDelegate>>,
+    focus_handle: FocusHandle,
+    pub(crate) entity: Entity<Self>,
 }
 
 impl EntryDetailsTable {
     /// Create a new EntryDetailsTable
-    pub fn new(window: &mut Window, cx: &mut App) -> Self {
+    pub fn new(app_state: SharedAppState, window: &mut Window, cx: &mut App) -> Self {
         let delegate = AttributesTableDelegate::new(vec![]);
         let table_state = cx.new(|cx| TableState::new(delegate, window, cx));
+        let focus_handle = cx.focus_handle();
 
         Self {
-            entry: None,
+            app_state,
             table_state,
+            focus_handle,
+            entity: unsafe { std::mem::zeroed() }, // Will be set later
         }
-    }
-
-    /// Set the entry to display
-    pub fn set_entry(&mut self, entry: Option<Entry>, window: &mut Window, cx: &mut App) {
-        self.entry = entry;
-        self.update_table(window, cx);
     }
 
     /// Update the table with current entry data
     fn update_table(&mut self, window: &mut Window, cx: &mut App) {
-        if let Some(ref entry) = self.entry {
+        let entry = self.app_state.read().selected_entry.clone();
+        if let Some(ref entry) = entry {
             // Build rows from attributes
             let mut rows: Vec<AttributeRow> = entry
                 .attributes
@@ -168,27 +172,20 @@ impl EntryDetailsTable {
     }
 
     /// Render the entry details
-    pub fn render<R, D, X>(
-        &self,
-        on_refresh: R,
-        on_delete: D,
-        on_export: X,
-        _window: &mut Window,
-        cx: &mut App,
-    ) -> impl IntoElement
-    where
-        R: Fn() + 'static,
-        D: Fn() + 'static,
-        X: Fn() + 'static,
-    {
+    pub fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
+        // Update table with current selected entry
+        self.update_table(window, cx);
+
         let theme = cx.theme();
+        let entry = self.app_state.read().selected_entry.clone();
+        let entity = self.entity.clone();
 
         v_flex()
             .w_full()
             .h_full()
             .gap_2()
             .bg(theme.background)
-            .when_some(self.entry.as_ref(), |this, entry| {
+            .when_some(entry.as_ref(), |this, entry| {
                 this.child(
                     // Header with DN and actions
                     v_flex()
@@ -220,8 +217,9 @@ impl EntryDetailsTable {
                                         .outline()
                                         .small()
                                         .label("Refresh")
-                                        .on_click(move |_event, _window, _cx| {
-                                            on_refresh();
+                                        .on_click({
+                                            let entity = entity.clone();
+                                            move |_event, _window, cx| cx.update_entity(&entity, |_table, cx| cx.emit(RefreshEntry))
                                         }),
                                 )
                                 .child(
@@ -229,8 +227,9 @@ impl EntryDetailsTable {
                                         .outline()
                                         .small()
                                         .label("Export")
-                                        .on_click(move |_event, _window, _cx| {
-                                            on_export();
+                                        .on_click({
+                                            let entity = entity.clone();
+                                            move |_event, _window, cx| cx.update_entity(&entity, |_table, cx| cx.emit(ExportEntry))
                                         }),
                                 )
                                 .child(
@@ -238,8 +237,9 @@ impl EntryDetailsTable {
                                         .danger()
                                         .small()
                                         .label("Delete")
-                                        .on_click(move |_event, _window, _cx| {
-                                            on_delete();
+                                        .on_click({
+                                            let entity = entity.clone();
+                                            move |_event, _window, cx| cx.update_entity(&entity, |_table, cx| cx.emit(DeleteEntry))
                                         }),
                                 ),
                         ),
@@ -252,7 +252,7 @@ impl EntryDetailsTable {
                         .child(Table::new(&self.table_state).stripe(true)),
                 )
             })
-            .when(self.entry.is_none(), |this| {
+            .when(entry.is_none(), |this| {
                 this.child(
                     v_flex()
                         .w_full()
@@ -270,11 +270,29 @@ impl EntryDetailsTable {
     }
 }
 
+impl Render for EntryDetailsTable {
+    fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
+        self.render(window, cx)
+    }
+}
+
+impl EventEmitter<RefreshEntry> for EntryDetailsTable {}
+impl EventEmitter<ExportEntry> for EntryDetailsTable {}
+impl EventEmitter<DeleteEntry> for EntryDetailsTable {}
+
+impl Focusable for EntryDetailsTable {
+    fn focus_handle(&self, _cx: &gpui::App) -> FocusHandle {
+        self.focus_handle.clone()
+    }
+}
+
 impl Clone for EntryDetailsTable {
     fn clone(&self) -> Self {
         Self {
-            entry: self.entry.clone(),
+            app_state: self.app_state.clone(),
             table_state: self.table_state.clone(),
+            focus_handle: self.focus_handle.clone(),
+            entity: self.entity.clone(),
         }
     }
 }
