@@ -109,7 +109,6 @@ pub struct EntryDetailsTable {
     app_state: SharedAppState,
     table_state: Entity<TableState<AttributesTableDelegate>>,
     focus_handle: FocusHandle,
-    pub(crate) entity: Entity<Self>,
 }
 
 impl EntryDetailsTable {
@@ -123,7 +122,6 @@ impl EntryDetailsTable {
             app_state,
             table_state,
             focus_handle,
-            entity: unsafe { std::mem::zeroed() }, // Will be set later
         }
     }
 
@@ -178,7 +176,7 @@ impl EntryDetailsTable {
 
         let theme = cx.theme();
         let entry = self.app_state.read().selected_entry.clone();
-        let entity = self.entity.clone();
+        let entity = cx.entity();
 
         v_flex()
             .w_full()
@@ -292,7 +290,6 @@ impl Clone for EntryDetailsTable {
             app_state: self.app_state.clone(),
             table_state: self.table_state.clone(),
             focus_handle: self.focus_handle.clone(),
-            entity: self.entity.clone(),
         }
     }
 }

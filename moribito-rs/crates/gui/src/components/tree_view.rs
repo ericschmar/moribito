@@ -17,7 +17,6 @@ pub struct TreeView {
     app_state: SharedAppState,
     tree_state: Entity<TreeState>,
     focus_handle: FocusHandle,
-    pub(crate) entity: Entity<Self>,
 }
 
 impl TreeView {
@@ -31,7 +30,6 @@ impl TreeView {
             app_state,
             tree_state,
             focus_handle,
-            entity: unsafe { std::mem::zeroed() }, // Will be set later
         }
     }
 
@@ -162,8 +160,7 @@ impl TreeView {
         let foreground = cx.theme().foreground;
         let muted_foreground = cx.theme().muted_foreground;
         let app_state = self.app_state.clone();
-        let tree_view_self = self.clone();
-        let entity_id = cx.entity_id();
+        let tree_entity = cx.entity();
 
         tree(&self.tree_state, move |ix, entry, selected, window, cx| {
             let item = entry.item();
@@ -183,14 +180,14 @@ impl TreeView {
             // Check if this node is loading
             let is_loading = app_state.read().is_node_loading(&dn);
 
-            let tree_view = tree_view_self.clone();
+            let tree_entity_handle = tree_entity.clone();
 
             ListItem::new(SharedString::from(format!("tree-item-{}", ix)))
                 .selected(selected)
                 .pl(px(16.0) * entry.depth() + px(12.0))
                 .on_click({
                     let dn = dn.clone();
-                    let tree_view = tree_view.clone();
+                    let tree_entity = tree_entity_handle.clone();
                     let app_state = app_state.clone();
                     move |_event, window, cx| {
                         // Toggle expansion if it's a folder
@@ -201,12 +198,12 @@ impl TreeView {
 
                             // If expanding and not loaded, load children
                             if !is_expanded {
-                                cx.update_entity(&tree_view.entity, |tree, cx| tree.load_children(&dn, window, cx));
+                                cx.update_entity(&tree_entity, |tree, cx| tree.load_children(&dn, window, cx));
                             }
                         }
 
                         // Emit selection action
-                        cx.update_entity(&tree_view.entity, |tree, cx| cx.emit(SelectTreeEntry { dn: dn.to_string() }));
+                        cx.update_entity(&tree_entity, |tree, cx| cx.emit(SelectTreeEntry { dn: dn.to_string() }));
                     }
                 })
                 .child(
@@ -255,7 +252,6 @@ impl Clone for TreeView {
             app_state: self.app_state.clone(),
             tree_state: self.tree_state.clone(),
             focus_handle: self.focus_handle.clone(),
-            entity: self.entity.clone(),
         }
     }
 }

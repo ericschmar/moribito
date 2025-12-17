@@ -35,9 +35,7 @@ impl BrowserView {
     /// Create a new BrowserView
     pub fn new(app_state: SharedAppState, window: &mut Window, cx: &mut App) -> Self {
         let tree_view = cx.new(|cx| TreeView::new(app_state.clone(), window, cx));
-        tree_view.update(cx, |tree, cx| tree.entity = cx.entity());
         let details_table = cx.new(|cx| EntryDetailsTable::new(app_state.clone(), window, cx));
-        details_table.update(cx, |table, cx| table.entity = cx.entity());
 
         // Initialize search bar with base DN if connected
         let base_dn = app_state.read().current_base_dn.clone().unwrap_or_default();
