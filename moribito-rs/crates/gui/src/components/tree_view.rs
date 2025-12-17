@@ -236,8 +236,8 @@ impl TreeView {
 }
 
 impl Render for TreeView {
-    fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
-        self.render_tree(window, cx)
+    fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> AnyElement {
+        self.render_tree(window, cx).into_any_element()
     }
 }
 

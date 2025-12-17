@@ -270,16 +270,14 @@ impl Render for BrowserView {
                                         .border_r_1()
                                         .border_color(border)
                                         .overflow_y_scroll()
-                                        .child(self.tree_view.update(cx, |tree, cx| tree.render(window, cx))),
-                                ),
+                                                                                 .child(self.tree_view.update(cx, |tree, cx| tree.render(window, cx))),                                ),
                         )
                         .child(
                             // Right panel: Details view
                             v_flex()
                                 .h_full()
                                 .w_full()
-                                .child(self.details_table.update(cx, |table, cx| table.render(window, cx)))
-                                .into_any_element(),
+                                                                 .child(self.details_table.update(cx, |table, cx| table.render(window, cx)))                                .into_any_element(),
                         ),
                 ),
             )

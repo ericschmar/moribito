@@ -172,7 +172,7 @@ impl EntryDetailsTable {
     }
 
     /// Render the entry details
-    pub fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
+    pub fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> AnyElement {
         // Update table with current selected entry
         self.update_table(window, cx);
 
@@ -266,7 +266,7 @@ impl EntryDetailsTable {
                                 .child("Select an entry to view details"),
                         ),
                 )
-            })
+            }).into_any_element()
     }
 }
 
