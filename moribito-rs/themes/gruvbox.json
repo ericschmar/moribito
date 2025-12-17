@@ -7,6 +7,10 @@
     {
       "name": "Gruvbox Light",
       "mode": "light",
+      "font": {
+        "family": "Inter",
+        "mono_family": "JetBrains Mono"
+      },
       "colors": {
         "accent.background": "#ebdbb2",
         "accent.foreground": "#3c3836",
@@ -156,6 +160,10 @@
     {
       "name": "Gruvbox Dark",
       "mode": "dark",
+      "font": {
+        "family": "Inter",
+        "mono_family": "JetBrains Mono"
+      },
       "colors": {
         "accent.background": "#282828",
         "accent.foreground": "#ebdbb2",

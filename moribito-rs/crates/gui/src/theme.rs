@@ -4,6 +4,57 @@
 //! typography, and other design tokens used throughout the application.
 
 use gpui::Hsla;
+use serde::{Deserialize, Serialize};
+
+/// Font configuration for the theme
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct FontConfig {
+    pub family: String,
+    pub mono_family: Option<String>,
+    pub size: Option<f32>,
+    pub mono_size: Option<f32>,
+}
+
+impl Default for FontConfig {
+    fn default() -> Self {
+        Self {
+            family: "system-ui".to_string(),
+            mono_family: Some("monospace".to_string()),
+            size: None,
+            mono_size: None,
+        }
+    }
+}
+
+impl FontConfig {
+    pub fn from_json_value(value: &serde_json::Value) -> Option<Self> {
+        match value {
+            serde_json::Value::Object(map) => {
+                let family = map
+                    .get("family")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or("system-ui")
+                    .to_string();
+                let mono_family = map
+                    .get("mono_family")
+                    .and_then(|v| v.as_str())
+                    .map(|s| s.to_string());
+                let size = map.get("size").and_then(|v| v.as_f64()).map(|s| s as f32);
+                let mono_size = map
+                    .get("mono_size")
+                    .and_then(|v| v.as_f64())
+                    .map(|s| s as f32);
+                Some(Self {
+                    family,
+                    mono_family,
+                    size,
+                    mono_size,
+                })
+            }
+            _ => None,
+        }
+    }
+}
 
 /// Application theme containing all design tokens
 #[derive(Debug, Clone)]
@@ -57,6 +108,7 @@ pub struct Spacing {
 #[derive(Debug, Clone)]
 pub struct Typography {
     pub font_family: String,
+    pub mono_font_family: String,
     pub font_size_xs: f32,
     pub font_size_sm: f32,
     pub font_size_md: f32,
@@ -120,6 +172,7 @@ impl Theme {
             },
             typography: Typography {
                 font_family: "system-ui".to_string(),
+                mono_font_family: "monospace".to_string(),
                 font_size_xs: 11.0,
                 font_size_sm: 13.0,
                 font_size_md: 14.0,
@@ -175,6 +228,7 @@ impl Theme {
             },
             typography: Typography {
                 font_family: "system-ui".to_string(),
+                mono_font_family: "monospace".to_string(),
                 font_size_xs: 11.0,
                 font_size_sm: 13.0,
                 font_size_md: 14.0,
@@ -189,6 +243,13 @@ impl Theme {
                 width_thin: 1.0,
                 width_medium: 2.0,
             },
+        }
+    }
+
+    pub fn apply_font_config(&mut self, config: &FontConfig) {
+        self.typography.font_family = config.family.clone();
+        if let Some(mono_family) = &config.mono_family {
+            self.typography.mono_font_family = mono_family.clone();
         }
     }
 }
