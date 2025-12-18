@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "memory": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-memory"],
+      "env": {
+        "MEMORY_FILE_PATH": "/Users/mmacbook/develop/moribito/.claude/memory.json"
+      }
+    }
+  }
+}

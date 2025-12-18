@@ -2,8 +2,10 @@
 
 use gpui::prelude::*;
 use gpui::{
-    div, px, size, App, Bounds, Context, Root, TitlebarOptions, Window, WindowKind, WindowOptions,
+    div, px, size, App, Bounds, Context, Focusable, Root, TitlebarOptions, Window, WindowKind,
+    WindowOptions,
 };
+use gpui::{prelude::*, FocusHandle};
 use gpui_component::{button::Button, h_flex, v_flex, FontWeight, Sizable};
 use moribito_core::client::LdapClient;
 use moribito_core::config::{ConnectionSettings, SavedConnection};
@@ -182,7 +184,7 @@ impl StartView {
         };
 
         v_flex()
-            .flex(1.0)
+            .flex()
             .gap(px(theme.spacing.md))
             .child(header)
             .child(body)
@@ -217,7 +219,7 @@ impl Render for StartView {
             .padding(px(theme.spacing.lg))
             .child(
                 v_flex()
-                    .flex(1.0)
+                    .flex()
                     .gap(px(theme.spacing.md))
                     .bg(theme.colors.surface)
                     .border_radius(px(theme.borders.radius_md))
@@ -249,7 +251,7 @@ impl Render for StartView {
             )
             .child(
                 v_flex()
-                    .flex(1.0)
+                    .flex()
                     .bg(theme.colors.surface)
                     .border_radius(px(theme.borders.radius_md))
                     .padding(px(theme.spacing.lg))
