@@ -33,9 +33,13 @@ impl Render for AppView {
             }
 
             let browser = self.browser_view.as_ref().unwrap().clone();
+            let focus_handle = browser.read(cx).focus_handle(cx);
+            window.focus(&focus_handle);
             browser.into_any_element()
         } else {
             self.browser_view = None;
+            let focus_handle = self.start_view.read(cx).focus_handle(cx);
+            window.focus(&focus_handle);
             self.start_view.clone().into_any_element()
         }
     }
