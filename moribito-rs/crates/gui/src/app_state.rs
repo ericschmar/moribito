@@ -47,7 +47,7 @@ pub struct AppState {
 }
 
 /// State for the LDAP tree navigation
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone)]
 pub struct TreeState {
     /// Set of expanded node DNs
     pub expanded_nodes: HashSet<String>,
@@ -57,6 +57,33 @@ pub struct TreeState {
 
     /// Set of nodes currently being loaded
     pub loading_nodes: HashSet<String>,
+
+    /// Current OU filter ("All" or specific OU DN)
+    pub ou_filter: String,
+
+    /// List of available OUs for filtering
+    pub available_ous: Vec<OuOption>,
+}
+
+/// Represents an OU option for the filter dropdown
+#[derive(Debug, Clone, PartialEq)]
+pub struct OuOption {
+    /// Display name (e.g., "mathematicians")
+    pub label: String,
+    /// Full DN (e.g., "ou=mathematicians,dc=example,dc=com")
+    pub dn: String,
+}
+
+impl Default for TreeState {
+    fn default() -> Self {
+        Self {
+            expanded_nodes: HashSet::new(),
+            node_children: HashMap::new(),
+            loading_nodes: HashSet::new(),
+            ou_filter: "All".to_string(),
+            available_ous: Vec::new(),
+        }
+    }
 }
 
 impl AppState {
@@ -209,6 +236,40 @@ impl AppState {
     /// Check if a node is currently loading
     pub fn is_node_loading(&self, dn: &str) -> bool {
         self.tree_state.loading_nodes.contains(dn)
+    }
+
+    /// Set the OU filter
+    pub fn set_ou_filter(&mut self, filter: String) {
+        self.tree_state.ou_filter = filter;
+    }
+
+    /// Update available OUs list
+    pub fn update_available_ous(&mut self, ous: Vec<OuOption>) {
+        self.tree_state.available_ous = ous;
+    }
+
+    /// Extract OUs from cached children
+    pub fn extract_ous_from_cache(&self) -> Vec<OuOption> {
+        self.tree_state
+            .node_children
+            .values()
+            .flatten()
+            .filter(|node| node.name.to_lowercase().starts_with("ou="))
+            .map(|node| {
+                // Extract the OU name from the DN
+                let label = node
+                    .name
+                    .strip_prefix("ou=")
+                    .or_else(|| node.name.strip_prefix("OU="))
+                    .unwrap_or(&node.name)
+                    .to_string();
+
+                OuOption {
+                    label,
+                    dn: node.dn.clone(),
+                }
+            })
+            .collect()
     }
 }
 

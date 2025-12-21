@@ -13,6 +13,7 @@ serde_yaml = "0.9"
 thiserror = "1"
 tokio = { workspace = true }
 dirs = "5"
+log = "0.4"
 
 [dev-dependencies]
 tempfile = "3"

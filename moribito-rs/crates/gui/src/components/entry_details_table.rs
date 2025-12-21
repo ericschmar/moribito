@@ -9,9 +9,9 @@ use gpui_component::{
     h_flex,
     table::{Column, Table, TableDelegate, TableState},
     theme::ActiveTheme,
-    v_flex, Disableable, Sizable,
+    v_flex,
+    Sizable,
 };
-use moribito_core::types::Entry;
 use once_cell::sync::Lazy;
 
 use crate::actions::*;

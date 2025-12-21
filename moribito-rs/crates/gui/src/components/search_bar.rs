@@ -9,7 +9,7 @@ use gpui_component::{
     h_flex,
     input::{Input, InputState},
     theme::ActiveTheme,
-    Disableable, Sizable,
+    Sizable,
 };
 
 /// Search bar component for LDAP searches

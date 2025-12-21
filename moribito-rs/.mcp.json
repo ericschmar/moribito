@@ -1,0 +1,18 @@
+{
+  "mcpServers": {
+    "agentsdb": {
+      "type": "stdio",
+      "command": "agentsdb",
+      "args": [
+        "serve",
+        "--base",
+        "/Users/mmacbook/develop/moribito/moribito-rs/AGENTS.db",
+        "--local",
+        "/Users/mmacbook/develop/moribito/moribito-rs/AGENTS.local.db",
+        "--delta",
+        "/Users/mmacbook/develop/moribito/moribito-rs/AGENTS.delta.db"
+      ],
+      "env": {}
+    }
+  }
+}

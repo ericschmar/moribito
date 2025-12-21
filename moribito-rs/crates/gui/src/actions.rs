@@ -84,6 +84,14 @@ pub struct ToggleSetting {
     pub setting: String,
 }
 
+/// Action to filter tree by OU
+#[derive(Clone, Action, PartialEq, Eq, Deserialize, JsonSchema)]
+#[action(namespace = moribito)]
+pub struct FilterByOu {
+    /// "All" or specific OU DN
+    pub ou_dn: String,
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

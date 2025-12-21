@@ -92,7 +92,7 @@ impl ConfigView {
             let base_dn_input = cx.new(|cx| {
                 InputState::new(window, cx)
                     .placeholder("dc=example,dc=com")
-                    .default_value("")
+                    .default_value("dc=example,dc=com")
             });
             let bind_user_input = cx.new(|cx| {
                 InputState::new(window, cx)
@@ -327,16 +327,16 @@ impl ConfigView {
 
     /// Connect to the LDAP server and close the config window
     fn connect_and_close(&mut self, window: &mut Window, cx: &mut Context<Self>) {
-        println!("🔌 Connect button clicked!");
+        log::info!("🔌 [ConfigView] Connect button clicked");
 
         // First validate the connection settings
         if !self.validate(cx) {
-            println!("❌ Validation failed");
+            log::warn!("❌ [ConfigView] Validation failed");
             cx.notify();
             return;
         }
 
-        println!("✅ Validation passed");
+        log::info!("✅ [ConfigView] Validation passed");
 
         // Save the connection first
         self.save_connection(window, cx);
@@ -344,19 +344,21 @@ impl ConfigView {
         // Get connection settings
         let settings = self.get_connection_settings(cx);
 
-        println!(
-            "🌐 Attempting to connect to {}:{}",
-            settings.host, settings.port
+        log::info!(
+            "🌐 [ConfigView] Attempting to connect to {}:{} with base DN: {}",
+            settings.host,
+            settings.port,
+            settings.base_dn
         );
 
         // Attempt to connect to LDAP server
         match LdapClient::connect(&settings) {
             Ok(mut client) => {
-                println!("✅ Connected to LDAP server, attempting to bind...");
+                log::info!("✅ [ConfigView] Connected to LDAP server, attempting to bind...");
                 // Attempt to bind (authenticate)
                 match client.bind() {
                     Ok(()) => {
-                        println!("✅ Authentication successful!");
+                        log::info!("✅ [ConfigView] Authentication successful!");
                         // Connection successful - update app state
                         {
                             let mut state = self.app_state.write();
@@ -367,16 +369,20 @@ impl ConfigView {
                                 Some(self.name_input.read(cx).text().to_string());
                             state.status_message =
                                 Some(format!("Connected to {} successfully", settings.host));
-                            println!("📝 App state updated with connection info");
+                            log::info!(
+                                "📝 [ConfigView] App state updated: is_connected={}, base_dn={:?}",
+                                state.is_connected,
+                                state.current_base_dn
+                            );
                         }
 
-                        println!("🪟 Closing config window...");
+                        log::info!("🪟 [ConfigView] Closing config window...");
                         // Close the config window
                         window.remove_window();
                     }
                     Err(e) => {
                         // Authentication failed
-                        println!("❌ Authentication failed: {}", e);
+                        log::error!("❌ [ConfigView] Authentication failed: {}", e);
                         self.test_result = Some(Err(format!("Authentication failed: {}", e)));
                         cx.notify();
                     }
@@ -384,7 +390,7 @@ impl ConfigView {
             }
             Err(e) => {
                 // Connection failed
-                println!("❌ Connection failed: {}", e);
+                log::error!("❌ [ConfigView] Connection failed: {}", e);
                 self.test_result = Some(Err(format!("Connection failed: {}", e)));
                 cx.notify();
             }

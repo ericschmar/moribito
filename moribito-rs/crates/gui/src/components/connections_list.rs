@@ -6,7 +6,7 @@ use std::rc::Rc;
 
 use gpui::prelude::*;
 use gpui::{
-    div, px, App, ClickEvent, Div, FontWeight, InteractiveElement, IntoElement, ParentElement,
+    div, px, App, ClickEvent, FontWeight, InteractiveElement, IntoElement, ParentElement,
     RenderOnce, StatefulInteractiveElement, Styled, Window,
 };
 use gpui_component::{

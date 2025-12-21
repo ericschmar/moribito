@@ -21,7 +21,11 @@ use menus::build_menus;
 use views::AppView;
 
 fn main() {
-    env_logger::init();
+    // Initialize logging with INFO level by default
+    // Set RUST_LOG environment variable to override (e.g., RUST_LOG=debug)
+    env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("info")).init();
+
+    log::info!("🚀 Starting Moribito LDAP Browser");
 
     Application::new().with_assets(Assets).run(|cx: &mut App| {
         // Initialize gpui-component

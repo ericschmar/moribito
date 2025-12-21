@@ -1,5 +1,5 @@
 use gpui::prelude::*;
-use gpui::{App, Context, FocusHandle, Window};
+use gpui::{App, Context, Entity, FocusHandle, Focusable, Window};
 
 use crate::app_state::SharedAppState;
 use crate::views::{BrowserView, StartView};
@@ -33,11 +33,10 @@ impl Render for AppView {
             }
 
             let browser = self.browser_view.as_ref().unwrap().clone();
-            browser.update(cx, |view, cx| view.render(window, cx))
+            browser.into_any_element()
         } else {
             self.browser_view = None;
-            self.start_view
-                .update(cx, |view, cx| view.render(window, cx))
+            self.start_view.clone().into_any_element()
         }
     }
 }

@@ -129,22 +129,46 @@ impl LdapClient {
     /// # Ok::<(), moribito_core::LdapError>(())
     /// ```
     pub fn get_children(&mut self, dn: &str) -> Result<Vec<TreeNode>> {
+        log::info!("🔍 [LdapClient] get_children called for DN: {}", dn);
+        log::debug!(
+            "🔍 [LdapClient] Performing LDAP search with scope=OneLevel, filter=(objectClass=*)"
+        );
+
         let (entries, _res) = self
             .conn
             .search(dn, Scope::OneLevel, "(objectClass=*)", vec!["*"])
-            .map_err(|e| LdapError::search_failed(format!("Search failed: {}", e)))?
+            .map_err(|e| {
+                log::error!("❌ [LdapClient] LDAP search failed: {}", e);
+                LdapError::search_failed(format!("Search failed: {}", e))
+            })?
             .success()
-            .map_err(|e| LdapError::search_failed(format!("Search failed: {}", e)))?;
+            .map_err(|e| {
+                log::error!("❌ [LdapClient] LDAP search result error: {}", e);
+                LdapError::search_failed(format!("Search failed: {}", e))
+            })?;
 
-        let nodes = entries
+        log::info!(
+            "✅ [LdapClient] LDAP search returned {} raw entries",
+            entries.len()
+        );
+
+        let nodes: Vec<TreeNode> = entries
             .into_iter()
-            .map(|entry| {
+            .enumerate()
+            .map(|(i, entry)| {
                 let search_entry = SearchEntry::construct(entry);
+                let dn = search_entry.dn.clone();
                 let entry = Self::search_entry_to_entry(search_entry);
-                TreeNode::from_entry(&entry)
+                let node = TreeNode::from_entry(&entry);
+                log::debug!("  [{}] {} -> TreeNode(name={})", i + 1, dn, node.name);
+                node
             })
             .collect();
 
+        log::info!(
+            "✅ [LdapClient] Converted {} entries to TreeNodes",
+            nodes.len()
+        );
         Ok(nodes)
     }
 

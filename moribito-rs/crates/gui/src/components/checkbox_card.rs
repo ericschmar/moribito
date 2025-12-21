@@ -9,7 +9,7 @@ use gpui::{
     div, px, App, Div, ElementId, FontWeight, InteractiveElement, IntoElement, ParentElement,
     RenderOnce, SharedString, StatefulInteractiveElement, Styled, Window,
 };
-use gpui::{prelude::*, AlignItems};
+use gpui::prelude::*;
 use gpui_component::checkbox::Checkbox;
 use gpui_component::Disableable;
 

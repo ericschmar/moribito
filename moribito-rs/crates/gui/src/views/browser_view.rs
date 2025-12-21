@@ -5,7 +5,6 @@
 use gpui::prelude::*;
 use gpui::*;
 use gpui_component::{
-    h_flex,
     resizable::{h_resizable, resizable_panel},
     theme::ActiveTheme,
     v_flex, Root,
@@ -14,8 +13,8 @@ use gpui_component::{
 use crate::actions::*;
 use crate::app_state::SharedAppState;
 use crate::components::{
-    entry_details_table::EntryDetailsTable, search_bar::SearchBar, status_bar::StatusBar,
-    tree_view::TreeView,
+    entry_details_table::EntryDetailsTable, ou_filter::OuFilter, search_bar::SearchBar,
+    status_bar::StatusBar, tree_view::TreeView,
 };
 use crate::views::ConfigView;
 use gpui::Entity;
@@ -25,6 +24,7 @@ pub struct BrowserView {
     app_state: SharedAppState,
     tree_view: Entity<TreeView>,
     details_table: Entity<EntryDetailsTable>,
+    ou_filter: Entity<OuFilter>,
     search_bar: SearchBar,
     status_bar: StatusBar,
     focus_handle: FocusHandle,
@@ -36,6 +36,7 @@ impl BrowserView {
     pub fn new(app_state: SharedAppState, window: &mut Window, cx: &mut App) -> Self {
         let tree_view = cx.new(|cx| TreeView::new(app_state.clone(), window, cx));
         let details_table = cx.new(|cx| EntryDetailsTable::new(app_state.clone(), window, cx));
+        let ou_filter = cx.new(|cx| OuFilter::new(app_state.clone(), window, cx));
 
         // Initialize search bar with base DN if connected
         let base_dn = app_state.read().current_base_dn.clone().unwrap_or_default();
@@ -47,6 +48,7 @@ impl BrowserView {
             app_state,
             tree_view,
             details_table,
+            ou_filter,
             search_bar,
             status_bar,
             focus_handle,
@@ -97,11 +99,42 @@ impl BrowserView {
         state.set_status("Collapsed all nodes");
     }
 
+    /// Handle FilterByOu action
+    fn handle_filter_by_ou(
+        &mut self,
+        action: &FilterByOu,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) {
+        log::info!("🔍 [BrowserView] Filtering tree by OU: {}", action.ou_dn);
+
+        // Update the filter in app state (already done by OuFilter component)
+        // Now reload the tree to apply the new filter
+        if let Some(base_dn) = self.app_state.read().current_base_dn.clone() {
+            self.tree_view
+                .update(cx, |tree, cx| tree.reload_tree(&base_dn, window, cx));
+        }
+
+        let filter_label = if action.ou_dn == "All" {
+            "All entries".to_string()
+        } else {
+            action.ou_dn.clone()
+        };
+        self.app_state
+            .write()
+            .set_status(format!("Filtering by: {}", filter_label));
+    }
+
     /// Initialize the browser with a base DN
     pub fn initialize(&mut self, base_dn: &str, window: &mut Window, cx: &mut Context<Self>) {
+        log::info!(
+            "🌳 [BrowserView] Initializing tree with base DN: {}",
+            base_dn
+        );
         self.tree_view
             .update(cx, |tree, cx| tree.reload_tree(base_dn, window, cx));
         self.last_initialized_base_dn = Some(base_dn.to_string());
+        log::info!("✅ [BrowserView] Tree initialization complete");
     }
 
     /// Check if tree needs initialization and trigger it if needed
@@ -110,6 +143,13 @@ impl BrowserView {
         let should_init = {
             let app_state = self.app_state.read();
 
+            log::debug!(
+                "🔍 [BrowserView] Checking initialization: is_connected={}, current_base_dn={:?}, last_initialized={:?}",
+                app_state.is_connected,
+                app_state.current_base_dn,
+                self.last_initialized_base_dn
+            );
+
             // Only initialize if:
             // 1. Connected to LDAP server
             // 2. Have a base DN
@@ -117,11 +157,27 @@ impl BrowserView {
             if app_state.is_connected {
                 if let Some(ref current_base_dn) = app_state.current_base_dn {
                     if current_base_dn.trim().is_empty() {
+                        log::debug!("⚠️  [BrowserView] Base DN is empty, skipping initialization");
                         None
                     } else {
                         let needs_init = match &self.last_initialized_base_dn {
-                            None => true,                                // Never initialized
-                            Some(last_dn) => last_dn != current_base_dn, // Different base DN
+                            None => {
+                                log::info!(
+                                    "🆕 [BrowserView] Tree never initialized, will initialize now"
+                                );
+                                true
+                            }
+                            Some(last_dn) => {
+                                let different = last_dn != current_base_dn;
+                                if different {
+                                    log::info!(
+                                        "🔄 [BrowserView] Base DN changed from {} to {}, will reinitialize",
+                                        last_dn,
+                                        current_base_dn
+                                    );
+                                }
+                                different
+                            }
                         };
 
                         if needs_init {
@@ -131,9 +187,11 @@ impl BrowserView {
                         }
                     }
                 } else {
+                    log::debug!("⚠️  [BrowserView] No base DN set, skipping initialization");
                     None
                 }
             } else {
+                log::debug!("⚠️  [BrowserView] Not connected, skipping initialization");
                 None
             }
         };
@@ -221,7 +279,7 @@ impl BrowserView {
 
     /// Open the configuration window
     pub fn open_config_window(&self, cx: &mut Context<Self>) {
-        let bounds = Bounds::centered(None, size(px(700.0), px(650.0)), cx);
+        let bounds = Bounds::centered(None, size(px(850.0), px(800.0)), cx);
         let app_state = self.app_state.clone();
 
         cx.open_window(
@@ -263,6 +321,7 @@ impl Render for BrowserView {
             .on_action(cx.listener(Self::handle_refresh))
             .on_action(cx.listener(Self::handle_expand_all))
             .on_action(cx.listener(Self::handle_collapse_all))
+            .on_action(cx.listener(Self::handle_filter_by_ou))
             .on_action(cx.listener(Self::handle_select_entry))
             .on_action(cx.listener(Self::handle_refresh_entry))
             .on_action(cx.listener(Self::handle_delete_entry))
@@ -287,21 +346,31 @@ impl Render for BrowserView {
                 div().flex_1().w_full().child(
                     h_resizable("browser-main-split")
                         .child(
-                            // Left panel: Tree view
+                            // Left panel: Tree view with OU filter
                             resizable_panel()
                                 .size(px(300.0))
                                 .size_range(px(200.0)..px(600.0))
                                 .child(
                                     v_flex()
-                                        .id("tree-panel-scroll")
                                         .h_full()
                                         .w_full()
                                         .border_r_1()
                                         .border_color(border)
-                                        .overflow_y_scroll()
+                                        // OU Filter at top of tree panel
                                         .child(
-                                            self.tree_view
-                                                .update(cx, |tree, cx| tree.render(window, cx)),
+                                            div()
+                                                .p_2()
+                                                .border_b_1()
+                                                .border_color(border)
+                                                .child(self.ou_filter.clone()),
+                                        )
+                                        // Tree view below filter
+                                        .child(
+                                            div()
+                                                .id("tree-panel-scroll")
+                                                .flex_1()
+                                                .overflow_y_scroll()
+                                                .child(self.tree_view.clone()),
                                         ),
                                 ),
                         )
@@ -310,10 +379,7 @@ impl Render for BrowserView {
                             v_flex()
                                 .h_full()
                                 .w_full()
-                                .child(
-                                    self.details_table
-                                        .update(cx, |table, cx| table.render(window, cx)),
-                                )
+                                .child(self.details_table.clone())
                                 .into_any_element(),
                         ),
                 ),
@@ -331,6 +397,7 @@ impl Clone for BrowserView {
             app_state: self.app_state.clone(),
             tree_view: self.tree_view.clone(),
             details_table: self.details_table.clone(),
+            ou_filter: self.ou_filter.clone(),
             search_bar: self.search_bar.clone(),
             status_bar: self.status_bar.clone(),
             focus_handle: self.focus_handle.clone(),

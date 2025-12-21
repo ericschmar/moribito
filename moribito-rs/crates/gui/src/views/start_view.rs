@@ -2,11 +2,13 @@
 
 use gpui::prelude::*;
 use gpui::{
-    div, px, size, App, Bounds, Context, Focusable, Root, TitlebarOptions, Window, WindowKind,
-    WindowOptions,
+    div, px, size, App, Bounds, Context, FocusHandle, Focusable, FontWeight,
+    TitlebarOptions, Window, WindowBounds, WindowKind, WindowOptions,
 };
-use gpui::{prelude::*, FocusHandle};
-use gpui_component::{button::Button, h_flex, v_flex, FontWeight, Sizable};
+use gpui_component::{
+    button::{Button, ButtonVariants},
+    h_flex, v_flex, Root,
+};
 use moribito_core::client::LdapClient;
 use moribito_core::config::{ConnectionSettings, SavedConnection};
 
@@ -36,9 +38,10 @@ impl StartView {
 
     fn open_config_window(&self, window: &mut Window, cx: &mut Context<Self>) {
         let app_state = self.app_state.clone();
+        let bounds = Bounds::centered(None, size(px(800.0), px(750.0)), cx);
         cx.open_window(
             WindowOptions {
-                window_bounds: Some(Bounds::centered(None, size(px(700.0), px(650.0)), cx)),
+                window_bounds: Some(WindowBounds::Windowed(bounds)),
                 focus: true,
                 show: true,
                 kind: WindowKind::Normal,
@@ -73,7 +76,7 @@ impl StartView {
         cx.notify();
 
         let settings = ConnectionSettings::from_saved(&connection);
-        let cmd = (|| {
+        let cmd: Result<LdapClient, Box<dyn std::error::Error>> = (|| {
             let mut client = LdapClient::connect(&settings)?;
             client.bind()?;
             Ok(client)
@@ -103,12 +106,6 @@ impl StartView {
         cx: &'a mut Context<Self>,
         saved_connections: Vec<SavedConnection>,
     ) -> impl IntoElement + 'a {
-        let header = div()
-            .text_size(px(theme.typography.font_size_md))
-            .font_weight(FontWeight::BOLD)
-            .text_color(theme.colors.text_primary)
-            .child("Saved connections");
-
         let body = if saved_connections.is_empty() {
             div()
                 .flex()
@@ -127,67 +124,72 @@ impl StartView {
                     Button::new("start-config")
                         .ghost()
                         .label("Add connection")
-                        .on_click(move |_event, window, cx| {
-                            let entity = cx.entity();
-                            entity.update(cx, |view, cx| {
-                                view.open_config_window(window, cx);
-                            });
-                        }),
+                        .on_click(cx.listener(|view, _event, window, cx| {
+                            view.open_config_window(window, cx);
+                        })),
                 )
         } else {
-            let start_entity = cx.entity();
             let cards = saved_connections
                 .into_iter()
                 .take(3)
-                .map(move |conn| {
-                    let start_entity = start_entity.clone();
+                .enumerate()
+                .map(|(idx, conn)| {
                     let connection = conn.clone();
-                    div()
-                        .cursor_pointer()
-                        .border_radius(px(theme.borders.radius_md))
-                        .border_color(theme.colors.border)
-                        .bg(theme.colors.surface)
-                        .padding(px(theme.spacing.md))
-                        .gap(px(theme.spacing.xs))
-                        .on_click(move |_event, window, cx| {
-                            cx.update_entity(&start_entity, |view, cx| {
+                    v_flex().gap(px(theme.spacing.xs)).child(
+                        Button::new(("connection-card", idx))
+                            .ghost()
+                            .child(
+                                v_flex()
+                                    .gap(px(theme.spacing.xs))
+                                    .p(px(theme.spacing.md))
+                                    .w_full()
+                                    .items_start()
+                                    .child(
+                                        div()
+                                            .text_color(theme.colors.text_primary)
+                                            .text_size(px(theme.typography.font_size_md))
+                                            .font_weight(FontWeight::BOLD)
+                                            .child(conn.name.clone()),
+                                    )
+                                    .child(
+                                        div()
+                                            .text_color(theme.colors.text_secondary)
+                                            .text_size(px(theme.typography.font_size_sm))
+                                            .child(format!("{}:{}", conn.host, conn.port)),
+                                    )
+                                    .child(
+                                        div()
+                                            .text_color(theme.colors.text_secondary)
+                                            .text_size(px(theme.typography.font_size_sm))
+                                            .child(if conn.base_dn.is_empty() {
+                                                "Base DN not set".to_string()
+                                            } else {
+                                                conn.base_dn.clone()
+                                            }),
+                                    ),
+                            )
+                            .on_click(cx.listener(move |view, _event, window, cx| {
                                 view.connect_to_connection(connection.clone(), window, cx);
-                            });
-                        })
-                        .child(
-                            div()
-                                .text_color(theme.colors.text_primary)
-                                .text_size(px(theme.typography.font_size_md))
-                                .font_weight(FontWeight::BOLD)
-                                .child(conn.name.clone()),
-                        )
-                        .child(
-                            div()
-                                .text_color(theme.colors.text_secondary)
-                                .text_size(px(theme.typography.font_size_sm))
-                                .child(format!("{}:{}", conn.host, conn.port)),
-                        )
-                        .child(
-                            div()
-                                .text_color(theme.colors.text_secondary)
-                                .text_size(px(theme.typography.font_size_sm))
-                                .child(if conn.base_dn.is_empty() {
-                                    "Base DN not set".to_string()
-                                } else {
-                                    conn.base_dn.clone()
-                                }),
-                        )
+                            })),
+                    )
                 })
                 .collect::<Vec<_>>();
 
-            div().children(cards)
+            v_flex().gap(px(theme.spacing.sm)).children(cards)
         };
 
         v_flex()
             .flex()
             .gap(px(theme.spacing.md))
-            .child(header)
             .child(body)
+            .child(
+                Button::new("start-config")
+                    .ghost()
+                    .label("Add connection")
+                    .on_click(cx.listener(|view, _event, window, cx| {
+                        view.open_config_window(window, cx);
+                    })),
+            )
             .child(self.render_status(theme))
     }
 
@@ -216,14 +218,17 @@ impl Render for StartView {
         h_flex()
             .size_full()
             .gap(px(theme.spacing.lg))
-            .padding(px(theme.spacing.lg))
+            .p(px(theme.spacing.lg))
             .child(
                 v_flex()
+                    .size_full()
                     .flex()
+                    .justify_center()
+                    .items_center()
                     .gap(px(theme.spacing.md))
                     .bg(theme.colors.surface)
-                    .border_radius(px(theme.borders.radius_md))
-                    .padding(px(theme.spacing.lg))
+                    .rounded_md()
+                    .p(px(theme.spacing.lg))
                     .child(
                         div()
                             .text_size(px(theme.typography.font_size_xl))
@@ -237,24 +242,16 @@ impl Render for StartView {
                             .text_color(theme.colors.text_secondary)
                             .child("A modern LDAP explorer with saved connections, tree navigation, and quick filtering."),
                     )
-                    .child(
-                        Button::new("start-config")
-                            .primary()
-                            .label("Configure connections")
-                            .on_click(move |_event, window, cx| {
-                                let entity = cx.entity();
-                                entity.update(cx, |view, cx| {
-                                    view.open_config_window(window, cx);
-                                });
-                            }),
-                    ),
             )
             .child(
                 v_flex()
                     .flex()
+                    .size_full()
+                    .justify_center()
+                    .items_center()
                     .bg(theme.colors.surface)
-                    .border_radius(px(theme.borders.radius_md))
-                    .padding(px(theme.spacing.lg))
+                    .rounded_md()
+                    .p(px(theme.spacing.lg))
                     .child(self.render_connections(&theme, cx, saved_connections)),
             )
     }
