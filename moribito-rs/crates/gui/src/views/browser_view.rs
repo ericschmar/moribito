@@ -66,6 +66,19 @@ impl BrowserView {
         self.open_config_window(cx);
     }
 
+    /// Handle Disconnect action
+    fn handle_disconnect(
+        &mut self,
+        _: &Disconnect,
+        _window: &mut Window,
+        cx: &mut Context<Self>,
+    ) {
+        let mut state = self.app_state.write();
+        state.disconnect();
+        state.set_status("Disconnected");
+        cx.notify();
+    }
+
     /// Handle Refresh action
     fn handle_refresh(&mut self, _: &Refresh, window: &mut Window, cx: &mut Context<Self>) {
         let base_dn = self.app_state.read().current_base_dn.clone();
@@ -318,6 +331,7 @@ impl Render for BrowserView {
             .bg(background)
             .track_focus(&self.focus_handle)
             .on_action(cx.listener(Self::handle_open_config_window))
+            .on_action(cx.listener(Self::handle_disconnect))
             .on_action(cx.listener(Self::handle_refresh))
             .on_action(cx.listener(Self::handle_expand_all))
             .on_action(cx.listener(Self::handle_collapse_all))

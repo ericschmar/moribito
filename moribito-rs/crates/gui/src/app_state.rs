@@ -367,4 +367,57 @@ mod tests {
             assert_eq!(state.status_message, Some("Test".to_string()));
         }
     }
+
+    #[test]
+    fn test_disconnect() {
+        let mut state = AppState::new();
+
+        // First, connect to something
+        state.set_connected(true);
+        state.current_base_dn = Some("dc=example,dc=com".to_string());
+        assert!(state.is_connected);
+        assert!(state.current_base_dn.is_some());
+
+        // Now disconnect
+        state.disconnect();
+
+        // Verify disconnection reset everything
+        assert!(!state.is_connected);
+        assert!(state.current_base_dn.is_none());
+        assert!(state.active_client.is_none());
+        assert!(state.selected_entry.is_none());
+        assert!(state.search_results.is_empty());
+        assert!(state.tree_state.expanded_nodes.is_empty());
+    }
+
+    #[test]
+    fn test_disconnect_from_shared_state() {
+        let shared = SharedAppState::default();
+
+        // Connect
+        {
+            let mut state = shared.write();
+            state.set_connected(true);
+            state.current_base_dn = Some("dc=example,dc=com".to_string());
+        }
+
+        // Verify connected
+        {
+            let state = shared.read();
+            assert!(state.is_connected);
+        }
+
+        // Disconnect
+        {
+            let mut state = shared.write();
+            state.disconnect();
+        }
+
+        // Verify disconnected
+        {
+            let state = shared.read();
+            assert!(!state.is_connected);
+            assert!(state.current_base_dn.is_none());
+        }
+    }
 }
