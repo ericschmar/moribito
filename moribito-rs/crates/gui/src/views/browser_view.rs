@@ -67,12 +67,7 @@ impl BrowserView {
     }
 
     /// Handle Disconnect action
-    fn handle_disconnect(
-        &mut self,
-        _: &Disconnect,
-        _window: &mut Window,
-        cx: &mut Context<Self>,
-    ) {
+    fn handle_disconnect(&mut self, _: &Disconnect, _window: &mut Window, cx: &mut Context<Self>) {
         let mut state = self.app_state.write();
         state.disconnect();
         state.set_status("Disconnected");
@@ -85,6 +80,10 @@ impl BrowserView {
         if let Some(base_dn) = base_dn {
             self.tree_view
                 .update(cx, |tree, cx| tree.reload_tree(&base_dn, window, cx));
+
+            // Update OuFilter dropdown with discovered OUs
+            self.ou_filter
+                .update(cx, |filter, cx| filter.update_items(window, cx));
         }
     }
 
@@ -126,6 +125,10 @@ impl BrowserView {
         if let Some(base_dn) = self.app_state.read().current_base_dn.clone() {
             self.tree_view
                 .update(cx, |tree, cx| tree.reload_tree(&base_dn, window, cx));
+
+            // Update OuFilter dropdown to reflect any changes
+            self.ou_filter
+                .update(cx, |filter, cx| filter.update_items(window, cx));
         }
 
         let filter_label = if action.ou_dn == "All" {
@@ -146,6 +149,12 @@ impl BrowserView {
         );
         self.tree_view
             .update(cx, |tree, cx| tree.reload_tree(base_dn, window, cx));
+
+        // Update OuFilter dropdown with discovered OUs
+        log::debug!("🔄 [BrowserView] Updating OuFilter with discovered OUs");
+        self.ou_filter
+            .update(cx, |filter, cx| filter.update_items(window, cx));
+
         self.last_initialized_base_dn = Some(base_dn.to_string());
         log::info!("✅ [BrowserView] Tree initialization complete");
     }

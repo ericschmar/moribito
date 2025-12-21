@@ -184,25 +184,47 @@ impl TreeView {
 
         let mut item = TreeItem::new(node.dn.clone(), node.name.clone());
 
-        // Check if we have cached children
-        if let Some(children) = state.get_cached_children(&node.dn) {
+        // For virtual nodes, children are embedded in the node itself
+        if node.dn.starts_with("__virtual_") {
+            if let Some(ref children) = node.children {
+                drop(state); // Release lock before recursion
+                let child_items: Vec<TreeItem> = children
+                    .iter()
+                    .map(|child| self.tree_node_to_tree_item(child, _cx))
+                    .collect();
+                item = item.children(child_items);
+
+                // Re-acquire state for expansion check
+                let state = self.app_state.read();
+                if is_expanded {
+                    item = item.expanded(true);
+                }
+            }
+        }
+        // For regular nodes, check the cache
+        else if let Some(children) = state.get_cached_children(&node.dn) {
             let child_items: Vec<TreeItem> = children
                 .iter()
                 .map(|child| self.tree_node_to_tree_item(child, _cx))
                 .collect();
 
             item = item.children(child_items);
-        }
 
-        if is_expanded {
-            item = item.expanded(true);
+            if is_expanded {
+                item = item.expanded(true);
+            }
+        } else {
+            // No children yet, just check expansion
+            if is_expanded {
+                item = item.expanded(true);
+            }
         }
 
         item
     }
 
     /// Load children for a node
-    pub fn load_children(&self, dn: &str, window: &mut Window, cx: &mut Context<Self>) {
+    pub fn load_children(&mut self, dn: &str, window: &mut Window, cx: &mut App) {
         log::debug!("🔍 [TreeView] load_children called for DN: {}", dn);
         let mut state = self.app_state.write();
 
@@ -245,7 +267,10 @@ impl TreeView {
 
                 // Update the tree
                 drop(state);
-                if let Some(base_dn) = self.app_state.read().current_base_dn.clone() {
+
+                // Get base_dn in a separate scope to release the read lock
+                let base_dn = self.app_state.read().current_base_dn.clone();
+                if let Some(base_dn) = base_dn {
                     log::debug!("🔄 [TreeView] Reloading tree to show new children");
                     // Reload the entire tree to reflect the new children
                     self.reload_tree(&base_dn, window, cx);
@@ -260,7 +285,7 @@ impl TreeView {
     }
 
     /// Reload the tree from the base DN
-    pub fn reload_tree(&self, base_dn: &str, window: &mut Window, cx: &mut Context<Self>) {
+    pub fn reload_tree(&mut self, base_dn: &str, _window: &mut Window, cx: &mut App) {
         log::info!("🌲 [TreeView] reload_tree called for base DN: {}", base_dn);
         let mut state = self.app_state.write();
 
@@ -297,32 +322,13 @@ impl TreeView {
                 state.cache_node_children(base_dn.to_string(), children.clone());
                 state.set_status(format!("Loaded {} root entries", children.len()));
 
-                // Update tree state
+                // Release the lock before calling set_root_nodes
                 drop(state);
-                let state_read = self.app_state.read();
-                let root_children = state_read
-                    .get_cached_children(base_dn)
-                    .cloned()
-                    .unwrap_or_default();
-                drop(state_read);
 
-                log::info!(
-                    "🔄 [TreeView] Converting {} nodes to TreeItems",
-                    root_children.len()
-                );
-                let items: Vec<TreeItem> = root_children
-                    .iter()
-                    .map(|node| self.tree_node_to_tree_item(node, cx))
-                    .collect();
-
-                log::info!(
-                    "📋 [TreeView] Updating tree state with {} items",
-                    items.len()
-                );
-                self.tree_state.update(cx, |tree_state, cx| {
-                    *tree_state = TreeState::new(cx).items(items);
-                });
-                log::info!("✅ [TreeView] Tree state updated successfully");
+                // Use set_root_nodes to apply filtering and organization
+                log::info!("🔄 [TreeView] Calling set_root_nodes with filtering and organization");
+                self.set_root_nodes(children, cx);
+                log::info!("✅ [TreeView] Tree state updated successfully with filtering");
             }
             Err(err) => {
                 log::error!("❌ [TreeView] Error loading tree from LDAP: {}", err);
