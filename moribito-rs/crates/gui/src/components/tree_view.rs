@@ -35,19 +35,11 @@ impl TreeView {
 
     /// Update the tree with root nodes
     pub fn set_root_nodes(&mut self, nodes: Vec<TreeNode>, cx: &mut App) {
-        // Extract OUs for filter dropdown
-        let ous = Self::extract_ous(&nodes);
-        self.app_state.write().update_available_ous(ous);
-
-        // Organize entries by type
+        // Organize entries by type (only [Service Accounts] virtual group)
         let organized = self.organize_entries(nodes);
 
-        // Apply current OU filter
-        let filter = self.app_state.read().tree_state.ou_filter.clone();
-        let filtered = self.apply_ou_filter(organized, &filter);
-
         // Convert to TreeItems
-        let items: Vec<TreeItem> = filtered
+        let items: Vec<TreeItem> = organized
             .iter()
             .map(|node| self.tree_node_to_tree_item(node, cx))
             .collect();
@@ -57,34 +49,12 @@ impl TreeView {
         });
     }
 
-    /// Extract OU options from nodes
-    fn extract_ous(nodes: &[TreeNode]) -> Vec<crate::app_state::OuOption> {
-        nodes
-            .iter()
-            .filter(|node| node.name.to_lowercase().starts_with("ou="))
-            .map(|node| {
-                let label = node
-                    .name
-                    .strip_prefix("ou=")
-                    .or_else(|| node.name.strip_prefix("OU="))
-                    .unwrap_or(&node.name)
-                    .to_string();
-
-                crate::app_state::OuOption {
-                    label,
-                    dn: node.dn.clone(),
-                }
-            })
-            .collect()
-    }
-
     /// Group entries by type for better organization
     fn organize_entries(&self, nodes: Vec<TreeNode>) -> Vec<TreeNode> {
-        let base_dn = self.app_state.read().current_base_dn.clone();
-
-        // Separate entries by type
-        let (service_accounts, remaining) = Self::partition_by_cn(nodes, &base_dn);
-        let (root_users, ous_and_others) = Self::partition_by_uid(remaining, &base_dn);
+        // Only group cn= entries into [Service Accounts]
+        let (service_accounts, others): (Vec<_>, Vec<_>) = nodes
+            .into_iter()
+            .partition(|n| n.name.to_lowercase().starts_with("cn="));
 
         let mut organized = Vec::new();
 
@@ -96,13 +66,8 @@ impl TreeView {
             ));
         }
 
-        // Add root users group if any exist
-        if !root_users.is_empty() {
-            organized.push(Self::create_virtual_group("[Root Users]", root_users));
-        }
-
-        // Add OUs and other entries directly
-        organized.extend(ous_and_others);
+        // Add all other entries directly (OUs, uid= users, etc.)
+        organized.extend(others);
 
         organized
     }
@@ -114,66 +79,6 @@ impl TreeView {
             name: label.to_string(),
             children: Some(children),
             is_loaded: true,
-        }
-    }
-
-    /// Apply OU filter to tree nodes
-    fn apply_ou_filter(&self, nodes: Vec<TreeNode>, filter: &str) -> Vec<TreeNode> {
-        if filter == "All" {
-            return nodes;
-        }
-
-        // Filter to show only the selected OU and its descendants
-        nodes
-            .into_iter()
-            .filter(|node| {
-                // Keep virtual nodes if they contain matching children
-                if node.dn.starts_with("__virtual_") {
-                    if let Some(ref children) = node.children {
-                        return children.iter().any(|child| {
-                            child.dn == filter || child.dn.ends_with(&format!(",{}", filter))
-                        });
-                    }
-                    return false;
-                }
-                // Keep nodes that match the filter
-                node.dn == filter || node.dn.ends_with(&format!(",{}", filter))
-            })
-            .collect()
-    }
-
-    /// Partition nodes by CN entries (service accounts at root level)
-    fn partition_by_cn(
-        nodes: Vec<TreeNode>,
-        base_dn: &Option<String>,
-    ) -> (Vec<TreeNode>, Vec<TreeNode>) {
-        nodes.into_iter().partition(|n| {
-            n.name.to_lowercase().starts_with("cn=") && Self::is_at_root_level(&n.dn, base_dn)
-        })
-    }
-
-    /// Partition nodes by UID entries (users at root level)
-    fn partition_by_uid(
-        nodes: Vec<TreeNode>,
-        base_dn: &Option<String>,
-    ) -> (Vec<TreeNode>, Vec<TreeNode>) {
-        nodes.into_iter().partition(|n| {
-            n.name.to_lowercase().starts_with("uid=") && Self::is_at_root_level(&n.dn, base_dn)
-        })
-    }
-
-    /// Check if DN is at root level (one component before base DN)
-    fn is_at_root_level(dn: &str, base_dn: &Option<String>) -> bool {
-        let Some(base) = base_dn else {
-            return false;
-        };
-
-        // Remove base DN from the full DN to get the RDN
-        if let Some(rdn_part) = dn.strip_suffix(&format!(",{}", base)) {
-            // Check if there are no more commas (meaning it's directly under base)
-            !rdn_part.contains(',')
-        } else {
-            false
         }
     }
 
@@ -268,13 +173,9 @@ impl TreeView {
                 // Update the tree
                 drop(state);
 
-                // Get base_dn in a separate scope to release the read lock
-                let base_dn = self.app_state.read().current_base_dn.clone();
-                if let Some(base_dn) = base_dn {
-                    log::debug!("🔄 [TreeView] Reloading tree to show new children");
-                    // Reload the entire tree to reflect the new children
-                    self.reload_tree(&base_dn, window, cx);
-                }
+                log::debug!("🔄 [TreeView] Reloading tree to show new children");
+                // Reload the entire tree to reflect the new children
+                self.reload_tree(window, cx);
             }
             Err(err) => {
                 log::error!("❌ [TreeView] Error loading children for {}: {}", dn, err);
@@ -284,9 +185,18 @@ impl TreeView {
         }
     }
 
-    /// Reload the tree from the base DN
-    pub fn reload_tree(&mut self, base_dn: &str, _window: &mut Window, cx: &mut App) {
-        log::info!("🌲 [TreeView] reload_tree called for base DN: {}", base_dn);
+    /// Reload the tree from the current context DN
+    pub fn reload_tree(&mut self, _window: &mut Window, cx: &mut App) {
+        // Get the current context DN
+        let context_dn = {
+            let state = self.app_state.read();
+            state.tree_state.current_context_dn.clone()
+        };
+
+        log::info!(
+            "🌲 [TreeView] reload_tree called for context DN: {}",
+            context_dn
+        );
         let mut state = self.app_state.write();
 
         // Get the LDAP client
@@ -302,12 +212,12 @@ impl TreeView {
             }
         };
 
-        log::info!("🔍 [TreeView] Searching for children under: {}", base_dn);
-        // Load root level children
-        match client.get_children(base_dn) {
+        log::info!("🔍 [TreeView] Searching for children under: {}", context_dn);
+        // Load children for the current context
+        match client.get_children(&context_dn) {
             Ok(children) => {
                 log::info!(
-                    "✅ [TreeView] Successfully loaded {} root entries from LDAP",
+                    "✅ [TreeView] Successfully loaded {} entries from LDAP",
                     children.len()
                 );
 
@@ -319,16 +229,16 @@ impl TreeView {
                     log::debug!("  ... and {} more entries", children.len() - 5);
                 }
 
-                state.cache_node_children(base_dn.to_string(), children.clone());
-                state.set_status(format!("Loaded {} root entries", children.len()));
+                state.cache_node_children(context_dn.clone(), children.clone());
+                state.set_status(format!("Loaded {} entries", children.len()));
 
                 // Release the lock before calling set_root_nodes
                 drop(state);
 
-                // Use set_root_nodes to apply filtering and organization
-                log::info!("🔄 [TreeView] Calling set_root_nodes with filtering and organization");
+                // Use set_root_nodes to apply organization
+                log::info!("🔄 [TreeView] Calling set_root_nodes with organization");
                 self.set_root_nodes(children, cx);
-                log::info!("✅ [TreeView] Tree state updated successfully with filtering");
+                log::info!("✅ [TreeView] Tree state updated successfully");
             }
             Err(err) => {
                 log::error!("❌ [TreeView] Error loading tree from LDAP: {}", err);
@@ -374,25 +284,22 @@ impl TreeView {
                 .pl(px(16.0) * entry.depth() + px(12.0))
                 .on_click({
                     let dn = dn.clone();
+                    let name = item.label.clone();
                     let tree_entity = tree_entity_handle.clone();
                     let app_state = app_state.clone();
                     move |_event, window, cx| {
-                        // Toggle expansion if it's a folder
-                        if is_folder {
+                        // Check if this is an OU node (and not a virtual node)
+                        let is_ou = !is_virtual && name.to_lowercase().starts_with("ou=");
+
+                        if is_virtual {
+                            // Virtual nodes: just toggle expansion
                             let mut state = app_state.write();
                             state.toggle_node_expansion(&dn);
-                            drop(state);
-
-                            // Only load children from LDAP if it's not a virtual node
-                            if !is_expanded && !is_virtual {
-                                cx.update_entity(&tree_entity, |tree, cx| {
-                                    tree.load_children(&dn, window, cx)
-                                });
-                            }
-                        }
-
-                        // Only emit selection action for real LDAP entries (not virtual nodes)
-                        if !is_virtual {
+                        } else if is_ou {
+                            // OU nodes: Navigate INTO them
+                            cx.dispatch_action(&NavigateIntoOu { dn: dn.to_string() });
+                        } else {
+                            // Regular entries: emit selection event
                             cx.update_entity(&tree_entity, |tree, cx| {
                                 cx.emit(SelectTreeEntry { dn: dn.to_string() })
                             });

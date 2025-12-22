@@ -47,6 +47,8 @@ actions!(
         // Navigation actions
         FocusNextField,
         FocusPreviousField,
+        NavigateUp,
+        NavigateToRoot,
         // Application actions
         OpenConfigWindow,
         ShowAbout,
@@ -84,12 +86,18 @@ pub struct ToggleSetting {
     pub setting: String,
 }
 
-/// Action to filter tree by OU
+/// Action to navigate into an OU
 #[derive(Clone, Action, PartialEq, Eq, Deserialize, JsonSchema)]
 #[action(namespace = moribito)]
-pub struct FilterByOu {
-    /// "All" or specific OU DN
-    pub ou_dn: String,
+pub struct NavigateIntoOu {
+    pub dn: String,
+}
+
+/// Action to navigate to a specific breadcrumb level
+#[derive(Clone, Action, PartialEq, Eq, Deserialize, JsonSchema)]
+#[action(namespace = moribito)]
+pub struct NavigateToBreadcrumb {
+    pub dn: String,
 }
 
 #[cfg(test)]

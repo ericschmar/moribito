@@ -13,8 +13,8 @@ use gpui_component::{
 use crate::actions::*;
 use crate::app_state::SharedAppState;
 use crate::components::{
-    entry_details_table::EntryDetailsTable, ou_filter::OuFilter, search_bar::SearchBar,
-    status_bar::StatusBar, tree_view::TreeView,
+    entry_details_table::EntryDetailsTable, search_bar::SearchBar, status_bar::StatusBar,
+    tree_panel_header::TreePanelHeader, tree_view::TreeView,
 };
 use crate::views::ConfigView;
 use gpui::Entity;
@@ -24,7 +24,7 @@ pub struct BrowserView {
     app_state: SharedAppState,
     tree_view: Entity<TreeView>,
     details_table: Entity<EntryDetailsTable>,
-    ou_filter: Entity<OuFilter>,
+    tree_panel_header: TreePanelHeader,
     search_bar: SearchBar,
     status_bar: StatusBar,
     focus_handle: FocusHandle,
@@ -36,7 +36,7 @@ impl BrowserView {
     pub fn new(app_state: SharedAppState, window: &mut Window, cx: &mut App) -> Self {
         let tree_view = cx.new(|cx| TreeView::new(app_state.clone(), window, cx));
         let details_table = cx.new(|cx| EntryDetailsTable::new(app_state.clone(), window, cx));
-        let ou_filter = cx.new(|cx| OuFilter::new(app_state.clone(), window, cx));
+        let tree_panel_header = TreePanelHeader::new(app_state.clone());
 
         // Initialize search bar with base DN if connected
         let base_dn = app_state.read().current_base_dn.clone().unwrap_or_default();
@@ -48,7 +48,7 @@ impl BrowserView {
             app_state,
             tree_view,
             details_table,
-            ou_filter,
+            tree_panel_header,
             search_bar,
             status_bar,
             focus_handle,
@@ -76,15 +76,8 @@ impl BrowserView {
 
     /// Handle Refresh action
     fn handle_refresh(&mut self, _: &Refresh, window: &mut Window, cx: &mut Context<Self>) {
-        let base_dn = self.app_state.read().current_base_dn.clone();
-        if let Some(base_dn) = base_dn {
-            self.tree_view
-                .update(cx, |tree, cx| tree.reload_tree(&base_dn, window, cx));
-
-            // Update OuFilter dropdown with discovered OUs
-            self.ou_filter
-                .update(cx, |filter, cx| filter.update_items(window, cx));
-        }
+        self.tree_view
+            .update(cx, |tree, cx| tree.reload_tree(window, cx));
     }
 
     /// Handle ExpandAll action
@@ -111,34 +104,85 @@ impl BrowserView {
         state.set_status("Collapsed all nodes");
     }
 
-    /// Handle FilterByOu action
-    fn handle_filter_by_ou(
+    /// Handle NavigateIntoOu action
+    fn handle_navigate_into_ou(
         &mut self,
-        action: &FilterByOu,
+        action: &NavigateIntoOu,
         window: &mut Window,
         cx: &mut Context<Self>,
     ) {
-        log::info!("🔍 [BrowserView] Filtering tree by OU: {}", action.ou_dn);
+        log::info!("🔍 [BrowserView] Navigating into OU: {}", action.dn);
 
-        // Update the filter in app state (already done by OuFilter component)
-        // Now reload the tree to apply the new filter
-        if let Some(base_dn) = self.app_state.read().current_base_dn.clone() {
-            self.tree_view
-                .update(cx, |tree, cx| tree.reload_tree(&base_dn, window, cx));
+        // Update navigation state
+        self.app_state.write().navigate_into(action.dn.clone());
 
-            // Update OuFilter dropdown to reflect any changes
-            self.ou_filter
-                .update(cx, |filter, cx| filter.update_items(window, cx));
-        }
+        // Reload tree with new context
+        self.tree_view
+            .update(cx, |tree, cx| tree.reload_tree(window, cx));
 
-        let filter_label = if action.ou_dn == "All" {
-            "All entries".to_string()
-        } else {
-            action.ou_dn.clone()
-        };
         self.app_state
             .write()
-            .set_status(format!("Filtering by: {}", filter_label));
+            .set_status(format!("Navigated to: {}", action.dn));
+    }
+
+    /// Handle NavigateUp action
+    fn handle_navigate_up(&mut self, _: &NavigateUp, window: &mut Window, cx: &mut Context<Self>) {
+        log::info!("🔼 [BrowserView] Navigating up");
+
+        if let Some(parent_dn) = self.app_state.write().navigate_up() {
+            // Reload tree with parent context
+            self.tree_view
+                .update(cx, |tree, cx| tree.reload_tree(window, cx));
+
+            self.app_state
+                .write()
+                .set_status(format!("Navigated to: {}", parent_dn));
+        }
+    }
+
+    /// Handle NavigateToRoot action
+    fn handle_navigate_to_root(
+        &mut self,
+        _: &NavigateToRoot,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) {
+        log::info!("🏠 [BrowserView] Navigating to root");
+
+        if let Some(base_dn) = self.app_state.read().current_base_dn.clone() {
+            let mut state = self.app_state.write();
+            state.tree_state.current_context_dn = base_dn.clone();
+            state.tree_state.navigation_stack.clear();
+            drop(state);
+
+            // Reload tree with root context
+            self.tree_view
+                .update(cx, |tree, cx| tree.reload_tree(window, cx));
+
+            self.app_state
+                .write()
+                .set_status(format!("Navigated to root: {}", base_dn));
+        }
+    }
+
+    /// Handle NavigateToBreadcrumb action
+    fn handle_navigate_to_breadcrumb(
+        &mut self,
+        action: &NavigateToBreadcrumb,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) {
+        log::info!("🔗 [BrowserView] Navigating to breadcrumb: {}", action.dn);
+
+        self.app_state.write().navigate_to(action.dn.clone());
+
+        // Reload tree with breadcrumb context
+        self.tree_view
+            .update(cx, |tree, cx| tree.reload_tree(window, cx));
+
+        self.app_state
+            .write()
+            .set_status(format!("Navigated to: {}", action.dn));
     }
 
     /// Initialize the browser with a base DN
@@ -147,13 +191,12 @@ impl BrowserView {
             "🌳 [BrowserView] Initializing tree with base DN: {}",
             base_dn
         );
-        self.tree_view
-            .update(cx, |tree, cx| tree.reload_tree(base_dn, window, cx));
 
-        // Update OuFilter dropdown with discovered OUs
-        log::debug!("🔄 [BrowserView] Updating OuFilter with discovered OUs");
-        self.ou_filter
-            .update(cx, |filter, cx| filter.update_items(window, cx));
+        // Initialize navigation context to base DN
+        self.app_state.write().tree_state.current_context_dn = base_dn.to_string();
+
+        self.tree_view
+            .update(cx, |tree, cx| tree.reload_tree(window, cx));
 
         self.last_initialized_base_dn = Some(base_dn.to_string());
         log::info!("✅ [BrowserView] Tree initialization complete");
@@ -344,7 +387,10 @@ impl Render for BrowserView {
             .on_action(cx.listener(Self::handle_refresh))
             .on_action(cx.listener(Self::handle_expand_all))
             .on_action(cx.listener(Self::handle_collapse_all))
-            .on_action(cx.listener(Self::handle_filter_by_ou))
+            .on_action(cx.listener(Self::handle_navigate_into_ou))
+            .on_action(cx.listener(Self::handle_navigate_up))
+            .on_action(cx.listener(Self::handle_navigate_to_root))
+            .on_action(cx.listener(Self::handle_navigate_to_breadcrumb))
             .on_action(cx.listener(Self::handle_select_entry))
             .on_action(cx.listener(Self::handle_refresh_entry))
             .on_action(cx.listener(Self::handle_delete_entry))
@@ -369,7 +415,7 @@ impl Render for BrowserView {
                 div().flex_1().w_full().child(
                     h_resizable("browser-main-split")
                         .child(
-                            // Left panel: Tree view with OU filter
+                            // Left panel: Tree view with header
                             resizable_panel()
                                 .size(px(300.0))
                                 .size_range(px(200.0)..px(600.0))
@@ -379,15 +425,9 @@ impl Render for BrowserView {
                                         .w_full()
                                         .border_r_1()
                                         .border_color(border)
-                                        // OU Filter at top of tree panel
-                                        .child(
-                                            div()
-                                                .p_2()
-                                                .border_b_1()
-                                                .border_color(border)
-                                                .child(self.ou_filter.clone()),
-                                        )
-                                        // Tree view below filter
+                                        // Tree panel header with breadcrumb navigation
+                                        .child(self.tree_panel_header.render(window, cx))
+                                        // Tree view below header
                                         .child(
                                             div()
                                                 .id("tree-panel-scroll")
@@ -420,7 +460,7 @@ impl Clone for BrowserView {
             app_state: self.app_state.clone(),
             tree_view: self.tree_view.clone(),
             details_table: self.details_table.clone(),
-            ou_filter: self.ou_filter.clone(),
+            tree_panel_header: self.tree_panel_header.clone(),
             search_bar: self.search_bar.clone(),
             status_bar: self.status_bar.clone(),
             focus_handle: self.focus_handle.clone(),

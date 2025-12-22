@@ -10,9 +10,9 @@ pub mod connections_list;
 pub use connections_list::{ConnectionItem, ConnectionsList};
 
 pub mod entry_details_table;
-pub mod ou_filter;
 pub mod search_bar;
 pub mod status_bar;
+pub mod tree_panel_header;
 pub mod tree_view;
 
 // Re-export commonly used gpui-component types (only if needed elsewhere)

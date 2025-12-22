@@ -1,134 +1,193 @@
-# LDAP Tree View - Bug Fixes Complete
+# Tree View Redesign - Navigate INTO OUs
 
-## ✅ BUGS FIXED (Dec 21, 2025)
+## Summary
 
-### Bug 1: OU Dropdown Only Shows "All" ✅ FIXED
-**Root Cause**: `OuFilter.update_items()` was never called after tree loads.
-
-**Explanation**:
-- OUs were being extracted and stored in `app_state.tree_state.available_ous` ✅
-- OuFilter component was reading from the correct location ✅
-- BUT: OuFilter was only initialized once with empty data in `BrowserView::new()`
-- After tree loaded, OuFilter never refreshed to show new OUs
-
-**Fix Applied**:
-Added `ou_filter.update_items()` calls in three places in `browser_view.rs`:
-1. `initialize()` - After initial tree load
-2. `handle_refresh()` - After manual refresh
-3. `handle_filter_by_ou()` - After filter changes
-
-**Files Modified**:
-- `moribito-rs/crates/gui/src/views/browser_view.rs`
+Redesign the LDAP tree view to support **navigating into OUs** (context change + new LDAP query) instead of in-place expansion. Add a **Zed-style action bar** with breadcrumb navigation and action buttons. Simplify virtual grouping to only **[Service Accounts]** for `cn=` entries.
 
 ---
 
-### Bug 2: Virtual Groups Cannot Be Expanded ✅ FIXED
-**Root Cause**: `tree_node_to_tree_item()` ignored `node.children` field for virtual nodes.
+## Requirements
 
-**Explanation**:
-- Virtual nodes created with children: `TreeNode { children: Some([...]), ... }` ✅
-- Click handler prevented LDAP operations on virtual nodes ✅
-- BUT: `tree_node_to_tree_item()` only checked `state.get_cached_children()` 
-- Virtual node children are in `node.children`, not the cache
-- Result: TreeItem created without children, appeared as non-expandable
+1. **Navigate INTO OUs**: Clicking an OU changes context and loads its children via new LDAP query
+2. **Action Bar**: Zed-style header with breadcrumb (left) and icon buttons (right)
+3. **Virtual Grouping**: Keep only `[Service Accounts]` for `cn=` entries; remove `[Root Users]`
+4. **Remove OU Dropdown**: Navigation happens by clicking OUs directly
 
-**Fix Applied**:
-Refactored `tree_node_to_tree_item()` in `tree_view.rs`:
+---
+
+## Implementation Phases
+
+### Phase 1: State Management (`app_state.rs`)
+
+**Add to TreeState:**
 ```rust
-// Check if virtual node first - children are embedded
-if node.dn.starts_with("__virtual_") {
-    if let Some(ref children) = node.children {
-        // Convert embedded children to TreeItems
-        let child_items = children.iter()
-            .map(|child| self.tree_node_to_tree_item(child, cx))
-            .collect();
-        item = item.children(child_items);
-    }
+pub struct TreeState {
+    pub expanded_nodes: HashSet<String>,
+    pub node_children: HashMap<String, Vec<TreeNode>>,
+    pub loading_nodes: HashSet<String>,
+    
+    // NEW
+    pub current_context_dn: String,      // DN we're viewing children of
+    pub navigation_stack: Vec<String>,   // Parent DNs for breadcrumb/up
 }
-// Then check cached children for regular nodes
-else if let Some(children) = state.get_cached_children(&node.dn) {
-    // ... existing logic
+// REMOVE: ou_filter, available_ous
+```
+
+**Add navigation methods:**
+- `navigate_into(target_dn)` - Push current to stack, set new context
+- `navigate_up()` - Pop stack, return to parent
+- `navigate_to(target_dn)` - Jump to specific breadcrumb level
+- `get_breadcrumb_path()` - Return `Vec<(label, dn)>` for display
+
+---
+
+### Phase 2: New Actions (`actions.rs`)
+
+```rust
+#[action] pub struct NavigateIntoOu { pub dn: String }
+#[action] pub struct NavigateToBreadcrumb { pub dn: String }
+actions!(moribito, [NavigateUp, NavigateToRoot]);
+```
+
+---
+
+### Phase 3: Create Action Bar Component
+
+**New file:** `components/tree_panel_header.rs`
+
+```rust
+pub struct TreePanelHeader {
+    app_state: SharedAppState,
+}
+
+// Renders:
+h_flex()
+    .h(px(32.0))
+    .bg(theme.muted)
+    .border_b_1()
+    // Left: Breadcrumb (clickable segments)
+    .child(render_breadcrumb())  // dc=example > ou=users > ou=admins
+    .child(div().flex_1())       // Spacer
+    // Right: Action buttons
+    .child(
+        Button::new("up").icon(IconName::ArrowUp).ghost().xsmall()
+        Button::new("refresh").icon(IconName::RefreshCw).ghost().xsmall()
+        Button::new("add").icon(IconName::Plus).ghost().xsmall()
+        Button::new("more").icon(IconName::MoreHorizontal).ghost().xsmall()
+    )
+```
+
+---
+
+### Phase 4: Update TreeView (`tree_view.rs`)
+
+**Remove:**
+- `extract_ous()` method
+- `apply_ou_filter()` method
+- `partition_by_uid()` and `[Root Users]` grouping
+- `available_ous` handling
+
+**Modify `organize_entries()`:**
+```rust
+fn organize_entries(&self, nodes: Vec<TreeNode>) -> Vec<TreeNode> {
+    // Only group cn= entries into [Service Accounts]
+    let (service_accounts, others) = nodes.into_iter().partition(|n| {
+        n.name.to_lowercase().starts_with("cn=")
+    });
+    
+    let mut organized = Vec::new();
+    if !service_accounts.is_empty() {
+        organized.push(Self::create_virtual_group("[Service Accounts]", service_accounts));
+    }
+    organized.extend(others);
+    organized
 }
 ```
 
-**Files Modified**:
-- `moribito-rs/crates/gui/src/components/tree_view.rs`
+**Modify click handler:**
+```rust
+.on_click(move |_, _, cx| {
+    if is_virtual {
+        // Toggle expansion for virtual nodes
+        state.toggle_node_expansion(&dn);
+    } else if name.to_lowercase().starts_with("ou=") {
+        // Navigate INTO OUs
+        cx.dispatch_action(&NavigateIntoOu { dn: dn.clone() });
+    } else {
+        // Select regular entries
+        cx.emit(SelectTreeEntry { dn: dn.clone() });
+    }
+})
+```
+
+**Modify `reload_tree()`:**
+- Use `current_context_dn` instead of base_dn parameter
+- No OU filter application
 
 ---
 
-## Current Status
+### Phase 5: Update BrowserView (`browser_view.rs`)
 
-**✅ Compiles Successfully** - No errors, 21 warnings (unused variables)
+**Remove:**
+- `ou_filter: Entity<OuFilter>` field
+- `handle_filter_by_ou()` handler
+- OuFilter initialization and rendering
 
-**✅ Both Bugs Fixed**:
-1. OU dropdown will now populate with discovered OUs
-2. Virtual groups ([Service Accounts], [Root Users]) can now be expanded
+**Add:**
+- `tree_panel_header: TreePanelHeader` field
+- Navigation action handlers:
+  - `handle_navigate_into_ou()` - Call `app_state.navigate_into()`, reload tree
+  - `handle_navigate_up()` - Call `app_state.navigate_up()`, reload tree
+  - `handle_navigate_to_breadcrumb()` - Call `app_state.navigate_to()`, reload tree
 
-**Expected Behavior Now**:
-1. Connect to LDAP → Tree loads
-2. OUs extracted → Dropdown populates with "All", "mathematicians", "scientists", etc.
-3. Click virtual group → Expands to show children (cn=admin, uid=newton, etc.)
-4. Select OU in dropdown → Tree filters to show only that OU
-5. Refresh → OUs re-discovered, dropdown updates
-
----
-
-## Testing Recommendations
-
-1. **Test OU Dropdown**:
-   - Connect to LDAP server with OUs
-   - Verify dropdown shows "All" + individual OUs
-   - Select different OUs and verify tree filters correctly
-
-2. **Test Virtual Groups**:
-   - Connect to LDAP with root-level cn= or uid= entries
-   - Verify [Service Accounts] and/or [Root Users] groups appear
-   - Click groups to expand and verify children are visible
-   - Verify children are selectable and show details
-
-3. **Test Combined**:
-   - Expand virtual groups
-   - Change OU filter
-   - Verify virtual groups still work correctly
-   - Refresh and verify everything updates
-
-4. **Edge Cases**:
-   - Directory with no OUs (dropdown should only show "All")
-   - Directory with no root-level cn=/uid= (no virtual groups)
-   - Empty OUs (should still appear in dropdown)
-   - Many OUs (dropdown should scroll)
+**Update render():**
+```rust
+v_flex()
+    .child(self.tree_panel_header.render(window, cx))  // NEW action bar
+    .child(/* tree view */)
+```
 
 ---
 
-## Implementation Summary
+### Phase 6: Cleanup
 
-### Files Changed:
-1. `moribito-rs/crates/gui/src/components/tree_view.rs`
-   - Modified `tree_node_to_tree_item()` to handle virtual node children
-
-2. `moribito-rs/crates/gui/src/views/browser_view.rs`
-   - Added `ou_filter.update_items()` to `initialize()`
-   - Added `ou_filter.update_items()` to `handle_refresh()`
-   - Added `ou_filter.update_items()` to `handle_filter_by_ou()`
-
-### Lines Changed:
-- tree_view.rs: ~30 lines modified (refactored tree_node_to_tree_item logic)
-- browser_view.rs: ~12 lines added (3 calls to update_items())
-
-### Code Quality:
-- ✅ Proper error handling maintained
-- ✅ Logging added for debugging
-- ✅ No breaking changes to existing functionality
-- ✅ Follows GPUI patterns correctly
-- ✅ Handles edge cases (no children, not expanded, etc.)
+- **Delete:** `components/ou_filter.rs`
+- **Remove:** `FilterByOu` action
+- **Update:** `components/mod.rs` - add `tree_panel_header`, remove `ou_filter`
 
 ---
 
-## Previous Implementation (Already Complete)
+## Files to Modify
 
-**Phase 1**: OuFilter component with Select dropdown
-**Phase 2**: Tree grouping logic with virtual nodes
-**Phase 3**: Integration into BrowserView
-**Phase 4**: Fixed reload_tree() to call set_root_nodes()
+| File | Action | Changes |
+|------|--------|---------|
+| `app_state.rs` | MODIFY | Add navigation state + methods |
+| `actions.rs` | MODIFY | Add 4 navigation actions |
+| `tree_panel_header.rs` | CREATE | New action bar component |
+| `tree_view.rs` | MODIFY | Remove OU filter, change click behavior |
+| `browser_view.rs` | MODIFY | Replace OuFilter with TreePanelHeader |
+| `ou_filter.rs` | DELETE | No longer needed |
+| `components/mod.rs` | MODIFY | Update exports |
 
-All phases working correctly. These bug fixes complete the feature.
+---
+
+## Technical Notes
+
+**OU Navigation Detection:** Assume all OUs are navigable (no extra LDAP query to check for children). If OU is empty, show empty state - user can navigate back up.
+
+**Caching:** Reuse existing `node_children` cache. Check cache before LDAP query when navigating.
+
+**Breadcrumb Overflow:** For deep hierarchies, consider truncating middle segments with "..." and showing full path on hover.
+
+---
+
+## Testing Checklist
+
+- [ ] Navigate into OU with children
+- [ ] Navigate up to parent
+- [ ] Click breadcrumb to jump to level
+- [ ] Service accounts grouped at each level
+- [ ] Regular entries (uid=) shown flat
+- [ ] Empty OU shows appropriate state
+- [ ] Refresh reloads current context
+- [ ] Entry selection shows details

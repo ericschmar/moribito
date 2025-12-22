@@ -58,20 +58,11 @@ pub struct TreeState {
     /// Set of nodes currently being loaded
     pub loading_nodes: HashSet<String>,
 
-    /// Current OU filter ("All" or specific OU DN)
-    pub ou_filter: String,
+    /// Current context DN - the DN we're currently viewing children of
+    pub current_context_dn: String,
 
-    /// List of available OUs for filtering
-    pub available_ous: Vec<OuOption>,
-}
-
-/// Represents an OU option for the filter dropdown
-#[derive(Debug, Clone, PartialEq)]
-pub struct OuOption {
-    /// Display name (e.g., "mathematicians")
-    pub label: String,
-    /// Full DN (e.g., "ou=mathematicians,dc=example,dc=com")
-    pub dn: String,
+    /// Navigation stack - history of parent DNs for breadcrumb and "go up"
+    pub navigation_stack: Vec<String>,
 }
 
 impl Default for TreeState {
@@ -80,8 +71,8 @@ impl Default for TreeState {
             expanded_nodes: HashSet::new(),
             node_children: HashMap::new(),
             loading_nodes: HashSet::new(),
-            ou_filter: "All".to_string(),
-            available_ous: Vec::new(),
+            current_context_dn: String::new(),
+            navigation_stack: Vec::new(),
         }
     }
 }
@@ -166,8 +157,12 @@ impl AppState {
     /// Set the active LDAP client
     pub fn set_client(&mut self, client: LdapClient, base_dn: String) {
         self.active_client = Some(client);
-        self.current_base_dn = Some(base_dn);
+        self.current_base_dn = Some(base_dn.clone());
         self.is_connected = true;
+
+        // Initialize navigation at base_dn
+        self.tree_state.current_context_dn = base_dn;
+        self.tree_state.navigation_stack.clear();
     }
 
     /// Clear the active LDAP client and reset connection state
@@ -238,38 +233,66 @@ impl AppState {
         self.tree_state.loading_nodes.contains(dn)
     }
 
-    /// Set the OU filter
-    pub fn set_ou_filter(&mut self, filter: String) {
-        self.tree_state.ou_filter = filter;
-    }
-
-    /// Update available OUs list
-    pub fn update_available_ous(&mut self, ous: Vec<OuOption>) {
-        self.tree_state.available_ous = ous;
-    }
-
-    /// Extract OUs from cached children
-    pub fn extract_ous_from_cache(&self) -> Vec<OuOption> {
+    /// Navigate into a child OU (push current context to stack)
+    pub fn navigate_into(&mut self, target_dn: String) {
         self.tree_state
-            .node_children
-            .values()
-            .flatten()
-            .filter(|node| node.name.to_lowercase().starts_with("ou="))
-            .map(|node| {
-                // Extract the OU name from the DN
-                let label = node
-                    .name
-                    .strip_prefix("ou=")
-                    .or_else(|| node.name.strip_prefix("OU="))
-                    .unwrap_or(&node.name)
-                    .to_string();
+            .navigation_stack
+            .push(self.tree_state.current_context_dn.clone());
+        self.tree_state.current_context_dn = target_dn;
+    }
 
-                OuOption {
-                    label,
-                    dn: node.dn.clone(),
-                }
-            })
-            .collect()
+    /// Navigate up to parent (pop from stack)
+    pub fn navigate_up(&mut self) -> Option<String> {
+        self.tree_state.navigation_stack.pop().map(|parent_dn| {
+            self.tree_state.current_context_dn = parent_dn.clone();
+            parent_dn
+        })
+    }
+
+    /// Navigate to specific level in breadcrumb
+    pub fn navigate_to(&mut self, target_dn: String) {
+        // Pop stack until we reach target_dn
+        while let Some(dn) = self.tree_state.navigation_stack.last() {
+            if dn == &target_dn {
+                self.tree_state.current_context_dn =
+                    self.tree_state.navigation_stack.pop().unwrap();
+                return;
+            }
+            self.tree_state.navigation_stack.pop();
+        }
+        // If not found in stack, just set directly (edge case)
+        self.tree_state.current_context_dn = target_dn;
+    }
+
+    /// Navigate to root (base DN)
+    pub fn navigate_to_root(&mut self) {
+        if let Some(base_dn) = &self.current_base_dn {
+            self.tree_state.current_context_dn = base_dn.clone();
+            self.tree_state.navigation_stack.clear();
+        }
+    }
+
+    /// Get breadcrumb path from base_dn to current context
+    pub fn get_breadcrumb_path(&self) -> Vec<(String, String)> {
+        // Returns (label, dn) pairs for breadcrumb display
+        let mut path = Vec::new();
+
+        // Add all items from navigation stack
+        for dn in &self.tree_state.navigation_stack {
+            let label = Self::extract_rdn_label(dn);
+            path.push((label, dn.clone()));
+        }
+
+        // Add current context
+        let current_label = Self::extract_rdn_label(&self.tree_state.current_context_dn);
+        path.push((current_label, self.tree_state.current_context_dn.clone()));
+
+        path
+    }
+
+    /// Extract RDN label from DN for display
+    fn extract_rdn_label(dn: &str) -> String {
+        dn.split(',').next().unwrap_or(dn).to_string()
     }
 }
 
