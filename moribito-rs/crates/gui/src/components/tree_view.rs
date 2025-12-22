@@ -297,7 +297,7 @@ impl TreeView {
                             state.toggle_node_expansion(&dn);
                         } else if is_ou {
                             // OU nodes: Navigate INTO them
-                            cx.dispatch_action(&NavigateIntoOu { dn: dn.to_string() });
+                            window.dispatch_action(&NavigateIntoOu { dn: dn.to_string() });
                         } else {
                             // Regular entries: emit selection event
                             cx.update_entity(&tree_entity, |tree, cx| {
