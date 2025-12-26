@@ -30,6 +30,9 @@ kotlin {
 
                 // Datetime
                 implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.5.0")
+
+                implementation("com.akuleshov7:ktoml-core:0.7.1")
+                implementation("com.akuleshov7:ktoml-file:0.7.1")
             }
         }
 
@@ -47,14 +50,6 @@ kotlin {
         val jvmMain by getting {
             dependencies {
                 // Additional JVM-specific dependencies if needed
-            }
-        }
-
-        val jvmTest by getting {
-            dependencies {
-                // UnboundID In-Memory Directory Server for integration tests
-                // (ldaptive doesn't have a built-in in-memory server, so we use unboundid for tests)
-                implementation("com.unboundid:unboundid-ldapsdk:6.0.11")
             }
         }
     }

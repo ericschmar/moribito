@@ -1,6 +1,7 @@
 package com.moribito.gui.viewmodel
 
-import com.moribito.config.Config
+import RootConfig
+import LdapConfig as ConfigLdapConfig
 import com.moribito.ldap.*
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -13,7 +14,7 @@ import kotlinx.coroutines.flow.update
  *
  * Manages application state, LDAP connection, and business logic.
  */
-class MainViewModel(private var config: Config) {
+class MainViewModel(private var config: RootConfig) {
     private val scope = CoroutineScope(Dispatchers.Default + SupervisorJob())
     private var ldapClient: LdapClient? = null
 
@@ -21,32 +22,151 @@ class MainViewModel(private var config: Config) {
     private val _state = MutableStateFlow(AppState())
     val state: StateFlow<AppState> = _state.asStateFlow()
 
+    // Track the currently active connection index
+    private var currentConnectionIndex: Int = 0
+
     // Expose current config
-    fun getConfig(): Config = config
+    fun getConfig(): RootConfig = config
+
+    // Get the current active connection
+    fun getCurrentConnection(): ConfigLdapConfig {
+        return config.connections.getOrElse(currentConnectionIndex) {
+            ConfigLdapConfig()
+        }
+    }
+
+    // Set the active connection by index
+    fun setCurrentConnection(index: Int) {
+        if (index in config.connections.indices) {
+            currentConnectionIndex = index
+        }
+    }
 
     /**
-     * Updates the LDAP configuration.
+     * Updates the LDAP configuration for the current connection.
      */
     fun updateConfig(
+        name: String,
         host: String,
         port: Int,
         baseDN: String,
-        useSSL: Boolean,
-        useTLS: Boolean,
+        useSsl: Boolean,
+        useTls: Boolean,
         bindUser: String,
         bindPass: String
     ) {
-        config = config.copy(
-            ldap = config.ldap.copy(
+        println("[MainViewModel] updateConfig called for connection at index $currentConnectionIndex")
+        println("[MainViewModel] Updating to: name=$name, host=$host, port=$port")
+
+        val updatedConnection = ConfigLdapConfig(
+            name = name,
+            host = host,
+            port = port,
+            baseDN = baseDN,
+            useSsl = useSsl,
+            useTls = useTls,
+            bindUser = bindUser,
+            bindPass = bindPass
+        )
+
+        val updatedConnections = config.connections.toMutableList()
+        if (currentConnectionIndex in updatedConnections.indices) {
+            println("[MainViewModel] Updating existing connection at index $currentConnectionIndex")
+            updatedConnections[currentConnectionIndex] = updatedConnection
+        } else {
+            println("[MainViewModel] Adding new connection (index out of bounds)")
+            updatedConnections.add(updatedConnection)
+            currentConnectionIndex = updatedConnections.size - 1
+        }
+
+        config = config.copy(connections = updatedConnections)
+        println("[MainViewModel] Config updated. Total connections: ${config.connections.size}")
+    }
+
+    /**
+     * Saves the current configuration and updates the connection by name.
+     * Returns the final connection name.
+     */
+    fun saveConnection(
+        configService: com.moribito.config.ConfigurationService,
+        selectedConnectionName: String,
+        name: String,
+        host: String,
+        port: Int,
+        baseDN: String,
+        useSsl: Boolean,
+        useTls: Boolean,
+        bindUser: String,
+        bindPass: String
+    ): String {
+        println("[MainViewModel] saveConnection called for: $selectedConnectionName")
+
+        val finalName = name.ifBlank { host }
+        println("[MainViewModel] Final name will be: $finalName")
+
+        // Find the connection by the currently selected name
+        val connectionIndex = getConnectionIndexByName(selectedConnectionName)
+        println("[MainViewModel] Found connection at index: $connectionIndex")
+
+        if (connectionIndex >= 0) {
+            // Update existing connection
+            setCurrentConnection(connectionIndex)
+            updateConfig(
+                name = finalName,
                 host = host,
                 port = port,
                 baseDN = baseDN,
-                useSSL = useSSL,
-                useTLS = useTLS,
+                useSsl = useSsl,
+                useTls = useTls,
                 bindUser = bindUser,
                 bindPass = bindPass
             )
+        } else {
+            println("[MainViewModel] WARNING: Connection not found: $selectedConnectionName")
+        }
+
+        // Save the config to disk
+        println("[MainViewModel] Saving config to disk...")
+        configService.save(config)
+
+        return finalName
+    }
+
+    /**
+     * Saves and connects to the LDAP server.
+     */
+    fun saveAndConnect(
+        configService: com.moribito.config.ConfigurationService,
+        selectedConnectionName: String,
+        name: String,
+        host: String,
+        port: Int,
+        baseDN: String,
+        useSsl: Boolean,
+        useTls: Boolean,
+        bindUser: String,
+        bindPass: String
+    ): String {
+        println("[MainViewModel] saveAndConnect called")
+
+        // Save the connection first
+        val finalName = saveConnection(
+            configService,
+            selectedConnectionName,
+            name,
+            host,
+            port,
+            baseDN,
+            useSsl,
+            useTls,
+            bindUser,
+            bindPass
         )
+
+        // Now connect
+        connect()
+
+        return finalName
     }
 
     /**
@@ -60,19 +180,22 @@ class MainViewModel(private var config: Config) {
                     loadingState = LoadingState.Loading("Connecting to LDAP server...")
                 )}
 
-                // Map config.ldap to LdapClient config
-                val ldapConfig = com.moribito.ldap.LdapConfig(
-                    host = config.ldap.host,
-                    port = config.ldap.port,
-                    baseDN = config.ldap.baseDN,
-                    useSSL = config.ldap.useSSL,
-                    useTLS = config.ldap.useTLS,
-                    bindUser = config.ldap.bindUser,
-                    bindPass = config.ldap.bindPass,
-                    retryEnabled = config.retry.enabled,
-                    maxRetries = config.retry.maxAttempts,
-                    initialDelayMs = config.retry.initialDelayMs,
-                    maxDelayMs = config.retry.maxDelayMs
+                // Get the current connection from the list
+                val currentConn = getCurrentConnection()
+
+                // Map config connection to LdapClient config
+                val ldapConfig = LdapConfig(
+                    host = currentConn.host,
+                    port = currentConn.port,
+                    baseDN = currentConn.baseDN,
+                    useSSL = currentConn.useSsl,
+                    useTLS = currentConn.useTls,
+                    bindUser = currentConn.bindUser,
+                    bindPass = currentConn.bindPass,
+                    retryEnabled = true,
+                    maxRetries = 3,
+                    initialDelayMs = 500,
+                    maxDelayMs = 5000
                 )
 
                 // Create new LDAP client
@@ -262,6 +385,55 @@ class MainViewModel(private var config: Config) {
         }
 
         return root.copy(children = updatedChildren)
+    }
+
+    /**
+     * Adds a new connection to the configuration.
+     */
+    fun addConnection(): ConfigLdapConfig {
+        val newConnection = ConfigLdapConfig(
+            name = "New Connection ${config.connections.size + 1}",
+            host = "",
+            port = 389,
+            baseDN = "",
+            useSsl = false,
+            useTls = false,
+            bindUser = "",
+            bindPass = ""
+        )
+
+        val updatedConnections = config.connections.toMutableList()
+        updatedConnections.add(newConnection)
+        config = config.copy(connections = updatedConnections)
+        currentConnectionIndex = updatedConnections.size - 1
+
+        return newConnection
+    }
+
+    /**
+     * Deletes a connection by name.
+     */
+    fun deleteConnection(name: String) {
+        val updatedConnections = config.connections.filterNot { it.name == name }
+
+        if (updatedConnections.isEmpty()) {
+            // Keep at least one connection (add a default one)
+            config = config.copy(connections = listOf(ConfigLdapConfig()))
+            currentConnectionIndex = 0
+        } else {
+            config = config.copy(connections = updatedConnections)
+            // Adjust current index if needed
+            if (currentConnectionIndex >= updatedConnections.size) {
+                currentConnectionIndex = updatedConnections.size - 1
+            }
+        }
+    }
+
+    /**
+     * Finds a connection index by name.
+     */
+    fun getConnectionIndexByName(name: String): Int {
+        return config.connections.indexOfFirst { it.name == name }
     }
 
     /**

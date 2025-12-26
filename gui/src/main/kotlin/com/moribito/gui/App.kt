@@ -5,44 +5,46 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import com.moribito.config.Config
+import com.moribito.gui.ui.components.Background
 import com.moribito.gui.ui.screens.ConfigurationScreen
 import com.moribito.gui.viewmodel.MainViewModel
-import io.github.composefluent.FluentTheme
-import io.github.composefluent.background.Mica
 import io.github.composefluent.component.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import org.koin.compose.KoinApplication
+import org.koin.core.module.dsl.singleOf
+import org.koin.dsl.module
+import com.moribito.config.ConfigurationService
+import LdapConfig
+import org.koin.compose.koinInject
 
 @Composable
 fun App() {
-    // Load config and create ViewModel
-    var viewModel by remember { mutableStateOf<MainViewModel?>(null) }
-    var configLoadError by remember { mutableStateOf<String?>(null) }
-
-    LaunchedEffect(Unit) {
-        try {
-            val config = withContext(Dispatchers.IO) {
-                try {
-                    Config.load().first
-                } catch (e: Exception) {
-                    // Create default config if none exists
-                    val defaultPath = Config.createDefault()
-                    println("Created default config at: $defaultPath")
-                    Config.load().first
-                }
+    KoinApplication(application = {
+        modules(
+            module {
+                singleOf(::ConfigurationService)
             }
-            viewModel = MainViewModel(config)
-        } catch (e: Exception) {
-            configLoadError = "Failed to load configuration: ${e.message}"
-        }
-    }
+        )
+    }) {
+        // Load config and create ViewModel
+        var viewModel by remember { mutableStateOf<MainViewModel?>(null) }
+        var configLoadError by remember { mutableStateOf<String?>(null) }
 
-    FluentTheme {
+        val configService = koinInject<ConfigurationService>()
+        LaunchedEffect(Unit) {
+            try {
+                val config = configService.load()
+                viewModel = MainViewModel(config)
+            } catch (e: Exception) {
+                configLoadError = "Failed to load configuration: ${e.message}"
+            }
+        }
+
         when {
             configLoadError != null -> {
                 // Show error screen
-                Mica(modifier = Modifier.fillMaxSize()) {
+                Background(modifier = Modifier.fillMaxSize()) {
                     Box(
                         contentAlignment = Alignment.Center,
                         modifier = Modifier.fillMaxSize()
@@ -53,7 +55,7 @@ fun App() {
             }
             viewModel == null -> {
                 // Show loading screen
-                Mica(modifier = Modifier.fillMaxSize()) {
+                Background(modifier = Modifier.fillMaxSize()) {
                     Box(
                         contentAlignment = Alignment.Center,
                         modifier = Modifier.fillMaxSize()
@@ -69,7 +71,7 @@ fun App() {
 
                 ConfigurationScreen(
                     viewModel = vm,
-                    ldapConfig = vm.getConfig().ldap,
+                    ldapConfig = vm.getConfig(),
                     connectionState = state.connectionState
                 )
             }
