@@ -35,11 +35,23 @@ class MainViewModel(private var config: RootConfig) {
         }
     }
 
+    // Get the current connection index
+    fun getCurrentConnectionIndex(): Int = currentConnectionIndex
+
     // Set the active connection by index
     fun setCurrentConnection(index: Int) {
         if (index in config.connections.indices) {
             currentConnectionIndex = index
         }
+    }
+
+    /**
+     * Returns the most recently used connections.
+     * For initial implementation, returns first N connections from the config.
+     * TODO: Enhance with actual "recently used" tracking based on timestamps.
+     */
+    fun getRecentConnections(limit: Int = 3): List<ConfigLdapConfig> {
+        return config.connections.take(limit)
     }
 
     /**

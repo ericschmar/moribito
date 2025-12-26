@@ -1,3 +1,5 @@
+Utilize all available tools to you, including the agentsdb memory system.
+
 We need to create a start screen for this app. Initially, the app will launch into this screen before moving onto a different one.
 
 I want a clean looking layout that matches the intellij design language. It should be setup with two horizontal sections (left and right).

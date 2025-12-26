@@ -7,6 +7,7 @@ import com.moribito.ldap.TreeNode
  * Represents the different views in the application.
  */
 sealed class AppView {
+    object Start : AppView()
     object Configuration : AppView()
     object Tree : AppView()
     object Record : AppView()
@@ -37,7 +38,7 @@ sealed class LoadingState {
  * Complete application state.
  */
 data class AppState(
-    val currentView: AppView = AppView.Configuration,
+    val currentView: AppView = AppView.Start,
     val connectionState: ConnectionState = ConnectionState.Disconnected,
     val loadingState: LoadingState = LoadingState.Idle,
     val treeRoot: TreeNode? = null,

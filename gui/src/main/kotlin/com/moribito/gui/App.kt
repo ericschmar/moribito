@@ -7,6 +7,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import com.moribito.gui.ui.components.Background
 import com.moribito.gui.ui.screens.ConfigurationScreen
+import com.moribito.gui.ui.screens.StartScreen
+import com.moribito.gui.viewmodel.AppView
 import com.moribito.gui.viewmodel.MainViewModel
 import io.github.composefluent.component.*
 import kotlinx.coroutines.Dispatchers
@@ -69,11 +71,49 @@ fun App() {
                 val vm = viewModel!!
                 val state by vm.state.collectAsState()
 
-                ConfigurationScreen(
-                    viewModel = vm,
-                    ldapConfig = vm.getConfig(),
-                    connectionState = state.connectionState
-                )
+                Background(modifier = Modifier.fillMaxSize()) {
+                    when (state.currentView) {
+                        is AppView.Start -> {
+                            StartScreen(
+                                viewModel = vm
+                            )
+                        }
+                        is AppView.Configuration -> {
+                            ConfigurationScreen(
+                                viewModel = vm,
+                                ldapConfig = vm.getConfig(),
+                                connectionState = state.connectionState
+                            )
+                        }
+                        is AppView.Tree -> {
+                            // TODO: Implement TreeScreen
+                            Box(
+                                modifier = Modifier.fillMaxSize(),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text("Tree View - Not Implemented")
+                            }
+                        }
+                        is AppView.Record -> {
+                            // TODO: Implement RecordScreen
+                            Box(
+                                modifier = Modifier.fillMaxSize(),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text("Record View - Not Implemented")
+                            }
+                        }
+                        is AppView.Query -> {
+                            // TODO: Implement QueryScreen
+                            Box(
+                                modifier = Modifier.fillMaxSize(),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text("Query View - Not Implemented")
+                            }
+                        }
+                    }
+                }
             }
         }
     }
