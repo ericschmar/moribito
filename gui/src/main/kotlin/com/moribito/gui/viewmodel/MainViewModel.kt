@@ -236,6 +236,9 @@ class MainViewModel(private var config: RootConfig) {
                 )}
                 println("[MainViewModel] State updated! Current view should now be: ${_state.value.currentView}")
 
+                // Start background schema inspection
+                inspectSchema()
+
                 // Clear success message after a delay
                 delay(3000)
                 _state.update { it.copy(loadingState = LoadingState.Idle) }
@@ -712,7 +715,6 @@ class MainViewModel(private var config: RootConfig) {
     fun selectQueryResult(entry: Entry) {
         _state.update { it.copy(
             selectedEntry = entry,
-            currentView = AppView.Record
         )}
     }
 
@@ -840,6 +842,109 @@ class MainViewModel(private var config: RootConfig) {
      */
     fun getConnectionIndexByName(name: String): Int {
         return config.connections.indexOfFirst { it.name == name }
+    }
+
+    /**
+     * Inspects the LDAP server schema in the background.
+     */
+    fun inspectSchema() {
+        val client = ldapClient ?: return
+
+        scope.launch {
+            try {
+                _state.update { it.copy(
+                    isInspectingSchema = true,
+                    isAttributeViewerLoading = true,
+                    schemaInspectionProgress = 0.1f,
+                    schemaInspectionStatus = "Starting schema inspection..."
+                )}
+
+                delay(500)
+                _state.update { it.copy(
+                    schemaInspectionProgress = 0.3f,
+                    schemaInspectionStatus = "Querying Root DSE..."
+                )}
+
+                val schema = client.inspectSchema()
+
+                _state.update { it.copy(
+                    schemaInspectionProgress = 0.8f,
+                    schemaInspectionStatus = "Parsing schema definitions..."
+                )}
+
+                delay(500)
+
+                _state.update { it.copy(
+                    schema = schema,
+                    attributeViewerSchema = schema,
+                    isInspectingSchema = false,
+                    isAttributeViewerLoading = false,
+                    schemaInspectionProgress = 1.0f,
+                    schemaInspectionStatus = if (schema.isFromSchemaInspection) "Schema inspection complete" else "Schema inspection not supported by server"
+                )}
+
+                // Clear status after a delay
+                delay(3000)
+                _state.update { it.copy(schemaInspectionStatus = null) }
+
+            } catch (e: Exception) {
+                _state.update { it.copy(
+                    isInspectingSchema = false,
+                    isAttributeViewerLoading = false,
+                    schemaInspectionStatus = "Schema inspection failed: ${e.message}"
+                )}
+                delay(5000)
+                _state.update { it.copy(schemaInspectionStatus = null) }
+            }
+        }
+    }
+
+    /**
+     * Loads attributes for a specific OU.
+     */
+    fun loadOuAttributes(ouDn: String) {
+        val client = ldapClient ?: return
+
+        scope.launch {
+            try {
+                _state.update { it.copy(
+                    isAttributeViewerOpen = true,
+                    isAttributeViewerLoading = true,
+                    attributeViewerSchema = null, // Clear previous schema to show loading
+                )}
+
+                val schema = client.getAttributesInOu(ouDn)
+
+                _state.update { it.copy(
+                    attributeViewerSchema = schema,
+                    isAttributeViewerLoading = false,
+                )}
+            } catch (e: Exception) {
+                _state.update { it.copy(
+                    isAttributeViewerLoading = false,
+                    loadingState = LoadingState.Failed("Failed to fetch OU attributes: ${e.message}"),
+                    errorMessage = "Failed to fetch OU attributes: ${e.message}"
+                )}
+            }
+        }
+    }
+
+    /**
+     * Toggles the attribute viewer panel.
+     */
+    fun toggleAttributeViewer(open: Boolean? = null) {
+        _state.update { it.copy(
+            isAttributeViewerOpen = open ?: !it.isAttributeViewerOpen
+        )}
+    }
+
+    /**
+     * Toggles the attribute sort order.
+     */
+    fun toggleAttributeSort() {
+        _state.update { it.copy(
+            attributeSortAscending = !it.attributeSortAscending
+        )}
     }
 
     /**

@@ -5,8 +5,12 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.DpSize
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.FrameWindowScope
 import androidx.compose.ui.window.MenuBar
+import androidx.compose.ui.window.WindowState
+import com.moribito.gui.theme.AppSpacing
 import com.moribito.gui.ui.components.Background
 import com.moribito.gui.ui.screens.ConfigurationScreen
 import com.moribito.gui.ui.screens.StartScreen
@@ -25,7 +29,7 @@ import com.moribito.gui.viewmodel.ConnectionState
 import org.koin.compose.koinInject
 
 @Composable
-fun FrameWindowScope.App() {
+fun FrameWindowScope.App(windowState: WindowState) {
     KoinApplication(application = {
         modules(
             module {
@@ -50,6 +54,17 @@ fun FrameWindowScope.App() {
         if (viewModel != null) {
             val vm = viewModel!!
             val state by vm.state.collectAsState()
+
+            LaunchedEffect(state.currentView) {
+                when (state.currentView) {
+                    is AppView.Start, is AppView.Configuration -> {
+                        windowState.size = DpSize(900.dp, 700.dp)
+                    }
+                    is AppView.Workspace -> {
+                        windowState.size = DpSize(1280.dp, 960.dp)
+                    }
+                }
+            }
 
             MenuBar {
                 Menu("Connections") {
@@ -80,6 +95,7 @@ fun FrameWindowScope.App() {
                     Text(text = "Error: $configLoadError")
                 }
             }
+
             viewModel == null -> {
                 // Show loading screen
                 Box(
@@ -89,58 +105,34 @@ fun FrameWindowScope.App() {
                     ProgressRing()
                 }
             }
+
             else -> {
                 // Show main app
                 val vm = viewModel!!
                 val state by vm.state.collectAsState()
 
                 when (state.currentView) {
-                        is AppView.Start -> {
-                            StartScreen(
-                                viewModel = vm
-                            )
-                        }
-                        is AppView.Configuration -> {
-                            ConfigurationScreen(
-                                viewModel = vm,
-                                ldapConfig = vm.getConfig(),
-                                connectionState = state.connectionState
-                            )
-                        }
-                        is AppView.Workspace -> {
-                            WorkspaceScreen(
-                                viewModel = vm,
-                                state = state
-                            )
-                        }
-                        is AppView.Tree -> {
-                            // TODO: Implement TreeScreen
-                            Box(
-                                modifier = Modifier.fillMaxSize(),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Text("Tree View - Not Implemented")
-                            }
-                        }
-                        is AppView.Record -> {
-                            // TODO: Implement RecordScreen
-                            Box(
-                                modifier = Modifier.fillMaxSize(),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Text("Record View - Not Implemented")
-                            }
-                        }
-                        is AppView.Query -> {
-                            // TODO: Implement QueryScreen
-                            Box(
-                                modifier = Modifier.fillMaxSize(),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Text("Query View - Not Implemented")
-                            }
-                        }
+                    is AppView.Start -> {
+                        StartScreen(
+                            viewModel = vm
+                        )
                     }
+
+                    is AppView.Configuration -> {
+                        ConfigurationScreen(
+                            viewModel = vm,
+                            ldapConfig = vm.getConfig(),
+                            connectionState = state.connectionState
+                        )
+                    }
+
+                    is AppView.Workspace -> {
+                        WorkspaceScreen(
+                            viewModel = vm,
+                            state = state
+                        )
+                    }
+                }
             }
         }
     }

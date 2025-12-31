@@ -234,6 +234,9 @@ class LdapClient(private val config: LdapConfig) : AutoCloseable {
                     .apply {
                         if (attributes.isNotEmpty()) {
                             returnAttributes(*attributes.toTypedArray())
+                        } else {
+                            // Default to all user attributes if none specified
+                            returnAttributes("*")
                         }
                     }
                     .build()
@@ -310,6 +313,9 @@ class LdapClient(private val config: LdapConfig) : AutoCloseable {
                     .apply {
                         if (attributes.isNotEmpty()) {
                             returnAttributes(*attributes.toTypedArray())
+                        } else {
+                            // Default to all user attributes if none specified
+                            returnAttributes("*")
                         }
                     }
                     .build()
@@ -572,6 +578,109 @@ class LdapClient(private val config: LdapConfig) : AutoCloseable {
             pageSize = pageSize,
             cookie = cookie
         )
+    }
+
+    /**
+     * Inspects the LDAP server schema.
+     * Falls back to OU attribute discovery if schema inspection is not supported.
+     */
+    suspend fun inspectSchema(): LdapSchema = withRetry {
+        withContext(Dispatchers.IO) {
+            val factory = connectionFactory ?: throw LdapException("Not connected to LDAP server")
+
+            try {
+                // 1. Get Root DSE to find subschemaSubentry
+                val rootDse = search("", "(objectClass=*)", SearchScope.BASE, listOf("subschemaSubentry")).firstOrNull()
+                val subschemaSubentry = rootDse?.getAttributeValue("subschemaSubentry")
+
+                if (subschemaSubentry != null) {
+                    // 2. Query the schema entry
+                    val schemaEntry = search(subschemaSubentry, "(objectClass=*)", SearchScope.BASE, listOf("attributeTypes")).firstOrNull()
+                    val attributeTypes = schemaEntry?.getAttributeValues("attributeTypes")
+
+                    if (attributeTypes != null && attributeTypes.isNotEmpty()) {
+                        val attributes = attributeTypes.mapNotNull { parseAttributeType(it) }
+                            .distinctBy { it.name }
+                            .sortedBy { it.name }
+                        return@withContext LdapSchema(attributes, true)
+                    }
+                }
+
+                // Fallback: server doesn't support schema inspection
+                return@withContext LdapSchema(emptyList(), false)
+            } catch (e: Exception) {
+                println("[LdapClient] Schema inspection failed: ${e.message}")
+                return@withContext LdapSchema(emptyList(), false)
+            }
+        }
+    }
+
+    /**
+     * Queries an OU (or any entry) for the attributes present in it and its immediate children.
+     */
+    suspend fun getAttributesInOu(ouDn: String): LdapSchema = withRetry {
+        withContext(Dispatchers.IO) {
+            // 1. Get attributes of the OU itself
+            val selfEntry = try {
+                getEntry(ouDn)
+            } catch (e: Exception) {
+                null
+            }
+
+            // 2. Get attributes of its children
+            val childEntries = search(ouDn, "(objectClass=*)", SearchScope.ONE_LEVEL)
+
+            val allEntries = if (selfEntry != null) childEntries + selfEntry else childEntries
+            val attributeNames = allEntries.flatMap { it.attributes.keys }.distinct().sorted()
+
+            val attributes = attributeNames.map { name ->
+                LdapAttribute(name, "Unknown", null)
+            }
+
+            LdapSchema(attributes, false)
+        }
+    }
+
+    private fun parseAttributeType(definition: String): LdapAttribute? {
+        // NAME can be 'name' or ( 'name1' 'name2' )
+        val nameRegex = "NAME\\s+(?:'([^']+)'|\\(\\s*((?:'[^']+'\\s*)+)\\))".toRegex()
+        val nameMatch = nameRegex.find(definition)
+
+        val name = if (nameMatch != null) {
+            if (nameMatch.groupValues[1].isNotEmpty()) {
+                nameMatch.groupValues[1]
+            } else {
+                // It's a list, take the first one
+                nameMatch.groupValues[2].trim().split(Regex("\\s+")).firstOrNull()?.removeSurrounding("'") ?: ""
+            }
+        } else ""
+
+        if (name.isEmpty()) return null
+
+        val syntaxRegex = "SYNTAX\\s+([0-9\\.]+)".toRegex()
+        val syntaxMatch = syntaxRegex.find(definition)
+        val syntaxOid = syntaxMatch?.groupValues?.get(1) ?: "Unknown"
+
+        val descRegex = "DESC\\s+'([^']+)'".toRegex()
+        val descMatch = descRegex.find(definition)
+        val description = descMatch?.groupValues?.get(1)
+
+        return LdapAttribute(name, translateSyntax(syntaxOid), description)
+    }
+
+    private fun translateSyntax(oid: String): String {
+        return when (oid) {
+            "1.3.6.1.4.1.1466.115.121.1.15" -> "DirectoryString"
+            "1.3.6.1.4.1.1466.115.121.1.12" -> "DistinguishedName"
+            "1.3.6.1.4.1.1466.115.121.1.27" -> "Integer"
+            "1.3.6.1.4.1.1466.115.121.1.36" -> "NumericString"
+            "1.3.6.1.4.1.1466.115.121.1.26" -> "IA5String"
+            "1.3.6.1.4.1.1466.115.121.1.7" -> "Boolean"
+            "1.3.6.1.4.1.1466.115.121.1.24" -> "GeneralizedTime"
+            "1.3.6.1.4.1.1466.115.121.1.53" -> "UtcTime"
+            "1.3.6.1.4.1.1466.115.121.1.5" -> "Binary"
+            else -> oid
+        }
     }
 
     /**

@@ -20,6 +20,7 @@ fun TreeView(
     onNodeClick: (TreeNode) -> Unit,
     onNodeDoubleClick: (TreeNode) -> Unit,
     onNodeExpand: (TreeNode) -> Unit,
+    onInspectAttributes: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
     var expandedNodes by remember { mutableStateOf(setOf<String>()) }
@@ -56,7 +57,8 @@ fun TreeView(
                             // Trigger lazy loading if needed
                             onNodeExpand(node)
                         }
-                    }
+                    },
+                    onInspectAttributes = onInspectAttributes
                 )
             }
         }
@@ -94,7 +96,8 @@ private fun RenderTreeNode(
     showVirtualMembers: Boolean,
     onNodeClick: (TreeNode) -> Unit,
     onNodeDoubleClick: (TreeNode) -> Unit,
-    onToggleExpand: (TreeNode) -> Unit
+    onToggleExpand: (TreeNode) -> Unit,
+    onInspectAttributes: (String) -> Unit
 ) {
     val isExpanded = expandedNodes.contains(node.id)
     val isSelected = selectedNode?.id == node.id
@@ -106,7 +109,8 @@ private fun RenderTreeNode(
         isSelected = isSelected,
         onClick = { onNodeClick(node) },
         onDoubleClick = { onNodeDoubleClick(node) },
-        onToggleExpand = { onToggleExpand(node) }
+        onToggleExpand = { onToggleExpand(node) },
+        onInspectAttributes = onInspectAttributes
     )
 
     // Render children if expanded
@@ -154,7 +158,8 @@ private fun RenderTreeNode(
                 showVirtualMembers = showVirtualMembers,
                 onNodeClick = onNodeClick,
                 onNodeDoubleClick = onNodeDoubleClick,
-                onToggleExpand = onToggleExpand
+                onToggleExpand = onToggleExpand,
+                onInspectAttributes = onInspectAttributes
             )
         }
     }

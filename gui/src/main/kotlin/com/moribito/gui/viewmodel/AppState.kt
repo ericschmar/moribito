@@ -2,6 +2,8 @@ package com.moribito.gui.viewmodel
 
 import com.moribito.ldap.Entry
 import com.moribito.ldap.TreeNode
+import com.moribito.ldap.LdapSchema
+import com.moribito.ldap.LdapAttribute
 
 /**
  * Represents the different views in the application.
@@ -10,9 +12,6 @@ sealed class AppView {
     object Start : AppView()
     object Configuration : AppView()
     object Workspace : AppView()
-    object Tree : AppView()
-    object Record : AppView()
-    object Query : AppView()
 }
 
 /**
@@ -65,7 +64,15 @@ data class AppState(
     val successMessage: String? = null,
     val showVirtualMembers: Boolean = false,
     val openTabs: List<RecordTab> = emptyList(),
-    val activeTabId: String? = null
+    val activeTabId: String? = null,
+    val schema: LdapSchema? = null,
+    val isInspectingSchema: Boolean = false,
+    val schemaInspectionProgress: Float = 0f,
+    val schemaInspectionStatus: String? = null,
+    val isAttributeViewerOpen: Boolean = false,
+    val isAttributeViewerLoading: Boolean = false,
+    val attributeViewerSchema: LdapSchema? = null,
+    val attributeSortAscending: Boolean = true
 )
 
 /**

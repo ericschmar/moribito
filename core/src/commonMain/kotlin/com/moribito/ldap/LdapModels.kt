@@ -159,6 +159,23 @@ enum class SearchScope {
 }
 
 /**
+ * Represents an attribute type in the LDAP schema.
+ */
+data class LdapAttribute(
+    val name: String,
+    val type: String,
+    val description: String? = null
+)
+
+/**
+ * Represents the LDAP server schema or an OU-specific attribute list.
+ */
+data class LdapSchema(
+    val attributes: List<LdapAttribute>,
+    val isFromSchemaInspection: Boolean = true
+)
+
+/**
  * Exception thrown when LDAP operations fail.
  */
 class LdapException(

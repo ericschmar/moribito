@@ -5,10 +5,15 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.moribito.gui.theme.AppSizes
 import com.moribito.gui.theme.AppSpacing
 import com.moribito.gui.viewmodel.ConnectionState
 import org.jetbrains.jewel.foundation.theme.JewelTheme
+import androidx.compose.material3.LinearProgressIndicator
+import com.moribito.gui.theme.IntelliJColors
+import org.jetbrains.jewel.ui.component.Text
 
 /**
  * Status bar for the workspace screen with three sections: left (status chip), center, and right.
@@ -17,6 +22,9 @@ import org.jetbrains.jewel.foundation.theme.JewelTheme
 @Composable
 fun WorkspaceStatusBar(
     connectionState: ConnectionState,
+    isInspectingSchema: Boolean = false,
+    schemaInspectionProgress: Float = 0f,
+    schemaInspectionStatus: String? = null,
     modifier: Modifier = Modifier,
     centerContent: @Composable RowScope.() -> Unit = {},
     rightContent: @Composable RowScope.() -> Unit = {}
@@ -25,7 +33,7 @@ fun WorkspaceStatusBar(
         modifier = modifier
             .fillMaxWidth()
             .height(AppSizes.statusBarHeight)
-            .background(JewelTheme.globalColors.panelBackground)
+            .background(IntelliJColors.baseBackground)
             .padding(horizontal = AppSpacing.xs, vertical = AppSpacing.xxs),
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -37,13 +45,31 @@ fun WorkspaceStatusBar(
             StatusChip(state = connectionState)
         }
 
-        // Center section: Custom content
+        // Center section: Custom content or Schema Inspection Progress
         Row(
             modifier = Modifier.weight(1f),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.Center
         ) {
-            centerContent()
+            if (isInspectingSchema || schemaInspectionStatus != null) {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
+                ) {
+                    schemaInspectionStatus?.let {
+                        Text(it, fontSize = 10.sp, maxLines = 1)
+                    }
+                    if (isInspectingSchema) {
+                        Spacer(modifier = Modifier.height(2.dp))
+                        LinearProgressIndicator(
+                            progress = schemaInspectionProgress,
+                            modifier = Modifier.width(150.dp).height(4.dp)
+                        )
+                    }
+                }
+            } else {
+                centerContent()
+            }
         }
 
         // Right section: Custom content

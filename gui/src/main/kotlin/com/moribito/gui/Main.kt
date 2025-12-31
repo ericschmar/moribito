@@ -15,6 +15,8 @@ import androidx.compose.ui.node.DelegatableNode
 import androidx.compose.ui.node.DrawModifierNode
 import androidx.compose.ui.window.FrameWindowScope
 import androidx.compose.ui.window.application
+import androidx.compose.ui.window.rememberWindowState
+import androidx.compose.ui.unit.dp
 import com.moribito.gui.theme.IntelliJColors
 import com.moribito.gui.ui.components.Background
 import com.moribito.gui.view.TitleBarView
@@ -75,7 +77,9 @@ fun main() {
             CompositionLocalProvider(
                 LocalIndication provides NoIndication
             ) {
+                val windowState = rememberWindowState(width = 900.dp, height = 700.dp)
                 DecoratedWindow(
+                    state = windowState,
                     onCloseRequest = { exitApplication() },
                     title = "Moribito",
                     content = {
@@ -87,7 +91,7 @@ fun main() {
                                     override val window: ComposeWindow get() = decoratedWindowScope.window
                                 }
                             }
-                            windowScope.App()
+                            windowScope.App(windowState)
                         }
                     },
                 )
