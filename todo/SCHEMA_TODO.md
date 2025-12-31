@@ -1,3 +1,5 @@
+**DONE**
+
 Let's design a feature for inspecting the LDAP schema. This will be composed of a couple of different things.
 
 1. In the core module, we need all the backend code to pull the schema from the ldap server. If the ldap server doesn't support schema inspection then we should pull a list of all the OUs. Then add a function that will query an OU just for their attributes.

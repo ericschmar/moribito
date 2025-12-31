@@ -77,17 +77,17 @@ compose.desktop {
             vendor = "Moribito"
 
             macOS {
-                iconFile.set(project.file("icons/icon.icns"))
+                iconFile.set(project.file("icons/moribito.icns"))
                 bundleID = "com.moribito.gui"
             }
 
             windows {
-                iconFile.set(project.file("icons/icon.ico"))
+                iconFile.set(project.file("icons/moribito.ico"))
                 menuGroup = "Moribito"
             }
 
             linux {
-                iconFile.set(project.file("icons/icon.png"))
+                iconFile.set(project.file("icons/moribito.png"))
             }
         }
     }

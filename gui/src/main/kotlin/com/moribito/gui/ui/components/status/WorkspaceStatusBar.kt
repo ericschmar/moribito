@@ -2,7 +2,7 @@ package com.moribito.gui.ui.components.status
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -11,9 +11,11 @@ import com.moribito.gui.theme.AppSizes
 import com.moribito.gui.theme.AppSpacing
 import com.moribito.gui.viewmodel.ConnectionState
 import org.jetbrains.jewel.foundation.theme.JewelTheme
-import androidx.compose.material3.LinearProgressIndicator
+import com.moribito.gui.ui.icons.AppIcons
 import com.moribito.gui.theme.IntelliJColors
+import org.jetbrains.jewel.ui.component.Image
 import org.jetbrains.jewel.ui.component.Text
+import kotlinx.coroutines.delay
 
 /**
  * Status bar for the workspace screen with three sections: left (status chip), center, and right.
@@ -29,6 +31,23 @@ fun WorkspaceStatusBar(
     centerContent: @Composable RowScope.() -> Unit = {},
     rightContent: @Composable RowScope.() -> Unit = {}
 ) {
+    var xOffset by remember { mutableStateOf(0.dp) }
+
+    LaunchedEffect(isInspectingSchema) {
+        if (isInspectingSchema) {
+            while (true) {
+                delay(250)
+                // Walk from -60dp to 60dp in steps
+                xOffset += 4.dp
+                if (xOffset > 60.dp) {
+                    xOffset = (-60).dp
+                }
+            }
+        } else {
+            xOffset = 0.dp
+        }
+    }
+
     Row(
         modifier = modifier
             .fillMaxWidth()
@@ -56,14 +75,13 @@ fun WorkspaceStatusBar(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.Center
                 ) {
-                    schemaInspectionStatus?.let {
-                        Text(it, fontSize = 10.sp, maxLines = 1)
-                    }
                     if (isInspectingSchema) {
-                        Spacer(modifier = Modifier.height(2.dp))
-                        LinearProgressIndicator(
-                            progress = schemaInspectionProgress,
-                            modifier = Modifier.width(150.dp).height(4.dp)
+                        Image(
+                            iconKey = AppIcons.walkingIndicator,
+                            contentDescription = "Inspecting schema indicator",
+                            modifier = Modifier
+                                .offset(x = xOffset)
+                                .size(AppSizes.iconExtraLarge)
                         )
                     }
                 }
