@@ -68,13 +68,30 @@ data class SearchPage(
 }
 
 /**
+ * Converts an LDAP Entry to a TreeNode for tree navigation.
+ */
+fun Entry.toTreeNode(): TreeNode {
+    // Extract display name from DN (first component)
+    val name = dn.split(",").firstOrNull()?.trim() ?: dn
+
+    return TreeNode(
+        dn = this.dn,
+        name = name,
+        children = null,     // Not loaded yet
+        isLoaded = false    // Children load on expand
+    )
+}
+
+/**
  * Represents a node in the LDAP directory tree.
  */
 data class TreeNode(
+    val id: String = java.util.UUID.randomUUID().toString(),
     val dn: String,
     val name: String,
     val children: List<TreeNode>? = null,
-    val isLoaded: Boolean = false
+    val isLoaded: Boolean = false,
+    val isVirtualMember: Boolean = false
 ) {
     /**
      * Creates a copy of this node with loaded children.
@@ -85,9 +102,36 @@ data class TreeNode(
 
     /**
      * Checks if this node has children (loaded or potentially loadable).
+     * Returns true if:
+     * - Children are loaded and not empty, OR
+     * - Children haven't been loaded yet AND the DN suggests it's a container
+     *
+     * Leaf node types (assumed to have no children):
+     * - uid= (user accounts)
+     * - cn= (common names, typically leaf entries unless organizational)
+     *
+     * Container node types (assumed to have children):
+     * - dc= (domain components)
+     * - ou= (organizational units)
+     * - o= (organizations)
+     * - c= (countries)
      */
     fun hasChildren(): Boolean {
-        return children != null && children.isNotEmpty()
+        return if (isLoaded) {
+            children != null && children.isNotEmpty()
+        } else {
+            // Check if this is likely a container based on the RDN
+            val rdn = name.lowercase()
+            when {
+                rdn.startsWith("uid=") -> false // User accounts are leaf nodes
+                rdn.startsWith("cn=") -> false  // Common names are typically leaf nodes
+                rdn.startsWith("dc=") -> true   // Domain components are containers
+                rdn.startsWith("ou=") -> true   // Organizational units are containers
+                rdn.startsWith("o=") -> true    // Organizations are containers
+                rdn.startsWith("c=") -> true    // Countries are containers
+                else -> true // Default to assuming it might have children
+            }
+        }
     }
 }
 

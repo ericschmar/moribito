@@ -4,14 +4,9 @@ plugins {
 }
 
 kotlin {
-    jvmToolchain(21)
+    jvmToolchain(25)
 
-    jvm {
-        compilations.all {
-            kotlinOptions.jvmTarget = "21"
-        }
-        withJava()
-    }
+    jvm()
 
     sourceSets {
         val commonMain by getting {

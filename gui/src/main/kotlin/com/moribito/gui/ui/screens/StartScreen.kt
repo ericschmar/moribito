@@ -3,7 +3,6 @@ package com.moribito.gui.ui.screens
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.Icon
-import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -15,6 +14,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.moribito.gui.theme.*
 import com.moribito.gui.ui.components.ConnectionCard
+import com.moribito.gui.ui.components.Island
 import com.moribito.gui.viewmodel.AppView
 import com.moribito.gui.viewmodel.MainViewModel
 import compose.icons.Octicons
@@ -22,7 +22,9 @@ import compose.icons.octicons.Plug16
 import org.jetbrains.compose.splitpane.ExperimentalSplitPaneApi
 import org.jetbrains.compose.splitpane.HorizontalSplitPane
 import org.jetbrains.compose.splitpane.rememberSplitPaneState
+import org.jetbrains.jewel.foundation.theme.JewelTheme
 import org.jetbrains.jewel.ui.component.OutlinedButton
+import org.jetbrains.jewel.ui.component.Text
 
 /**
  * Start screen displayed on app launch.
@@ -62,120 +64,111 @@ fun StartScreen(
         splitPaneState = splitPaneState,
         modifier = modifier.fillMaxSize()
     ) {
-        splitter {
-            visiblePart {
-                Box(
-                    Modifier
-                        .width(1.dp)
-                        .fillMaxHeight()
-                        .background(AppColors.border)
-                )
-            }
-            handle {
-                Box(
-                    Modifier
-                        .width(0.dp)
-                        .fillMaxHeight()
-                )
-            }
-        }
-
         // Left Panel: Branding
         first(minSize = 400.dp) {
-            Box(
-                modifier = Modifier.fillMaxSize(),
-                contentAlignment = Alignment.CenterEnd
+            Island(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(start = AppSpacing.md, end = AppSpacing.xs, bottom = AppSpacing.md)
             ) {
-                Column(
-                    horizontalAlignment = Alignment.End,
-                    modifier = Modifier.padding(end = AppSpacing.lg)
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.CenterEnd
                 ) {
-                    Text(
-                        text = "Moribito",
-                        style = moribitoStyle
-                    )
-                    Text(
-                        text = "An LDAP viewer",
-                        style = AppTypography.labelMedium,
-                        color = AppColors.textPrimary
-                    )
+                    Column(
+                        horizontalAlignment = Alignment.End,
+                        modifier = Modifier.padding(end = AppSpacing.lg)
+                    ) {
+                        Text(
+                            text = "Moribito",
+                            style = moribitoStyle
+                        )
+                        Text(
+                            text = "An LDAP viewer"
+                        )
+                    }
                 }
             }
         }
 
         // Right Panel: Recent Connections
         second(minSize = 400.dp) {
-            Column(
+            Island(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(AppSpacing.lg)
+                    .padding(start = AppSpacing.xs, end = AppSpacing.md, bottom = AppSpacing.md)
             ) {
-                // Top-right: Manage Connections button
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.End
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
                 ) {
-                    OutlinedButton(
-                        onClick = {
-                            viewModel.navigateTo(AppView.Configuration)
-                        }
-                    ) {
-                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            Icon(
-                                imageVector = Octicons.Plug16,
-                                contentDescription = "Plug",
-                                modifier = Modifier.size(12.dp)
-                            )
-                            Text("Manage Connections")
-                        }
-                    }
-                }
-
-                // Centered connection list
-                Spacer(modifier = Modifier.weight(1f))
-
-                if (recentConnections.isEmpty()) {
-                    // Empty state
-                    Column(
+                    // Top-right: Manage Connections button
+                    Row(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.spacedBy(AppSpacing.md)
+                        horizontalArrangement = Arrangement.End
                     ) {
-                        Text(
-                            text = "No connections configured",
-                            style = AppTypography.titleMedium,
-                            color = AppColors.textSecondary
-                        )
                         OutlinedButton(
                             onClick = {
                                 viewModel.navigateTo(AppView.Configuration)
                             }
                         ) {
-                            Text("Add Connection")
+                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                Icon(
+                                    imageVector = Octicons.Plug16,
+                                    contentDescription = "Plug",
+                                    modifier = Modifier.size(12.dp),
+                                    tint = JewelTheme.contentColor
+                                )
+                                Text("Manage Connections")
+                            }
                         }
                     }
-                } else {
-                    // Connection cards
-                    Column(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        recentConnections.forEachIndexed { index, connection ->
-                            ConnectionCard(
-                                name = connection.name.ifBlank { connection.host },
-                                host = connection.host,
-                                isSelected = (index == viewModel.getCurrentConnectionIndex()),
-                                onClick = {
-                                    viewModel.setCurrentConnection(index)
-                                },
-                                modifier = Modifier.width(400.dp)
-                            )
-                        }
-                    }
-                }
 
-                Spacer(modifier = Modifier.weight(1f))
+                    // Centered connection list
+                    Spacer(modifier = Modifier.weight(1f))
+
+                    if (recentConnections.isEmpty()) {
+                        // Empty state
+                        Column(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(AppSpacing.md)
+                        ) {
+                            Text(
+                                text = "No connections configured"
+                            )
+                            OutlinedButton(
+                                onClick = {
+                                    viewModel.navigateTo(AppView.Configuration)
+                                }
+                            ) {
+                                Text("Add Connection")
+                            }
+                        }
+                    } else {
+                        // Connection cards
+                        Column(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            recentConnections.forEachIndexed { index, connection ->
+                                ConnectionCard(
+                                    name = connection.name.ifBlank { connection.host },
+                                    host = connection.host,
+                                    isSelected = (index == viewModel.getCurrentConnectionIndex()),
+                                    onClick = {
+                                        viewModel.setCurrentConnection(index)
+                                        viewModel.connect()
+                                    },
+                                    modifier = Modifier.width(400.dp)
+                                )
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.weight(1f))
+                }
             }
         }
     }

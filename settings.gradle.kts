@@ -2,10 +2,7 @@ rootProject.name = "moribito"
 
 include(
     ":core",
-    ":tui",
-    ":gui",
-    ":app-tui",
-    ":app-gui"
+    ":gui"
 )
 
 pluginManagement {

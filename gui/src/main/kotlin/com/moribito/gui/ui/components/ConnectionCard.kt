@@ -3,18 +3,21 @@ package com.moribito.gui.ui.components
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.hoverable
+import androidx.compose.foundation.interaction.HoverInteraction
+import androidx.compose.foundation.interaction.Interaction
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsHoveredAsState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
-import com.moribito.gui.theme.*
+import com.moribito.gui.theme.IntelliJColors
+import org.jetbrains.jewel.foundation.modifier.onHover
+import org.jetbrains.jewel.foundation.theme.JewelTheme
+import org.jetbrains.jewel.ui.component.Text
 
 /**
  * A card component that displays a connection's name and host.
@@ -37,14 +40,12 @@ fun ConnectionCard(
     val interactionSource = remember { MutableInteractionSource() }
     val isHovered by interactionSource.collectIsHoveredAsState()
 
-    // Determine background color based on state
+    // Determine background color based on state using IntelliJ colors
     val backgroundColor = when {
-        isHovered -> AppColors.surface.hover()
-        else -> AppColors.surface
+        isSelected -> IntelliJColors.baseBackground
+        isHovered -> IntelliJColors.hoverBackground
+        else -> IntelliJColors.baseBackground
     }
-
-    // Determine border color
-    val borderColor = if (isSelected) AppColors.primary else Color.Transparent
 
     Box(
         modifier = modifier
@@ -61,35 +62,10 @@ fun ConnectionCard(
             verticalArrangement = Arrangement.spacedBy(4.dp)
         ) {
             // Connection name
-            Text(
-                text = name,
-                style = AppTypography.titleMedium,
-                color = AppColors.textPrimary
-            )
+            Text(text = name)
 
             // Host address
-            Text(
-                text = host,
-                style = AppMonospace.small,
-                color = AppColors.textSecondary
-            )
-        }
-
-        // Selection indicator (subtle border overlay)
-        if (isSelected) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .clip(RoundedCornerShape(8.dp))
-                    .padding(1.dp)
-                    .background(Color.Transparent)
-                    .let {
-                        // Add border using padding and background trick
-                        Modifier
-                            .fillMaxSize()
-                            .clip(RoundedCornerShape(8.dp))
-                    }
-            )
+            Text(text = host)
         }
     }
 }

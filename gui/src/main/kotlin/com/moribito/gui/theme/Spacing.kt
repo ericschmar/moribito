@@ -115,8 +115,8 @@ object AppSizes {
     /** Toolbar height - 28dp - For compact toolbars (IntelliJ ActionButton) */
     val toolbarHeight: Dp = 28.dp
 
-    /** Status bar height - 24dp - For bottom status bars */
-    val statusBarHeight: Dp = 24.dp
+    /** Status bar height - 32dp - For bottom status bars */
+    val statusBarHeight: Dp = 32.dp
 
     /** Tab bar height - 28dp - For navigation tabs */
     val tabBarHeight: Dp = 28.dp

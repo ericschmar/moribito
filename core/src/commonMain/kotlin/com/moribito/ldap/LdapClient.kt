@@ -5,6 +5,8 @@ import org.ldaptive.ssl.SslConfig
 import org.ldaptive.ssl.X509CredentialConfig
 import kotlinx.coroutines.*
 import kotlin.time.Duration.Companion.milliseconds
+import com.moribito.ldap.query.SqlParser
+import com.moribito.ldap.query.LdapQueryConverter
 
 /**
  * Configuration for LDAP client connection and retry behavior.
@@ -219,6 +221,11 @@ class LdapClient(private val config: LdapConfig) : AutoCloseable {
             val factory = connectionFactory ?: throw LdapException("Not connected to LDAP server")
 
             try {
+                println("[LdapClient.search] BaseDN: $baseDN")
+                println("[LdapClient.search] Filter: $filter")
+                println("[LdapClient.search] Scope: $scope")
+                println("[LdapClient.search] Attributes: $attributes")
+                
                 val searchOp = SearchOperation(factory)
                 val searchRequest = SearchRequest.builder()
                     .dn(baseDN)
@@ -232,6 +239,11 @@ class LdapClient(private val config: LdapConfig) : AutoCloseable {
                     .build()
 
                 val result = searchOp.execute(searchRequest)
+                
+                println("[LdapClient.search] Result success: ${result.isSuccess}")
+                println("[LdapClient.search] Result code: ${result.resultCode}")
+                println("[LdapClient.search] Entry count: ${result.entries.size}")
+                println("[LdapClient.search] Diagnostic message: ${result.diagnosticMessage}")
 
                 if (!result.isSuccess) {
                     throw LdapException(
@@ -241,10 +253,18 @@ class LdapClient(private val config: LdapConfig) : AutoCloseable {
                     )
                 }
 
-                result.entries.map { it.toEntry() }
+                val entries = result.entries.map { it.toEntry() }
+                println("[LdapClient.search] Converted ${entries.size} entries")
+                entries.forEach { entry ->
+                    println("[LdapClient.search]   Entry DN: ${entry.dn}")
+                }
+                
+                entries
             } catch (e: LdapException) {
+                println("[LdapClient.search] LdapException: ${e.message}")
                 throw e
             } catch (e: org.ldaptive.LdapException) {
+                println("[LdapClient.search] org.ldaptive.LdapException: ${e.message}")
                 throw LdapException(
                     message = "Search failed: ${e.message}",
                     cause = e,
@@ -341,12 +361,21 @@ class LdapClient(private val config: LdapConfig) : AutoCloseable {
     suspend fun getChildren(dn: String = ""): List<TreeNode> {
         val searchDN = if (dn.isEmpty()) config.baseDN else dn
 
+        println("[LdapClient.getChildren] Searching for children of: $searchDN")
+        println("[LdapClient.getChildren] Filter: (objectClass=*)")
+        println("[LdapClient.getChildren] Scope: ONE_LEVEL")
+
         val entries = search(
             baseDN = searchDN,
             filter = "(objectClass=*)",
             scope = SearchScope.ONE_LEVEL,
             attributes = listOf("dn")
         )
+
+        println("[LdapClient.getChildren] Found ${entries.size} children")
+        entries.forEach { entry ->
+            println("[LdapClient.getChildren]   - ${entry.dn}")
+        }
 
         return entries.map { entry ->
             TreeNode(
@@ -411,6 +440,62 @@ class LdapClient(private val config: LdapConfig) : AutoCloseable {
     }
 
     /**
+     * Loads children for a tree node, including virtual member children if enabled.
+     *
+     * @param node The node to load children for
+     * @param includeVirtualMembers Whether to include group members as virtual children
+     * @return The node with loaded children (hierarchical + virtual members if enabled)
+     * @throws LdapException if operation fails
+     */
+    suspend fun loadChildrenWithMembers(node: TreeNode, includeVirtualMembers: Boolean): TreeNode {
+        if (node.isLoaded) {
+            return node
+        }
+
+        // Get hierarchical children
+        val hierarchicalChildren = getChildren(node.dn).toMutableList()
+
+        // If virtual members are enabled, add member references as virtual children
+        if (includeVirtualMembers) {
+            try {
+                val entry = getEntry(node.dn)
+                val memberDNs = mutableListOf<String>()
+
+                // Check for various member attributes
+                entry.attributes["member"]?.let { memberDNs.addAll(it) }
+                entry.attributes["uniqueMember"]?.let { memberDNs.addAll(it) }
+                entry.attributes["memberOf"]?.let { memberDNs.addAll(it) }
+
+                // Create virtual TreeNode for each member
+                println("[LdapClient] Processing ${memberDNs.size} member DNs for ${node.dn}")
+                println("[LdapClient] Hierarchical children: ${hierarchicalChildren.map { it.dn }}")
+                memberDNs.forEach { memberDN ->
+                    // Check if this member is already in hierarchical children
+                    val alreadyExists = hierarchicalChildren.any { it.dn.equals(memberDN, ignoreCase = true) }
+                    println("[LdapClient] Checking member: $memberDN - alreadyExists: $alreadyExists")
+                    if (!alreadyExists) {
+                        hierarchicalChildren.add(
+                            TreeNode(
+                                dn = memberDN,
+                                name = extractName(memberDN, node.dn),
+                                children = null,
+                                isLoaded = false,
+                                isVirtualMember = true
+                            )
+                        )
+                        println("[LdapClient] Added virtual member: $memberDN")
+                    }
+                }
+            } catch (e: Exception) {
+                // If we can't get members, just return hierarchical children
+                println("[LdapClient] Could not load members for ${node.dn}: ${e.message}")
+            }
+        }
+
+        return node.withChildren(hierarchicalChildren)
+    }
+
+    /**
      * Performs a custom LDAP search with user-provided filter.
      *
      * @param filter The LDAP search filter
@@ -445,6 +530,45 @@ class LdapClient(private val config: LdapConfig) : AutoCloseable {
             filter = filter,
             scope = SearchScope.SUBTREE,
             attributes = listOf("*"),
+            pageSize = pageSize,
+            cookie = cookie
+        )
+    }
+
+    /**
+     * Executes a SQL-like query.
+     * Example: SELECT * FROM ou.people WHERE name = "john"
+     */
+    suspend fun executeSqlQuery(sql: String): List<Entry> {
+        val parser = SqlParser(sql)
+        val query = parser.parse()
+        val converter = LdapQueryConverter()
+        
+        return search(
+            baseDN = converter.convertFromToDn(query.from, config.baseDN),
+            filter = converter.convertToLdapFilter(query.where),
+            scope = SearchScope.SUBTREE,
+            attributes = query.attributes
+        )
+    }
+
+    /**
+     * Executes a SQL-like query with pagination.
+     */
+    suspend fun executeSqlQueryPaged(
+        sql: String,
+        pageSize: Int = 50,
+        cookie: ByteArray? = null
+    ): SearchPage {
+        val parser = SqlParser(sql)
+        val query = parser.parse()
+        val converter = LdapQueryConverter()
+        
+        return searchPaged(
+            baseDN = converter.convertFromToDn(query.from, config.baseDN),
+            filter = converter.convertToLdapFilter(query.where),
+            scope = SearchScope.SUBTREE,
+            attributes = query.attributes,
             pageSize = pageSize,
             cookie = cookie
         )

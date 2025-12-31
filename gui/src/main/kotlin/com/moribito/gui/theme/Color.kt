@@ -120,3 +120,36 @@ fun Color.pressed(): Color {
     val overlay = AppColors.neutral120.copy(alpha = 0.25f)
     return overlay.compositeOver(this)
 }
+
+/**
+ * IntelliJ-specific colors for matching the official dark theme.
+ */
+object IntelliJColors {
+    /**
+     * IntelliJ's island/panel background color (#191A1C).
+     * Used for editor panes, tool windows, and elevated panels.
+     */
+    val islandBackground = Color(0xFF191A1C)
+
+    /**
+     * The bordering color in intellij
+     */
+    val baseBackground = Color(0xFF26282b)
+
+    /**
+     * Slightly lighter hover state for interactive elements.
+     */
+    val hoverBackground = Color(0xFF313438)
+
+    /**
+     * Blue-tinted background for selected items.
+     */
+    val selectedBackground = Color(0xFF1E415F)
+
+    /**
+     * Semantic colors matching IntelliJ's palette
+     */
+    val success = Color(0xFF6AAB73) // IntelliJ green
+    val warning = Color(0xFFCDA869) // IntelliJ yellow/orange
+    val error = Color(0xFFCC666E) // IntelliJ red
+}

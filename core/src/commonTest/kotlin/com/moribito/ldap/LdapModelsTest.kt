@@ -83,7 +83,7 @@ class TreeNodeTest {
         )
 
         val children = listOf(
-            TreeNode("cn=user1,ou=users,dc=example,dc=com", "cn=user1", null, false)
+            TreeNode(dn = "cn=user1,ou=users,dc=example,dc=com", name = "cn=user1", children = null, isLoaded = false)
         )
 
         val loadedNode = node.withChildren(children)
@@ -98,7 +98,7 @@ class TreeNodeTest {
             dn = "ou=users,dc=example,dc=com",
             name = "ou=users",
             children = listOf(
-                TreeNode("cn=user1,ou=users,dc=example,dc=com", "cn=user1", null, false)
+                TreeNode(dn = "cn=user1,ou=users,dc=example,dc=com", name = "cn=user1", children = null, isLoaded = false)
             ),
             isLoaded = true
         )
@@ -107,10 +107,10 @@ class TreeNodeTest {
     }
 
     @Test
-    fun `hasChildren returns false when children is null`() {
+    fun `hasChildren returns false when children is null and is leaf`() {
         val node = TreeNode(
-            dn = "ou=users,dc=example,dc=com",
-            name = "ou=users",
+            dn = "uid=john,ou=users,dc=example,dc=com",
+            name = "uid=john",
             children = null,
             isLoaded = false
         )

@@ -8,6 +8,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.moribito.gui.theme.AppColors
 import com.moribito.gui.theme.AppSpacing
+import com.moribito.gui.theme.IntelliJColors
 
 @Composable
 fun ActionBar(
@@ -20,7 +21,7 @@ fun ActionBar(
         modifier = modifier
             .fillMaxWidth()
             .height(40.dp)
-            .background(AppColors.surface)
+            .background(IntelliJColors.islandBackground)
             .padding(horizontal = AppSpacing.md),
         verticalAlignment = Alignment.CenterVertically
     ) {

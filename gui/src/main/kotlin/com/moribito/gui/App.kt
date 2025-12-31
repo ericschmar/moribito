@@ -8,6 +8,7 @@ import androidx.compose.ui.Modifier
 import com.moribito.gui.ui.components.Background
 import com.moribito.gui.ui.screens.ConfigurationScreen
 import com.moribito.gui.ui.screens.StartScreen
+import com.moribito.gui.ui.screens.WorkspaceScreen
 import com.moribito.gui.viewmodel.AppView
 import com.moribito.gui.viewmodel.MainViewModel
 import io.github.composefluent.component.*
@@ -46,24 +47,20 @@ fun App() {
         when {
             configLoadError != null -> {
                 // Show error screen
-                Background(modifier = Modifier.fillMaxSize()) {
-                    Box(
-                        contentAlignment = Alignment.Center,
-                        modifier = Modifier.fillMaxSize()
-                    ) {
-                        Text(text = "Error: $configLoadError")
-                    }
+                Box(
+                    contentAlignment = Alignment.Center,
+                    modifier = Modifier.fillMaxSize()
+                ) {
+                    Text(text = "Error: $configLoadError")
                 }
             }
             viewModel == null -> {
                 // Show loading screen
-                Background(modifier = Modifier.fillMaxSize()) {
-                    Box(
-                        contentAlignment = Alignment.Center,
-                        modifier = Modifier.fillMaxSize()
-                    ) {
-                        ProgressRing()
-                    }
+                Box(
+                    contentAlignment = Alignment.Center,
+                    modifier = Modifier.fillMaxSize()
+                ) {
+                    ProgressRing()
                 }
             }
             else -> {
@@ -71,8 +68,7 @@ fun App() {
                 val vm = viewModel!!
                 val state by vm.state.collectAsState()
 
-                Background(modifier = Modifier.fillMaxSize()) {
-                    when (state.currentView) {
+                when (state.currentView) {
                         is AppView.Start -> {
                             StartScreen(
                                 viewModel = vm
@@ -83,6 +79,12 @@ fun App() {
                                 viewModel = vm,
                                 ldapConfig = vm.getConfig(),
                                 connectionState = state.connectionState
+                            )
+                        }
+                        is AppView.Workspace -> {
+                            WorkspaceScreen(
+                                viewModel = vm,
+                                state = state
                             )
                         }
                         is AppView.Tree -> {
@@ -113,7 +115,6 @@ fun App() {
                             }
                         }
                     }
-                }
             }
         }
     }

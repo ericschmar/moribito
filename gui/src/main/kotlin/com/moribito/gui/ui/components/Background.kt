@@ -7,12 +7,12 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import com.moribito.gui.theme.AppColors
+import com.moribito.gui.theme.IntelliJColors
+import org.jetbrains.jewel.foundation.theme.JewelTheme
 
 /**
- * Custom Background component for Zed design system.
+ * Custom Background component using IntelliJ theme colors.
  *
- * Replaces Fluent's Mica component with Zed-themed backgrounds.
  * Supports solid backgrounds and optional translucent/layered effects.
  */
 @Composable
@@ -21,16 +21,18 @@ fun Background(
     style: BackgroundStyle = BackgroundStyle.Solid,
     content: @Composable BoxScope.() -> Unit
 ) {
+    val backgroundColor = IntelliJColors.baseBackground
+
     val backgroundModifier = when (style) {
-        BackgroundStyle.Solid -> modifier.background(AppColors.background)
-        BackgroundStyle.Surface -> modifier.background(AppColors.surface)
-        is BackgroundStyle.Translucent -> modifier.background(AppColors.surface.copy(alpha = style.alpha))
+        BackgroundStyle.Solid -> modifier.background(backgroundColor)
+        BackgroundStyle.Surface -> modifier.background(backgroundColor)
+        is BackgroundStyle.Translucent -> modifier.background(backgroundColor.copy(alpha = style.alpha))
         is BackgroundStyle.Layered -> modifier.background(
             brush = Brush.verticalGradient(
                 colors = listOf(
-                    AppColors.background,
-                    AppColors.surface.copy(alpha = 0.5f),
-                    AppColors.background
+                    backgroundColor,
+                    backgroundColor.copy(alpha = 0.5f),
+                    backgroundColor
                 )
             )
         )

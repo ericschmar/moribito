@@ -9,6 +9,7 @@ import com.moribito.ldap.TreeNode
 sealed class AppView {
     object Start : AppView()
     object Configuration : AppView()
+    object Workspace : AppView()
     object Tree : AppView()
     object Record : AppView()
     object Query : AppView()
@@ -35,6 +36,18 @@ sealed class LoadingState {
 }
 
 /**
+ * Represents a single tab in the record viewer.
+ */
+data class RecordTab(
+    val id: String = java.util.UUID.randomUUID().toString(),
+    val dn: String,
+    val displayName: String,
+    val entry: Entry?,
+    val isTemporary: Boolean = true,
+    val loadingState: LoadingState = LoadingState.Idle
+)
+
+/**
  * Complete application state.
  */
 data class AppState(
@@ -45,7 +58,30 @@ data class AppState(
     val selectedNode: TreeNode? = null,
     val selectedEntry: Entry? = null,
     val queryResults: List<Entry> = emptyList(),
+    val queryResultsRoot: TreeNode? = null,
+    val isShowingQueryResults: Boolean = false,
     val queryText: String = "",
     val errorMessage: String? = null,
-    val successMessage: String? = null
+    val successMessage: String? = null,
+    val showVirtualMembers: Boolean = false,
+    val openTabs: List<RecordTab> = emptyList(),
+    val activeTabId: String? = null
 )
+
+/**
+ * Gets the currently active tab, or null if no tabs are open.
+ */
+fun AppState.getActiveTab(): RecordTab? =
+    openTabs.find { it.id == activeTabId }
+
+/**
+ * Gets the temporary tab, or null if there isn't one.
+ */
+fun AppState.getTemporaryTab(): RecordTab? =
+    openTabs.find { it.isTemporary }
+
+/**
+ * Checks if a DN is already open in a permanent tab.
+ */
+fun AppState.hasPermanentTab(dn: String): Boolean =
+    openTabs.any { !it.isTemporary && it.dn == dn }

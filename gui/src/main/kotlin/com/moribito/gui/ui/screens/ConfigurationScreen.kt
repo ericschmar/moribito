@@ -7,9 +7,7 @@ import androidx.compose.foundation.hoverable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsHoveredAsState
 import androidx.compose.foundation.layout.*
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
-import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -27,6 +25,9 @@ import com.moribito.gui.ui.components.TextField as AppTextField
 import com.moribito.gui.viewmodel.ConnectionState
 import com.moribito.gui.viewmodel.MainViewModel
 import compose.icons.Octicons
+import org.jetbrains.jewel.foundation.theme.JewelTheme
+import org.jetbrains.jewel.ui.component.CircularProgressIndicator
+import org.jetbrains.jewel.ui.component.Text
 import compose.icons.octicons.CheckCircle16
 import compose.icons.octicons.Dash16
 import compose.icons.octicons.Eye16
@@ -54,10 +55,12 @@ private fun IconButton(
     contentDescription: String,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
-    tint: Color = AppColors.textPrimary
+    tint: Color? = null
 ) {
     val interactionSource = remember { MutableInteractionSource() }
     val isHovered by interactionSource.collectIsHoveredAsState()
+
+    val iconColor = tint ?: JewelTheme.contentColor
 
     Box(
         modifier = modifier
@@ -69,7 +72,7 @@ private fun IconButton(
         Icon(
             imageVector = icon,
             contentDescription = contentDescription,
-            tint = if (isHovered) tint.copy(alpha = 0.7f) else tint,
+            tint = if (isHovered) iconColor.copy(alpha = 0.7f) else iconColor,
             modifier = Modifier.size(16.dp)
         )
     }
@@ -141,12 +144,12 @@ fun ConfigurationScreen(
 
     HorizontalSplitPane(
         splitPaneState = state,
-        modifier = Modifier.fillMaxSize()
+        modifier = Modifier.fillMaxSize().background(IntelliJColors.islandBackground)
     ) {
         splitter {
             visiblePart {
                 // The actual line
-                Box(Modifier.width(1.dp).fillMaxHeight().background(AppColors.border))
+                Box(Modifier.width(1.dp).fillMaxHeight().background(JewelTheme.globalColors.borders.normal))
             }
             handle {
                 // The "Hitbox" (8dp wide makes it easy to grab)
@@ -161,7 +164,7 @@ fun ConfigurationScreen(
         }
         first(minSize = 200.dp) {
             Column(
-                Modifier.fillMaxSize().background(AppColors.surface)
+                Modifier.fillMaxSize().background(IntelliJColors.islandBackground)
                     .absolutePadding(top = AppSpacing.xs, bottom = AppSpacing.xs),
                 verticalArrangement = Arrangement.SpaceBetween
             ) {
@@ -186,7 +189,7 @@ fun ConfigurationScreen(
                                 ) {
                                     if (selectedConnectionName == it.name) {
                                         Box(
-                                            Modifier.width(4.dp).fillMaxHeight().background(AppColors.warning),
+                                            Modifier.width(4.dp).fillMaxHeight().background(IntelliJColors.warning),
                                         )
                                     }
                                     Row(
@@ -221,8 +224,7 @@ fun ConfigurationScreen(
                                         selectedConnectionName = configs.firstOrNull()?.name ?: ""
                                         configService.save(viewModel.getConfig())
                                     }
-                                },
-                                tint = AppColors.textPrimary
+                                }
                             )
 
                             IconButton(
@@ -233,8 +235,7 @@ fun ConfigurationScreen(
                                     configs = viewModel.getConfig().connections
                                     selectedConnectionName = newConn.name
                                     configService.save(viewModel.getConfig())
-                                },
-                                tint = AppColors.textPrimary
+                                }
                             )
                         }
                     }
@@ -245,7 +246,8 @@ fun ConfigurationScreen(
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(AppSpacing.lg),
+                    .padding(AppSpacing.lg)
+                    .background(IntelliJColors.islandBackground),
                 verticalArrangement = Arrangement.spacedBy(AppSpacing.lg)
             ) {
                 // Section Title
@@ -270,7 +272,8 @@ fun ConfigurationScreen(
                             Icon(
                                 imageVector = Octicons.Mention16,
                                 contentDescription = "Name",
-                                modifier = Modifier.size(12.dp)
+                                modifier = Modifier.size(12.dp),
+                                tint = JewelTheme.contentColor
                             )
                         },
                         modifier = Modifier.fillMaxWidth(),
@@ -289,7 +292,8 @@ fun ConfigurationScreen(
                             Icon(
                                 imageVector = Octicons.Server16,
                                 contentDescription = "Host",
-                                modifier = Modifier.size(12.dp)
+                                modifier = Modifier.size(12.dp),
+                                tint = JewelTheme.contentColor
                             )
                         },
                         trailingIcon = {
@@ -297,7 +301,7 @@ fun ConfigurationScreen(
                                 Icon(
                                     imageVector = Octicons.CheckCircle16,
                                     contentDescription = "Valid",
-                                    tint = AppColors.success,
+                                    tint = IntelliJColors.success,
                                     modifier = Modifier.size(14.dp)
                                 )
                             }
@@ -321,7 +325,8 @@ fun ConfigurationScreen(
                             Icon(
                                 imageVector = Octicons.Gear16,
                                 contentDescription = "Port",
-                                modifier = Modifier.size(12.dp)
+                                modifier = Modifier.size(12.dp),
+                                tint = JewelTheme.contentColor
                             )
                         },
                         trailingIcon = {
@@ -329,7 +334,7 @@ fun ConfigurationScreen(
                                 Icon(
                                     imageVector = Octicons.CheckCircle16,
                                     contentDescription = "Valid",
-                                    tint = AppColors.success,
+                                    tint = IntelliJColors.success,
                                     modifier = Modifier.size(14.dp)
                                 )
                             }
@@ -353,7 +358,8 @@ fun ConfigurationScreen(
                             Icon(
                                 imageVector = Octicons.Workflow16,
                                 contentDescription = "Base DN",
-                                modifier = Modifier.size(12.dp)
+                                modifier = Modifier.size(12.dp),
+                                tint = JewelTheme.contentColor
                             )
                         },
                         trailingIcon = {
@@ -361,7 +367,7 @@ fun ConfigurationScreen(
                                 Icon(
                                     imageVector = Octicons.CheckCircle16,
                                     contentDescription = "Valid",
-                                    tint = AppColors.success,
+                                    tint = IntelliJColors.success,
                                     modifier = Modifier.size(14.dp)
                                 )
                             }
@@ -385,7 +391,8 @@ fun ConfigurationScreen(
                             Icon(
                                 imageVector = Octicons.Person16,
                                 contentDescription = "User",
-                                modifier = Modifier.size(12.dp)
+                                modifier = Modifier.size(12.dp),
+                                tint = JewelTheme.contentColor
                             )
                         },
                         trailingIcon = {
@@ -393,7 +400,7 @@ fun ConfigurationScreen(
                                 Icon(
                                     imageVector = Octicons.CheckCircle16,
                                     contentDescription = "Valid",
-                                    tint = AppColors.success,
+                                    tint = IntelliJColors.success,
                                     modifier = Modifier.size(14.dp)
                                 )
                             }
@@ -414,15 +421,15 @@ fun ConfigurationScreen(
                             Icon(
                                 imageVector = Octicons.Lock16,
                                 contentDescription = "Password",
-                                modifier = Modifier.size(12.dp)
+                                modifier = Modifier.size(12.dp),
+                                tint = JewelTheme.contentColor
                             )
                         },
                         trailingIcon = {
                             IconButton(
                                 icon = if (showPassword) Octicons.EyeClosed16 else Octicons.Eye16,
                                 contentDescription = if (showPassword) "Hide password" else "Show password",
-                                onClick = { showPassword = !showPassword },
-                                tint = AppColors.textSecondary
+                                onClick = { showPassword = !showPassword }
                             )
                         },
                         modifier = Modifier.fillMaxWidth(),
@@ -446,12 +453,7 @@ fun ConfigurationScreen(
                             onCheckedChange = { newState ->
                                 useSSL = newState
                                 if (useSSL) useTLS = false
-                            },
-                            colors = CheckboxColors(
-                                content = AppColors.primary,
-                                contentDisabled = AppColors.textDisabled,
-                                contentSelected = AppColors.primary
-                            )
+                            }
                         )
                         Text("Use SSL")
                     }
@@ -465,12 +467,7 @@ fun ConfigurationScreen(
                             onCheckedChange = { newState ->
                                 useTLS = newState
                                 if (useTLS) useSSL = false
-                            },
-                            colors = CheckboxColors(
-                                content = AppColors.primary,
-                                contentDisabled = AppColors.textDisabled,
-                                contentSelected = AppColors.primary
-                            )
+                            }
                         )
                         Text("Use TLS")
                     }

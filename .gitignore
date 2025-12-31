@@ -129,3 +129,4 @@ replay_pid*
 
 # Local configuration
 local.properties
+AGENTS.local.db

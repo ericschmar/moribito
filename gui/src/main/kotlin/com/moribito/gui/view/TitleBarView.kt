@@ -11,7 +11,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.moribito.gui.theme.AppColors
 import java.awt.Desktop
 import java.net.URI
 import org.jetbrains.jewel.ui.component.Dropdown
@@ -28,7 +27,7 @@ import org.jetbrains.jewel.window.newFullscreenControls
 @ExperimentalLayoutApi
 @Composable
 internal fun DecoratedWindowScope.TitleBarView() {
-    TitleBar(Modifier.newFullscreenControls(), gradientStartColor = AppColors.colorScheme.primary) {
+    TitleBar(Modifier.newFullscreenControls()) {
         Row(Modifier.align(Alignment.Start)) {
            // start
         }

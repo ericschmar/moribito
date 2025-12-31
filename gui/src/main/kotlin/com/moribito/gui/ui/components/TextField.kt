@@ -19,10 +19,13 @@ import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.moribito.gui.theme.AppColors
 import com.moribito.gui.theme.AppSizes
 import com.moribito.gui.theme.AppSpacing
 import com.moribito.gui.theme.AppTypography
+import org.jetbrains.jewel.foundation.theme.JewelTheme
+import org.jetbrains.jewel.ui.theme.textFieldStyle
 
 /**
  * Custom TextField component with Gruvbox theming and validation support.
@@ -75,16 +78,16 @@ fun TextField(
                     text = label,
                     style = AppTypography.labelMedium,
                     color = when {
-                        !enabled -> AppColors.textDisabled
-                        isError -> AppColors.error
-                        else -> AppColors.textSecondary
+                        !enabled -> JewelTheme.globalColors.text.disabled
+                        isError -> JewelTheme.globalColors.text.error
+                        else -> JewelTheme.globalColors.text.info
                     }
                 )
                 if (isRequired) {
                     Text(
                         text = "*",
                         style = AppTypography.labelMedium,
-                        color = AppColors.error
+                        color = JewelTheme.globalColors.text.error
                     )
                 }
             }
@@ -100,8 +103,9 @@ fun TextField(
             enabled = enabled,
             readOnly = readOnly,
             textStyle = LocalTextStyle.current.copy(
-                color = if (enabled) AppColors.neutral120 else AppColors.textDisabled,  // Gruvbox cream
+                color = if (enabled) JewelTheme.contentColor else JewelTheme.contentColor.copy(alpha = 0.5f),
                 lineHeight = TextUnit.Unspecified,
+                fontSize = 12.sp
             ),
             cursorBrush = SolidColor(AppColors.primary),
             visualTransformation = visualTransformation,
@@ -143,7 +147,7 @@ fun TextField(
                             Text(
                                 text = placeholder,
                                 style = LocalTextStyle.current,
-                                color = AppColors.textTertiary  // Dimmer version
+                                color = JewelTheme.textFieldStyle.colors.placeholder  // Dimmer version
                             )
                         }
 

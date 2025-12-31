@@ -1,9 +1,0 @@
-Utilize all available tools to you, including the agentsdb memory system.
-
-We need to create a start screen for this app. Initially, the app will launch into this screen before moving onto a different one.
-
-I want a clean looking layout that matches the intellij design language. It should be setup with two horizontal sections (left and right).
-On the left side, centered horizontally, and vertically, the text "Moribito" in title size, with a pop of color. On the right side, a list of
-the most recent 3 connections and a button that brings up the ConfigurationScreen. This list should be centered horizontally and vertically. In order to accommodate this list, we need to make a new custom component that will be a rounded rectangle, with a surface color (differentiating it from the background); the name of the connection on one row and the host beneath it. When the user mouses over this component, it should slightly highlight it. When a user clicks on it, it should select it as our active connection (we will implement connecting and a new screen later, do NOT work on that now). Then, at the top right of the right-hand section, a button that says "Manage Connections", which when clicked will close the start screen and open the ConfigurationScreen.
-
-Create a plan for implementing this. 

@@ -4,7 +4,7 @@ plugins {
     kotlin("jvm")
     id("org.jetbrains.compose")
     id("org.jetbrains.kotlin.plugin.compose")
-    kotlin("plugin.serialization") version "2.1.0"
+    kotlin("plugin.serialization")
 }
 repositories {
     maven("https://packages.jetbrains.team/maven/p/kpm/public/")
@@ -57,12 +57,12 @@ dependencies {
 }
 
 kotlin {
-    jvmToolchain(21)
+    jvmToolchain(25)
 }
 
 java {
-    sourceCompatibility = JavaVersion.VERSION_21
-    targetCompatibility = JavaVersion.VERSION_21
+    sourceCompatibility = JavaVersion.VERSION_25
+    targetCompatibility = JavaVersion.VERSION_25
 }
 
 compose.desktop {
