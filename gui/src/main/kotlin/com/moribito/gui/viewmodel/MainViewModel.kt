@@ -273,6 +273,14 @@ class MainViewModel(private var config: RootConfig) {
     }
 
     /**
+     * Reconnects to the LDAP server.
+     */
+    fun reconnect() {
+        disconnect()
+        connect()
+    }
+
+    /**
      * Navigates to a specific view.
      */
     fun navigateTo(view: AppView) {

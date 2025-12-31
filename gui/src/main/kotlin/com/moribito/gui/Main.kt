@@ -6,11 +6,14 @@ import androidx.compose.foundation.interaction.InteractionSource
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.awt.ComposeWindow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.ContentDrawScope
 import androidx.compose.ui.node.DelegatableNode
 import androidx.compose.ui.node.DrawModifierNode
+import androidx.compose.ui.window.FrameWindowScope
 import androidx.compose.ui.window.application
 import com.moribito.gui.theme.IntelliJColors
 import com.moribito.gui.ui.components.Background
@@ -48,38 +51,47 @@ object NoIndication : IndicationNodeFactory {
 }
 
 @OptIn(ExperimentalLayoutApi::class)
-fun main() = application {
-    val textStyle = JewelTheme.createDefaultTextStyle()
-    val editorStyle = JewelTheme.createEditorTextStyle()
+fun main() {
+    System.setProperty("apple.awt.application.name", "Moribito")
+    application {
+        val textStyle = JewelTheme.createDefaultTextStyle()
+        val editorStyle = JewelTheme.createEditorTextStyle()
 
-    val themeDefinition = JewelTheme.darkThemeDefinition(defaultTextStyle = textStyle, editorTextStyle = editorStyle)
+        val themeDefinition = JewelTheme.darkThemeDefinition(defaultTextStyle = textStyle, editorTextStyle = editorStyle)
 
-    IntUiTheme(
-        theme = themeDefinition,
-        styling =
-            ComponentStyling.default()
-                .decoratedWindow(
-                    titleBarStyle = TitleBarStyle.dark(
-                        colors = TitleBarColors.dark(
-                            backgroundColor = IntelliJColors.baseBackground,
-                            borderColor = Color(0xFF2B2D30)
+        IntUiTheme(
+            theme = themeDefinition,
+            styling =
+                ComponentStyling.default()
+                    .decoratedWindow(
+                        titleBarStyle = TitleBarStyle.dark(
+                            colors = TitleBarColors.dark(
+                                backgroundColor = IntelliJColors.baseBackground,
+                                borderColor = Color(0xFF2B2D30)
+                            )
                         )
-                    )
-                ),
-    ) {
-        CompositionLocalProvider(
-            LocalIndication provides NoIndication
+                    ),
         ) {
-            DecoratedWindow(
-                onCloseRequest = { exitApplication() },
-                title = "Moribito",
-                content = {
-                    TitleBarView()
-                    Background(modifier = Modifier.fillMaxSize()) {
-                        App()
-                    }
-                },
-            )
+            CompositionLocalProvider(
+                LocalIndication provides NoIndication
+            ) {
+                DecoratedWindow(
+                    onCloseRequest = { exitApplication() },
+                    title = "Moribito",
+                    content = {
+                        val decoratedWindowScope = this
+                        TitleBarView()
+                        Background(modifier = Modifier.fillMaxSize()) {
+                            val windowScope = remember(decoratedWindowScope) {
+                                object : FrameWindowScope {
+                                    override val window: ComposeWindow get() = decoratedWindowScope.window
+                                }
+                            }
+                            windowScope.App()
+                        }
+                    },
+                )
+            }
         }
     }
 }

@@ -5,6 +5,8 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.window.FrameWindowScope
+import androidx.compose.ui.window.MenuBar
 import com.moribito.gui.ui.components.Background
 import com.moribito.gui.ui.screens.ConfigurationScreen
 import com.moribito.gui.ui.screens.StartScreen
@@ -19,10 +21,11 @@ import org.koin.core.module.dsl.singleOf
 import org.koin.dsl.module
 import com.moribito.config.ConfigurationService
 import LdapConfig
+import com.moribito.gui.viewmodel.ConnectionState
 import org.koin.compose.koinInject
 
 @Composable
-fun App() {
+fun FrameWindowScope.App() {
     KoinApplication(application = {
         modules(
             module {
@@ -41,6 +44,29 @@ fun App() {
                 viewModel = MainViewModel(config)
             } catch (e: Exception) {
                 configLoadError = "Failed to load configuration: ${e.message}"
+            }
+        }
+
+        if (viewModel != null) {
+            val vm = viewModel!!
+            val state by vm.state.collectAsState()
+
+            MenuBar {
+                Menu("Connections") {
+                    Item("Manage Connections", onClick = {
+                        vm.navigateTo(AppView.Configuration)
+                    })
+                    Separator()
+                    Item("Disconnect", enabled = state.connectionState == ConnectionState.Connected, onClick = {
+                        vm.disconnect()
+                    })
+                    Item("Reconnect", enabled = state.connectionState == ConnectionState.Connected, onClick = {
+                        vm.reconnect()
+                    })
+                }
+                Menu("Settings") {
+                    Item("Settings", enabled = false, onClick = {})
+                }
             }
         }
 
