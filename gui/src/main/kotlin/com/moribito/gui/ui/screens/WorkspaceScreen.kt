@@ -3,6 +3,7 @@ package com.moribito.gui.ui.screens
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -24,7 +25,11 @@ import org.jetbrains.compose.splitpane.HorizontalSplitPane
 import org.jetbrains.compose.splitpane.VerticalSplitPane
 import org.jetbrains.jewel.foundation.theme.JewelTheme
 import org.jetbrains.compose.splitpane.rememberSplitPaneState
+import org.jetbrains.jewel.ui.component.Icon
+import org.jetbrains.jewel.ui.component.IconButton
 import org.jetbrains.jewel.ui.component.Text
+import org.jetbrains.jewel.ui.component.Tooltip
+import org.jetbrains.jewel.ui.icons.AllIconsKeys
 
 import com.moribito.gui.ui.components.MainToolbar
 import com.moribito.gui.ui.components.schema.AttributeViewer
@@ -34,7 +39,7 @@ import com.moribito.gui.ui.components.schema.AttributeViewer
  * Tree navigation on the left, Main content (Query + Record) in center,
  * optional Attribute Viewer on the right, and a fixed Toolbar on the far right.
  */
-@OptIn(ExperimentalSplitPaneApi::class)
+@OptIn(ExperimentalSplitPaneApi::class, androidx.compose.foundation.ExperimentalFoundationApi::class)
 @Composable
 fun WorkspaceScreen(
     viewModel: MainViewModel,
@@ -148,6 +153,23 @@ fun WorkspaceScreen(
                     state.selectedEntry?.let { entry ->
                         Text(text = "${entry.attributes.size} attributes", fontSize = 11.sp)
                     }
+
+                    Spacer(modifier = Modifier.width(AppSpacing.xs))
+
+                    // Log viewer button
+                    Tooltip(tooltip = { Text("View Logs") }) {
+                        IconButton(
+                            onClick = { viewModel.openLogViewer() },
+                            modifier = Modifier.size(28.dp)
+                        ) {
+                            Icon(
+                                key = AllIconsKeys.Actions.Preview,
+                                contentDescription = "View Logs",
+                                modifier = Modifier.size(16.dp),
+                                tint = JewelTheme.globalColors.text.normal
+                            )
+                        }
+                    }
                 }
             )
         }
@@ -157,6 +179,9 @@ fun WorkspaceScreen(
             onInspectSchema = {
                 viewModel.inspectSchema()
                 viewModel.toggleAttributeViewer(true)
+            },
+            onOpenGraph = {
+                viewModel.openDirectoryGraph()
             }
         )
     }
@@ -209,9 +234,11 @@ private fun MainContentPanel(
                     TabbedRecordView(
                         tabs = state.openTabs,
                         activeTabId = state.activeTabId,
+                        treeRoot = state.treeRoot,
                         onTabClick = { tabId -> viewModel.selectTab(tabId) },
                         onTabDoubleClick = { tabId -> viewModel.makeTabPermanent(tabId) },
-                        onTabClose = { tabId -> viewModel.closeTab(tabId) }
+                        onTabClose = { tabId -> viewModel.closeTab(tabId) },
+                        onNodeClick = { node -> viewModel.handleGraphNodeClick(node) }
                     )
                 }
             }

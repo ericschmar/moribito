@@ -23,6 +23,10 @@ import com.moribito.gui.theme.IntelliJColors
 import com.moribito.gui.ui.components.Background
 import com.moribito.gui.view.TitleBarView
 import com.moribito.gui.view.ConfigurationWindow
+import com.moribito.gui.view.LogViewerWindow
+import com.moribito.logging.Logger
+import com.moribito.logging.LogLevel
+import java.io.File
 import org.jetbrains.jewel.foundation.theme.JewelTheme
 import org.jetbrains.jewel.intui.standalone.theme.IntUiTheme
 import org.jetbrains.jewel.intui.standalone.theme.createDefaultTextStyle
@@ -63,6 +67,10 @@ object NoIndication : IndicationNodeFactory {
 
 @OptIn(ExperimentalLayoutApi::class)
 fun main() {
+    // Initialize logger before anything else
+    val logDirectory = File(System.getProperty("user.home"), ".moribito/logs")
+    Logger.initialize(logDirectory, LogLevel.DEBUG)
+
     System.setProperty("apple.awt.application.name", "Moribito")
     application {
         KoinApplication(application = {
@@ -123,8 +131,19 @@ fun main() {
                             onCloseRequest = { viewModel.closeConfigurationWindow() }
                         )
                     }
+
+                    // Log viewer window
+                    if (state.isLogViewerOpen) {
+                        LogViewerWindow(
+                            viewModel = viewModel,
+                            onCloseRequest = { viewModel.closeLogViewer() }
+                        )
+                    }
                 }
             }
         }
     }
+
+    // Shutdown logger on exit
+    Logger.shutdown()
 }

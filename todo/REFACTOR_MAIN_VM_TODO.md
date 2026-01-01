@@ -1,0 +1,2 @@
+Our MainViewModel is huge and we should refactor it to better separate concerns.
+We can start by breaking down the ViewModel into smaller, more focused ViewModels for different sections of the application.

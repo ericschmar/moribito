@@ -7,6 +7,7 @@ import kotlinx.coroutines.*
 import kotlin.time.Duration.Companion.milliseconds
 import com.moribito.ldap.query.SqlParser
 import com.moribito.ldap.query.LdapQueryConverter
+import com.moribito.logging.Logger
 
 /**
  * Configuration for LDAP client connection and retry behavior.
@@ -43,6 +44,7 @@ class LdapClient(
 ) : AutoCloseable {
     private var connectionFactory: DefaultConnectionFactory? = null
     private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
+    private val logger = Logger.get("LdapClient")
 
     /**
      * Establishes connection to the LDAP server.
@@ -226,11 +228,8 @@ class LdapClient(
             val factory = connectionFactory ?: throw LdapException("Not connected to LDAP server")
 
             try {
-                println("[LdapClient.search] BaseDN: $baseDN")
-                println("[LdapClient.search] Filter: $filter")
-                println("[LdapClient.search] Scope: $scope")
-                println("[LdapClient.search] Attributes: $attributes")
-                
+                logger.debug("Searching BaseDN=$baseDN, Filter=$filter, Scope=$scope, Attributes=$attributes")
+
                 val searchOp = SearchOperation(factory)
                 val searchRequest = SearchRequest.builder()
                     .dn(baseDN)
@@ -247,11 +246,8 @@ class LdapClient(
                     .build()
 
                 val result = searchOp.execute(searchRequest)
-                
-                println("[LdapClient.search] Result success: ${result.isSuccess}")
-                println("[LdapClient.search] Result code: ${result.resultCode}")
-                println("[LdapClient.search] Entry count: ${result.entries.size}")
-                println("[LdapClient.search] Diagnostic message: ${result.diagnosticMessage}")
+
+                logger.debug("Search result: success=${result.isSuccess}, code=${result.resultCode}, count=${result.entries.size}, message=${result.diagnosticMessage}")
 
                 if (!result.isSuccess) {
                     throw LdapException(
@@ -262,17 +258,14 @@ class LdapClient(
                 }
 
                 val entries = result.entries.map { it.toEntry() }
-                println("[LdapClient.search] Converted ${entries.size} entries")
-                entries.forEach { entry ->
-                    println("[LdapClient.search]   Entry DN: ${entry.dn}")
-                }
-                
+                logger.debug("Converted ${entries.size} entries: ${entries.map { it.dn }}")
+
                 entries
             } catch (e: LdapException) {
-                println("[LdapClient.search] LdapException: ${e.message}")
+                logger.error("Search failed with LdapException", e)
                 throw e
             } catch (e: org.ldaptive.LdapException) {
-                println("[LdapClient.search] org.ldaptive.LdapException: ${e.message}")
+                logger.error("Search failed with org.ldaptive.LdapException", e)
                 throw LdapException(
                     message = "Search failed: ${e.message}",
                     cause = e,
@@ -372,9 +365,7 @@ class LdapClient(
     suspend fun getChildren(dn: String = ""): List<TreeNode> {
         val searchDN = if (dn.isEmpty()) config.baseDN else dn
 
-        println("[LdapClient.getChildren] Searching for children of: $searchDN")
-        println("[LdapClient.getChildren] Filter: (objectClass=*)")
-        println("[LdapClient.getChildren] Scope: ONE_LEVEL")
+        logger.debug("Getting children of DN=$searchDN")
 
         val entries = search(
             baseDN = searchDN,
@@ -383,10 +374,7 @@ class LdapClient(
             attributes = listOf("dn")
         )
 
-        println("[LdapClient.getChildren] Found ${entries.size} children")
-        entries.forEach { entry ->
-            println("[LdapClient.getChildren]   - ${entry.dn}")
-        }
+        logger.debug("Found ${entries.size} children: ${entries.map { it.dn }}")
 
         return entries.map { entry ->
             TreeNode(
@@ -478,12 +466,10 @@ class LdapClient(
                 entry.attributes["memberOf"]?.let { memberDNs.addAll(it) }
 
                 // Create virtual TreeNode for each member
-                println("[LdapClient] Processing ${memberDNs.size} member DNs for ${node.dn}")
-                println("[LdapClient] Hierarchical children: ${hierarchicalChildren.map { it.dn }}")
+                logger.debug("Processing ${memberDNs.size} member DNs for ${node.dn}, hierarchical children: ${hierarchicalChildren.size}")
                 memberDNs.forEach { memberDN ->
                     // Check if this member is already in hierarchical children
                     val alreadyExists = hierarchicalChildren.any { it.dn.equals(memberDN, ignoreCase = true) }
-                    println("[LdapClient] Checking member: $memberDN - alreadyExists: $alreadyExists")
                     if (!alreadyExists) {
                         hierarchicalChildren.add(
                             TreeNode(
@@ -494,12 +480,12 @@ class LdapClient(
                                 isVirtualMember = true
                             )
                         )
-                        println("[LdapClient] Added virtual member: $memberDN")
+                        logger.debug("Added virtual member: $memberDN")
                     }
                 }
             } catch (e: Exception) {
                 // If we can't get members, just return hierarchical children
-                println("[LdapClient] Could not load members for ${node.dn}: ${e.message}")
+                logger.warn("Could not load members for ${node.dn}: ${e.message}")
             }
         }
 
@@ -614,7 +600,7 @@ class LdapClient(
                 // Fallback: server doesn't support schema inspection
                 return@withContext LdapSchema(emptyList(), false)
             } catch (e: Exception) {
-                println("[LdapClient] Schema inspection failed: ${e.message}")
+                logger.warn("Schema inspection failed", e)
                 return@withContext LdapSchema(emptyList(), false)
             }
         }

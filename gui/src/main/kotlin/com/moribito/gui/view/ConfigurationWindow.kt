@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
@@ -21,7 +22,10 @@ import org.jetbrains.jewel.intui.standalone.theme.default
 import org.jetbrains.jewel.intui.window.decoratedWindow
 import org.jetbrains.jewel.intui.window.styling.dark
 import org.jetbrains.jewel.ui.ComponentStyling
+import org.jetbrains.jewel.ui.component.Text
 import org.jetbrains.jewel.window.DecoratedWindow
+import org.jetbrains.jewel.window.TitleBar
+import org.jetbrains.jewel.window.newFullscreenControls
 import org.jetbrains.jewel.window.styling.TitleBarColors
 import org.jetbrains.jewel.window.styling.TitleBarStyle
 
@@ -50,8 +54,8 @@ fun ConfigurationWindow(
             .decoratedWindow(
                 titleBarStyle = TitleBarStyle.dark(
                     colors = TitleBarColors.dark(
-                        backgroundColor = IntelliJColors.islandBackground,
-                        borderColor = Color(0xFF2B2D30)
+                        backgroundColor = IntelliJColors.baseBackground,
+                        borderColor = Color(0xFF2B2D30),
                     )
                 )
             ),
@@ -62,6 +66,9 @@ fun ConfigurationWindow(
             onCloseRequest = onCloseRequest,
             title = "Configuration - Moribito",
             content = {
+                TitleBar(Modifier.newFullscreenControls()) {
+                    Text(title, modifier = Modifier.align(Alignment.CenterHorizontally))
+                }
                 Background(modifier = Modifier.fillMaxSize()) {
                     ConfigurationScreen(
                         viewModel = viewModel,

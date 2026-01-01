@@ -19,6 +19,7 @@ import org.jetbrains.jewel.ui.icons.AllIconsKeys
 @Composable
 fun MainToolbar(
     onInspectSchema: () -> Unit,
+    onOpenGraph: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Column(
@@ -36,6 +37,21 @@ fun MainToolbar(
                 Icon(
                     key = AllIconsKeys.Nodes.Annotationtype,
                     contentDescription = "Inspect Schema",
+                    modifier = Modifier.size(14.dp),
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(AppSpacing.xs))
+
+        Tooltip(tooltip = { Text("Directory Graph") }) {
+            IconButton(
+                onClick = onOpenGraph,
+                modifier = Modifier.size(28.dp)
+            ) {
+                Icon(
+                    key = AllIconsKeys.General.Tree,
+                    contentDescription = "Directory Graph",
                     modifier = Modifier.size(14.dp),
                 )
             }

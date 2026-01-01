@@ -3,6 +3,9 @@ package com.moribito.gui.viewmodel
 import com.moribito.config.*
 import com.moribito.config.LdapConfig as ConfigLdapConfig
 import com.moribito.ldap.*
+import com.moribito.logging.Logger
+import com.moribito.logging.LogEntry
+import com.moribito.logging.LogLevel
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -17,6 +20,8 @@ import kotlinx.coroutines.flow.update
 class MainViewModel(private val configService: ConfigurationService) {
     private val scope = CoroutineScope(Dispatchers.Default + SupervisorJob())
     private var ldapClient: LdapClient? = null
+    private val logger = Logger.get("MainViewModel")
+    private var autoRefreshJob: Job? = null
 
     private var config: RootConfig = configService.load()
 
@@ -68,8 +73,8 @@ class MainViewModel(private val configService: ConfigurationService) {
         useTls: Boolean,
         bindCredentials: List<com.moribito.config.BindCredential>? = null
     ) {
-        println("[MainViewModel] updateConfig called for connection at index $currentConnectionIndex")
-        println("[MainViewModel] Updating to: name=$name, host=$host, port=$port")
+        logger.info("updateConfig called for connection at index $currentConnectionIndex")
+        logger.info("Updating to: name=$name, host=$host, port=$port")
 
         val currentConn = getCurrentConnection()
         val finalCredentials = bindCredentials ?: currentConn.effectiveBindCredentials
@@ -88,16 +93,16 @@ class MainViewModel(private val configService: ConfigurationService) {
 
         val updatedConnections = config.connections.toMutableList()
         if (currentConnectionIndex in updatedConnections.indices) {
-            println("[MainViewModel] Updating existing connection at index $currentConnectionIndex")
+            logger.info("Updating existing connection at index $currentConnectionIndex")
             updatedConnections[currentConnectionIndex] = updatedConnection
         } else {
-            println("[MainViewModel] Adding new connection (index out of bounds)")
+            logger.info("Adding new connection (index out of bounds)")
             updatedConnections.add(updatedConnection)
             currentConnectionIndex = updatedConnections.size - 1
         }
 
         config = config.copy(connections = updatedConnections)
-        println("[MainViewModel] Config updated. Total connections: ${config.connections.size}")
+        logger.info("Config updated. Total connections: ${config.connections.size}")
     }
 
     /**
@@ -114,14 +119,14 @@ class MainViewModel(private val configService: ConfigurationService) {
         useTls: Boolean,
         bindCredentials: List<com.moribito.config.BindCredential>? = null
     ): String {
-        println("[MainViewModel] saveConnection called for: $selectedConnectionName")
+        logger.info("saveConnection called for: $selectedConnectionName")
 
         val finalName = name.ifBlank { host }
-        println("[MainViewModel] Final name will be: $finalName")
+        logger.info("Final name will be: $finalName")
 
         // Find the connection by the currently selected name
         val connectionIndex = getConnectionIndexByName(selectedConnectionName)
-        println("[MainViewModel] Found connection at index: $connectionIndex")
+        logger.info("Found connection at index: $connectionIndex")
 
         if (connectionIndex >= 0) {
             // Update existing connection
@@ -136,11 +141,11 @@ class MainViewModel(private val configService: ConfigurationService) {
                 bindCredentials = bindCredentials
             )
         } else {
-            println("[MainViewModel] WARNING: Connection not found: $selectedConnectionName")
+            logger.info("WARNING: Connection not found: $selectedConnectionName")
         }
 
         // Save the config to disk
-        println("[MainViewModel] Saving config to disk...")
+        logger.info("Saving config to disk...")
         configService.save(config)
 
         return finalName
@@ -159,7 +164,7 @@ class MainViewModel(private val configService: ConfigurationService) {
         useTls: Boolean,
         bindCredentials: List<com.moribito.config.BindCredential>? = null
     ): String {
-        println("[MainViewModel] saveAndConnect called")
+        logger.info("saveAndConnect called")
 
         // Save the connection first
         val finalName = saveConnection(
@@ -266,14 +271,14 @@ class MainViewModel(private val configService: ConfigurationService) {
      * Optionally specify which credential to use.
      */
     fun connect(credential: com.moribito.config.BindCredential? = null) {
-        println("[MainViewModel] connect() called")
+        logger.info("connect() called")
         
         val currentConn = getCurrentConnection()
         val credentials = currentConn.effectiveBindCredentials
         
         // If no specific credential is provided and there are multiple, prompt the user
         if (credential == null && credentials.size > 1) {
-            println("[MainViewModel] Multiple credentials found, showing selection dialog")
+            logger.info("Multiple credentials found, showing selection dialog")
             _state.update { it.copy(
                 showBindDnSelection = true,
                 connectionForSelection = currentConn
@@ -283,16 +288,16 @@ class MainViewModel(private val configService: ConfigurationService) {
 
         scope.launch {
             try {
-                println("[MainViewModel] Starting connection process...")
+                logger.info("Starting connection process...")
                 _state.update { it.copy(
                     connectionState = ConnectionState.Connecting,
                     loadingState = LoadingState.Loading("Connecting to LDAP server..."),
                     showBindDnSelection = false
                 )}
-                println("[MainViewModel] State updated to Connecting")
+                logger.info("State updated to Connecting")
 
                 // Get the current connection from the list
-                println("[MainViewModel] Current connection: host=${currentConn.host}, port=${currentConn.port}, baseDN=${currentConn.baseDN}")
+                logger.info("Current connection: host=${currentConn.host}, port=${currentConn.port}, baseDN=${currentConn.baseDN}")
 
                 // Use provided credential, or default, or first
                 val selectedCredential = credential 
@@ -302,7 +307,7 @@ class MainViewModel(private val configService: ConfigurationService) {
                 if (selectedCredential == null) {
                     throw IllegalStateException("No credentials configured for connection: ${currentConn.name}")
                 }
-                println("[MainViewModel] Using credential: ${selectedCredential.label}")
+                logger.info("Using credential: ${selectedCredential.label}")
 
                 // Map config connection to LdapClient config
                 val ldapConfig = LdapConfig(
@@ -318,19 +323,19 @@ class MainViewModel(private val configService: ConfigurationService) {
                 )
 
                 // Create new LDAP client with credential
-                println("[MainViewModel] Creating LDAP client...")
+                logger.info("Creating LDAP client...")
                 val client = LdapClient(ldapConfig, selectedCredential)
-                println("[MainViewModel] Calling client.connect()...")
+                logger.info("Calling client.connect()...")
                 client.connect()
-                println("[MainViewModel] Client connected successfully!")
+                logger.info("Client connected successfully!")
                 ldapClient = client
 
                 // Build initial tree
-                println("[MainViewModel] Building tree...")
+                logger.info("Building tree...")
                 val root = client.buildTree()
-                println("[MainViewModel] Tree built: ${root.dn}")
+                logger.info("Tree built: ${root.dn}")
 
-                println("[MainViewModel] Updating state to Connected and switching to Workspace view...")
+                logger.info("Updating state to Connected and switching to Workspace view...")
                 _state.update { it.copy(
                     connectionState = ConnectionState.Connected,
                     loadingState = LoadingState.Success("Connected successfully"),
@@ -338,7 +343,7 @@ class MainViewModel(private val configService: ConfigurationService) {
                     currentView = AppView.Workspace,
                     currentCredential = selectedCredential
                 )}
-                println("[MainViewModel] State updated! Current view should now be: ${_state.value.currentView}")
+                logger.info("State updated! Current view should now be: ${_state.value.currentView}")
 
                 // Start background schema inspection
                 inspectSchema()
@@ -349,7 +354,7 @@ class MainViewModel(private val configService: ConfigurationService) {
 
             } catch (e: Exception) {
                 val errorMsg = "Connection failed: ${e.message}"
-                println("[MainViewModel] ERROR during connection: $errorMsg")
+                logger.info("ERROR during connection: $errorMsg")
                 e.printStackTrace()
                 _state.update { it.copy(
                     connectionState = ConnectionState.Error(errorMsg),
@@ -402,10 +407,7 @@ class MainViewModel(private val configService: ConfigurationService) {
 
         scope.launch {
             try {
-                println("=== LOADING CHILDREN ===")
-                println("Node DN: ${node.dn}")
-                println("Node name: ${node.name}")
-                println("isShowingQueryResults: ${_state.value.isShowingQueryResults}")
+                logger.debug("Loading children for node: ${node.dn} (${node.name}), isShowingQueryResults=${_state.value.isShowingQueryResults}")
                 
                 _state.update { it.copy(
                     loadingState = LoadingState.Loading("Loading children...")
@@ -414,11 +416,7 @@ class MainViewModel(private val configService: ConfigurationService) {
                 val showVirtualMembers = _state.value.showVirtualMembers
                 val updatedNode = client.loadChildrenWithMembers(node, showVirtualMembers)
                 
-                println("Children loaded: ${updatedNode.children?.size ?: 0}")
-                updatedNode.children?.forEachIndexed { index, child ->
-                    println("  [$index] ${child.name} (${child.dn})")
-                }
-                println("=======================")
+                logger.debug("Children loaded: ${updatedNode.children?.size ?: 0} children for ${node.dn}")
 
                 // Update the appropriate tree based on which mode we're in
                 _state.update { state ->
@@ -435,10 +433,7 @@ class MainViewModel(private val configService: ConfigurationService) {
                     }
                 }
             } catch (e: Exception) {
-                println("=== ERROR LOADING CHILDREN ===")
-                println("Error: ${e.message}")
-                e.printStackTrace()
-                println("==============================")
+                logger.error("Error loading children for ${node.dn}", e)
                 
                 _state.update { it.copy(
                     loadingState = LoadingState.Failed("Failed to load children: ${e.message}"),
@@ -490,6 +485,7 @@ class MainViewModel(private val configService: ConfigurationService) {
             try {
                 // Check if already open in permanent tab
                 val existingPermanentTab = _state.value.openTabs
+                    .filterIsInstance<RecordTab.EntryTab>()
                     .find { !it.isTemporary && it.dn == dn }
                 
                 if (existingPermanentTab != null) {
@@ -499,7 +495,7 @@ class MainViewModel(private val configService: ConfigurationService) {
                 }
                 
                 // Create new temporary tab (or replace existing temporary)
-                val newTab = RecordTab(
+                val newTab = RecordTab.EntryTab(
                     dn = dn,
                     displayName = displayName,
                     entry = null,
@@ -520,7 +516,7 @@ class MainViewModel(private val configService: ConfigurationService) {
                 
                 _state.update { state ->
                     val updatedTabs = state.openTabs.map { tab ->
-                        if (tab.id == newTab.id) {
+                        if (tab.id == newTab.id && tab is RecordTab.EntryTab) {
                             tab.copy(entry = entry, loadingState = LoadingState.Idle)
                         } else {
                             tab
@@ -532,7 +528,7 @@ class MainViewModel(private val configService: ConfigurationService) {
             } catch (e: Exception) {
                 _state.update { state ->
                     val updatedTabs = state.openTabs.map { tab ->
-                        if (tab.dn == dn) {
+                        if (tab is RecordTab.EntryTab && tab.dn == dn) {
                             tab.copy(loadingState = LoadingState.Failed("Failed to load: ${e.message}"))
                         } else {
                             tab
@@ -552,7 +548,10 @@ class MainViewModel(private val configService: ConfigurationService) {
         _state.update { state ->
             val updatedTabs = state.openTabs.map { tab ->
                 if (tab.id == tabId) {
-                    tab.copy(isTemporary = false)
+                    when (tab) {
+                        is RecordTab.EntryTab -> tab.copy(isTemporary = false)
+                        is RecordTab.GraphTab -> tab.copy(isTemporary = false)
+                    }
                 } else {
                     tab
                 }
@@ -568,14 +567,18 @@ class MainViewModel(private val configService: ConfigurationService) {
         val dn = node.dn
         
         // Check if temporary tab exists for this DN
-        val tempTab = _state.value.openTabs.find { it.isTemporary && it.dn == dn }
+        val tempTab = _state.value.openTabs
+            .filterIsInstance<RecordTab.EntryTab>()
+            .find { it.isTemporary && it.dn == dn }
         if (tempTab != null) {
             makeTabPermanent(tempTab.id)
             return
         }
         
         // Check if already open as permanent
-        val existingTab = _state.value.openTabs.find { !it.isTemporary && it.dn == dn }
+        val existingTab = _state.value.openTabs
+            .filterIsInstance<RecordTab.EntryTab>()
+            .find { !it.isTemporary && it.dn == dn }
         if (existingTab != null) {
             _state.update { it.copy(activeTabId = existingTab.id) }
             return
@@ -592,7 +595,7 @@ class MainViewModel(private val configService: ConfigurationService) {
         
         scope.launch {
             try {
-                val newTab = RecordTab(
+                val newTab = RecordTab.EntryTab(
                     dn = dn,
                     displayName = displayName,
                     entry = null,
@@ -612,7 +615,7 @@ class MainViewModel(private val configService: ConfigurationService) {
                 
                 _state.update { state ->
                     val updatedTabs = state.openTabs.map { tab ->
-                        if (tab.id == newTab.id) {
+                        if (tab.id == newTab.id && tab is RecordTab.EntryTab) {
                             tab.copy(entry = entry, loadingState = LoadingState.Idle)
                         } else {
                             tab
@@ -624,7 +627,7 @@ class MainViewModel(private val configService: ConfigurationService) {
             } catch (e: Exception) {
                 _state.update { state ->
                     val updatedTabs = state.openTabs.map { tab ->
-                        if (tab.dn == dn) {
+                        if (tab is RecordTab.EntryTab && tab.dn == dn) {
                             tab.copy(loadingState = LoadingState.Failed("Failed to load: ${e.message}"))
                         } else {
                             tab
@@ -641,6 +644,34 @@ class MainViewModel(private val configService: ConfigurationService) {
      */
     fun selectTab(tabId: String) {
         _state.update { it.copy(activeTabId = tabId) }
+    }
+
+    /**
+     * Handles clicking on a node in the directory graph.
+     */
+    fun handleGraphNodeClick(node: TreeNode) {
+        if (!node.isLoaded) {
+            loadNodeChildren(node)
+        }
+        // Optionally select the node too, but don't switch tabs automatically
+        // unless we want to view details. For now, let's just load children.
+    }
+    /**
+     * Opens the directory graph view in a new tab.
+     */
+    fun openDirectoryGraph() {
+        // Check if already open
+        val existingTab = _state.value.openTabs.find { it is RecordTab.GraphTab }
+        if (existingTab != null) {
+            _state.update { it.copy(activeTabId = existingTab.id) }
+            return
+        }
+        
+        val newTab = RecordTab.GraphTab()
+        _state.update { it.copy(
+            openTabs = it.openTabs + newTab,
+            activeTabId = newTab.id
+        )}
     }
 
     /**
@@ -763,17 +794,8 @@ class MainViewModel(private val configService: ConfigurationService) {
                 }
                 
                 // Log query results
-                println("=== QUERY RESULTS ===")
-                println("Filter: $filter")
-                println("Found ${results.size} results:")
-                results.forEachIndexed { index, entry ->
-                    println("  [$index] DN: ${entry.dn}")
-                    println("      Attributes: ${entry.attributes.keys.joinToString(", ")}")
-                    entry.attributes.forEach { (key, values) ->
-                        println("        $key: ${values.joinToString(", ")}")
-                    }
-                }
-                println("===================")
+                logger.info("Query completed: filter=$filter, found ${results.size} results")
+                logger.debug("Query result DNs: ${results.map { it.dn }}")
                 
                 // Convert results to tree nodes
                 val resultNodes = results.map { it.toTreeNode() }
@@ -1078,6 +1100,108 @@ class MainViewModel(private val configService: ConfigurationService) {
      */
     fun closeConfigurationWindow() {
         _state.update { it.copy(isConfigurationWindowOpen = false) }
+    }
+
+    // ========== Log Viewer Methods ==========
+
+    /**
+     * Opens the log viewer window and loads the current log file.
+     */
+    fun openLogViewer() {
+        _state.update { it.copy(isLogViewerOpen = true) }
+        loadCurrentLogFile()
+        startAutoRefreshLogs()
+    }
+
+    /**
+     * Closes the log viewer window.
+     */
+    fun closeLogViewer() {
+        stopAutoRefreshLogs()
+        _state.update { it.copy(isLogViewerOpen = false) }
+    }
+
+    /**
+     * Starts auto-refresh for log entries every 2 seconds.
+     */
+    private fun startAutoRefreshLogs() {
+        stopAutoRefreshLogs()  // Cancel any existing refresh
+
+        autoRefreshJob = scope.launch {
+            while (isActive) {
+                try {
+                    loadCurrentLogFile()
+                    delay(2000)  // 2 second refresh interval
+                } catch (e: CancellationException) {
+                    throw e  // Propagate cancellation
+                } catch (e: Exception) {
+                    logger.error("Auto-refresh failed", e)
+                    delay(2000)  // Still wait before retry
+                }
+            }
+        }
+    }
+
+    /**
+     * Stops auto-refresh for log entries.
+     */
+    private fun stopAutoRefreshLogs() {
+        autoRefreshJob?.cancel()
+        autoRefreshJob = null
+    }
+
+    /**
+     * Loads the current session's log file filtered for LdapClient only.
+     */
+    private fun loadCurrentLogFile() {
+        scope.launch {
+            try {
+                val logFile = Logger.getCurrentLogFile()
+                val entries = logFile.readLines()
+                    .mapNotNull { LogEntry.parse(it) }
+                    .filter { it.component == "LdapClient" }  // Filter for LdapClient logs only
+
+                _state.update { it.copy(
+                    logEntries = entries,
+                    logFilePath = logFile.absolutePath
+                )}
+
+                logger.info("Loaded ${entries.size} LdapClient log entries from ${logFile.absolutePath}")
+            } catch (e: Exception) {
+                logger.error("Failed to load log file", e)
+                _state.update { it.copy(
+                    errorMessage = "Failed to load logs: ${e.message}"
+                )}
+            }
+        }
+    }
+
+    /**
+     * Updates the log search query.
+     */
+    fun updateLogSearchQuery(query: String) {
+        _state.update { it.copy(logSearchQuery = query) }
+    }
+
+    /**
+     * Toggles a log level filter.
+     */
+    fun toggleLogLevelFilter(level: LogLevel) {
+        _state.update { state ->
+            val newFilter = if (level in state.logLevelFilter) {
+                state.logLevelFilter - level
+            } else {
+                state.logLevelFilter + level
+            }
+            state.copy(logLevelFilter = newFilter)
+        }
+    }
+
+    /**
+     * Toggles auto-scroll for the log viewer.
+     */
+    fun toggleLogAutoScroll() {
+        _state.update { it.copy(logAutoScroll = !it.logAutoScroll) }
     }
 
     /**

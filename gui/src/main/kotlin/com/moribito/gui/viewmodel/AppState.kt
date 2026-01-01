@@ -4,6 +4,8 @@ import com.moribito.ldap.Entry
 import com.moribito.ldap.TreeNode
 import com.moribito.ldap.LdapSchema
 import com.moribito.ldap.LdapAttribute
+import com.moribito.logging.LogEntry
+import com.moribito.logging.LogLevel
 
 /**
  * Represents the different views in the application.
@@ -37,14 +39,26 @@ sealed class LoadingState {
 /**
  * Represents a single tab in the record viewer.
  */
-data class RecordTab(
-    val id: String = java.util.UUID.randomUUID().toString(),
-    val dn: String,
-    val displayName: String,
-    val entry: Entry?,
-    val isTemporary: Boolean = true,
-    val loadingState: LoadingState = LoadingState.Idle
-)
+sealed interface RecordTab {
+    val id: String
+    val displayName: String
+    val isTemporary: Boolean
+
+    data class EntryTab(
+        override val id: String = java.util.UUID.randomUUID().toString(),
+        val dn: String,
+        override val displayName: String,
+        val entry: Entry?,
+        override val isTemporary: Boolean = true,
+        val loadingState: LoadingState = LoadingState.Idle
+    ) : RecordTab
+
+    data class GraphTab(
+        override val id: String = java.util.UUID.randomUUID().toString(),
+        override val displayName: String = "Directory Tree",
+        override val isTemporary: Boolean = false
+    ) : RecordTab
+}
 
 /**
  * Complete application state.
@@ -76,7 +90,13 @@ data class AppState(
     val showBindDnSelection: Boolean = false,
     val connectionForSelection: com.moribito.config.LdapConfig? = null,
     val currentCredential: com.moribito.config.BindCredential? = null,
-    val isConfigurationWindowOpen: Boolean = false
+    val isConfigurationWindowOpen: Boolean = false,
+    val isLogViewerOpen: Boolean = false,
+    val logEntries: List<LogEntry> = emptyList(),
+    val logSearchQuery: String = "",
+    val logLevelFilter: Set<LogLevel> = setOf(LogLevel.ERROR, LogLevel.WARN, LogLevel.INFO, LogLevel.DEBUG),
+    val logAutoScroll: Boolean = true,
+    val logFilePath: String? = null
 )
 
 /**
@@ -95,4 +115,4 @@ fun AppState.getTemporaryTab(): RecordTab? =
  * Checks if a DN is already open in a permanent tab.
  */
 fun AppState.hasPermanentTab(dn: String): Boolean =
-    openTabs.any { !it.isTemporary && it.dn == dn }
+    openTabs.any { it is RecordTab.EntryTab && !it.isTemporary && it.dn == dn }

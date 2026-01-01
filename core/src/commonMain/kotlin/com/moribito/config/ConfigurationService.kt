@@ -1,10 +1,12 @@
 package com.moribito.config
 
 import com.akuleshov7.ktoml.Toml
+import com.moribito.logging.Logger
 import java.io.File
 
 class ConfigurationService {
     private val toml = Toml()
+    private val logger = Logger.get("ConfigurationService")
 
     /**
      * Get the default configuration path based on OS
@@ -36,15 +38,15 @@ class ConfigurationService {
 
     fun load(): RootConfig {
         val file = getDefaultPath()
-        println("[ConfigurationService] Loading config from: ${file.absolutePath}")
+        logger.info("Loading config from: ${file.absolutePath}")
 
         if (!file.exists()) {
-            println("[ConfigurationService] Config file does not exist, returning default")
+            logger.info("Config file does not exist, returning default")
             return RootConfig(connections = listOf(LdapConfig()))
         }
 
         val content = file.readText()
-        println("[ConfigurationService] File content length: ${content.length} bytes")
+        logger.debug("File content length: ${content.length} bytes")
 
         return decode(content)
     }
@@ -52,17 +54,17 @@ class ConfigurationService {
     private fun decode(content: String): RootConfig {
         return try {
             val config = toml.decodeFromString(RootConfig.serializer(), content)
-            println("[ConfigurationService] Successfully decoded ${config.connections.size} connections")
+            logger.debug("Successfully decoded ${config.connections.size} connections")
 
             // Apply migration to all connections
             val migratedConfig = config.copy(
                 connections = config.connections.map { migrateLdapConfig(it) }
             )
-            println("[ConfigurationService] Migration complete")
+            logger.debug("Migration complete")
 
             migratedConfig
         } catch (e: Exception) {
-            println("[ConfigurationService] Format error: ${e.message}")
+            logger.error("Format error while decoding config", e)
             RootConfig()
         }
     }
@@ -75,18 +77,18 @@ class ConfigurationService {
     private fun migrateLdapConfig(config: LdapConfig): LdapConfig {
         // Already migrated or has new format
         if (config.bindCredentials.isNotEmpty()) {
-            println("[ConfigurationService] Config '${config.name}' already has ${config.bindCredentials.size} credentials")
+            logger.debug("Config '${config.name}' already has ${config.bindCredentials.size} credentials")
             return config
         }
 
         // No legacy credentials either
         if (config._legacyBindUser.isNullOrEmpty()) {
-            println("[ConfigurationService] Config '${config.name}' has no credentials (anonymous bind)")
+            logger.debug("Config '${config.name}' has no credentials (anonymous bind)")
             return config
         }
 
         // Migrate legacy single credential to new format
-        println("[ConfigurationService] Migrating config '${config.name}' from legacy format")
+        logger.info("Migrating config '${config.name}' from legacy format")
         return config.copy(
             bindCredentials = listOf(
                 BindCredential(
@@ -102,43 +104,42 @@ class ConfigurationService {
     }
 
     fun importFromExternalFile(externalFile: File): List<LdapConfig> {
-        println("[ConfigurationService] Importing from: ${externalFile.absolutePath}")
+        logger.info("Importing from: ${externalFile.absolutePath}")
 
         if (!externalFile.exists()) {
-            println("[ConfigurationService] External file does not exist")
+            logger.warn("External file does not exist")
             return emptyList()
         }
 
         val importedRoot = decode(externalFile.readText())
-        println("[ConfigurationService] Imported ${importedRoot.connections.size} connections")
+        logger.info("Imported ${importedRoot.connections.size} connections")
         return importedRoot.connections
     }
 
     fun save(config: RootConfig) {
         val file = getDefaultPath()
-        println("[ConfigurationService] Saving config to: ${file.absolutePath}")
-        println("[ConfigurationService] Saving ${config.connections.size} connections")
+        logger.info("Saving config to: ${file.absolutePath}")
+        logger.info("Saving ${config.connections.size} connections")
 
         // Log each connection being saved
         config.connections.forEachIndexed { index, conn ->
-            println("[ConfigurationService]   [$index] name='${conn.name}', host='${conn.host}', port=${conn.port}")
+            logger.debug("  [$index] name='${conn.name}', host='${conn.host}', port=${conn.port}")
         }
 
         file.parentFile?.mkdirs()
         val content = toml.encodeToString(RootConfig.serializer(), config)
 
-        println("[ConfigurationService] Encoded TOML length: ${content.length} bytes")
-        println("[ConfigurationService] TOML content preview:")
-        println(content.take(500))
+        logger.debug("Encoded TOML length: ${content.length} bytes")
+        logger.debug("TOML content preview: ${content.take(500)}")
 
         file.writeText(content)
-        println("[ConfigurationService] Successfully wrote config to disk")
+        logger.info("Successfully wrote config to disk")
 
         // Verify the write
         if (file.exists()) {
-            println("[ConfigurationService] Verification: File exists with size ${file.length()} bytes")
+            logger.debug("Verification: File exists with size ${file.length()} bytes")
         } else {
-            println("[ConfigurationService] ERROR: File does not exist after write!")
+            logger.error("ERROR: File does not exist after write!")
         }
     }
 }

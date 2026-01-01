@@ -7,21 +7,30 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.moribito.gui.theme.AppSizes
 import com.moribito.gui.theme.AppSpacing
 import com.moribito.gui.theme.IntelliJColors
+import com.moribito.gui.ui.icons.AppIcons
 import com.moribito.ldap.LdapSchema
 import compose.icons.Octicons
 import compose.icons.octicons.ArrowDown16
 import compose.icons.octicons.ArrowUp16
 import compose.icons.octicons.X16
+import kotlinx.coroutines.delay
 import org.jetbrains.jewel.foundation.theme.JewelTheme
 import org.jetbrains.jewel.ui.component.Icon
 import org.jetbrains.jewel.ui.component.IconButton
+import org.jetbrains.jewel.ui.component.Image
 import org.jetbrains.jewel.ui.component.Text
 import org.jetbrains.jewel.ui.component.Tooltip
 
@@ -35,6 +44,24 @@ fun AttributeViewer(
     isLoading: Boolean = false,
     modifier: Modifier = Modifier
 ) {
+
+    var xOffset by remember { mutableStateOf(0.dp) }
+
+    LaunchedEffect(isLoading) {
+        if (isLoading) {
+            while (true) {
+                delay(250)
+                // Walk from -60dp to 60dp in steps
+                xOffset += 4.dp
+                if (xOffset > 60.dp) {
+                    xOffset = (-60).dp
+                }
+            }
+        } else {
+            xOffset = 0.dp
+        }
+    }
+
     Column(modifier = modifier.fillMaxSize()) {
         // Header
         Row(
@@ -91,9 +118,13 @@ fun AttributeViewer(
 
         // Attribute list
         if (isLoading) {
-            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Text("Loading attributes...", color = JewelTheme.globalColors.text.disabled)
-            }
+            Image(
+                iconKey = AppIcons.walkingIndicator,
+                contentDescription = "Inspecting schema indicator",
+                modifier = Modifier
+                    .offset(x = xOffset)
+                    .size(AppSizes.iconExtraLarge)
+            )
         } else if (schema == null || schema.attributes.isEmpty()) {
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 Text("No attributes found", color = JewelTheme.globalColors.text.disabled)

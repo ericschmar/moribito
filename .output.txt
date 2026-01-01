@@ -1,14 +1,14 @@
-Starting a Gradle Daemon (subsequent builds will be faster)
-Kotlin does not yet support 25 JDK target, falling back to Kotlin JVM_23 JVM target
-> Task :core:compileKotlinJvm
+
+> Task :gui:compileKotlin
+w: file:///Users/mmacbook/develop/moribito/gui/src/main/kotlin/com/moribito/gui/view/LogViewerWindow.kt:256:36 'fun toString(): String' is deprecated. kotlinx.datetime.Instant is superseded by kotlin.time.Instant.
 e: Daemon compilation failed: null
 java.lang.Exception
         at org.jetbrains.kotlin.daemon.common.CompileService$CallResult$Error.get(CompileService.kt:69)
         at org.jetbrains.kotlin.daemon.common.CompileService$CallResult$Error.get(CompileService.kt:65)
-        at org.jetbrains.kotlin.compilerRunner.GradleKotlinCompilerWork.compileWithDaemon(GradleKotlinCompilerWork.kt:240)
-        at org.jetbrains.kotlin.compilerRunner.GradleKotlinCompilerWork.compileWithDaemonOrFallbackImpl(GradleKotlinCompilerWork.kt:159)
-        at org.jetbrains.kotlin.compilerRunner.GradleKotlinCompilerWork.run(GradleKotlinCompilerWork.kt:111)
-        at org.jetbrains.kotlin.compilerRunner.GradleCompilerRunnerWithWorkers$GradleKotlinCompilerWorkAction.execute(GradleCompilerRunnerWithWorkers.kt:76)
+        at org.jetbrains.kotlin.compilerRunner.GradleKotlinCompilerWork.compileWithDaemon(GradleKotlinCompilerWork.kt:224)
+        at org.jetbrains.kotlin.compilerRunner.GradleKotlinCompilerWork.compileWithDaemonOrFallbackImpl(GradleKotlinCompilerWork.kt:143)
+        at org.jetbrains.kotlin.compilerRunner.GradleKotlinCompilerWork.run(GradleKotlinCompilerWork.kt:107)
+        at org.jetbrains.kotlin.compilerRunner.GradleCompilerRunnerWithWorkers$GradleKotlinCompilerWorkAction.execute(GradleCompilerRunnerWithWorkers.kt:75)
         at org.gradle.workers.internal.DefaultWorkerServer.execute(DefaultWorkerServer.java:68)
         at org.gradle.workers.internal.NoIsolationWorkerFactory$1$1.create(NoIsolationWorkerFactory.java:66)
         at org.gradle.workers.internal.NoIsolationWorkerFactory$1$1.create(NoIsolationWorkerFactory.java:62)
@@ -43,15 +43,15 @@ java.lang.Exception
         at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1144)
         at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:642)
         at java.base/java.lang.Thread.run(Thread.java:1575)
-Caused by: java.lang.AssertionError: java.lang.Exception: Could not close incremental caches in /Users/mmacbook/develop/moribito/core/build/kotlin/compileKotlinJvm/cacheable/caches-jvm/jvm/kotlin: class-attributes.tab
-        at org.jetbrains.kotlin.com.google.common.io.Closer.close(Closer.java:236)
-        at org.jetbrains.kotlin.incremental.IncrementalCachesManager.close(IncrementalCachesManager.kt:55)
-        at kotlin.io.CloseableKt.closeFinally(Closeable.kt:56)
+Caused by: java.lang.AssertionError: java.lang.Exception: Could not close incremental caches in /Users/mmacbook/develop/moribito/gui/build/kotlin/compileKotlin/cacheable/caches-jvm/jvm/kotlin: proto.tab
+        at org.jetbrains.kotlin.com.google.common.io.Closer.close(Closer.java:218)
+        at org.jetbrains.kotlin.incremental.IncrementalCachesManager.close(IncrementalCachesManager.kt:57)
+        at kotlin.io.CloseableKt.closeFinally(Closeable.kt:47)
         at org.jetbrains.kotlin.incremental.IncrementalCompilerRunner.compileNonIncrementally(IncrementalCompilerRunner.kt:293)
-        at org.jetbrains.kotlin.incremental.IncrementalCompilerRunner.compile(IncrementalCompilerRunner.kt:129)
-        at org.jetbrains.kotlin.daemon.CompileServiceImplBase.execIncrementalCompiler(CompileServiceImpl.kt:674)
-        at org.jetbrains.kotlin.daemon.CompileServiceImplBase.access$execIncrementalCompiler(CompileServiceImpl.kt:91)
-        at org.jetbrains.kotlin.daemon.CompileServiceImpl.compile(CompileServiceImpl.kt:1659)
+        at org.jetbrains.kotlin.incremental.IncrementalCompilerRunner.compile(IncrementalCompilerRunner.kt:128)
+        at org.jetbrains.kotlin.daemon.CompileServiceImplBase.execIncrementalCompiler(CompileServiceImpl.kt:684)
+        at org.jetbrains.kotlin.daemon.CompileServiceImplBase.access$execIncrementalCompiler(CompileServiceImpl.kt:94)
+        at org.jetbrains.kotlin.daemon.CompileServiceImpl.compile(CompileServiceImpl.kt:1810)
         at java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:103)
         at java.base/java.lang.reflect.Method.invoke(Method.java:580)
         at java.rmi/sun.rmi.server.UnicastServerRef.dispatch(UnicastServerRef.java:360)
@@ -65,23 +65,23 @@ Caused by: java.lang.AssertionError: java.lang.Exception: Could not close increm
         at java.base/java.security.AccessController.doPrivileged(AccessController.java:400)
         at java.rmi/sun.rmi.transport.tcp.TCPTransport$ConnectionHandler.run(TCPTransport.java:720)
         ... 3 more
-Caused by: java.lang.Exception: Could not close incremental caches in /Users/mmacbook/develop/moribito/core/build/kotlin/compileKotlinJvm/cacheable/caches-jvm/jvm/kotlin: class-attributes.tab
+Caused by: java.lang.Exception: Could not close incremental caches in /Users/mmacbook/develop/moribito/gui/build/kotlin/compileKotlin/cacheable/caches-jvm/jvm/kotlin: proto.tab
         at org.jetbrains.kotlin.incremental.storage.BasicMapsOwner.forEachMapSafe(BasicMapsOwner.kt:95)
         at org.jetbrains.kotlin.incremental.storage.BasicMapsOwner.close(BasicMapsOwner.kt:53)
-        at org.jetbrains.kotlin.com.google.common.io.Closer.close(Closer.java:223)
+        at org.jetbrains.kotlin.com.google.common.io.Closer.close(Closer.java:205)
         ... 22 more
-        Suppressed: java.lang.IllegalStateException: Storage for [/Users/mmacbook/develop/moribito/core/build/kotlin/compileKotlinJvm/cacheable/caches-jvm/jvm/kotlin/class-attributes.tab] is already registered
+        Suppressed: java.lang.IllegalStateException: Storage for [/Users/mmacbook/develop/moribito/gui/build/kotlin/compileKotlin/cacheable/caches-jvm/jvm/kotlin/proto.tab] is already registered
                 at org.jetbrains.kotlin.com.intellij.util.io.FilePageCache.registerPagedFileStorage(FilePageCache.java:410)
                 at org.jetbrains.kotlin.com.intellij.util.io.PagedFileStorage.<init>(PagedFileStorage.java:72)
-                at org.jetbrains.kotlin.com.intellij.util.io.ResizeableMappedFile.<init>(ResizeableMappedFile.java:55)
+                at org.jetbrains.kotlin.com.intellij.util.io.ResizeableMappedFile.<init>(ResizeableMappedFile.java:68)
                 at org.jetbrains.kotlin.com.intellij.util.io.PersistentBTreeEnumerator.<init>(PersistentBTreeEnumerator.java:128)
                 at org.jetbrains.kotlin.com.intellij.util.io.PersistentEnumerator.createDefaultEnumerator(PersistentEnumerator.java:52)
                 at org.jetbrains.kotlin.com.intellij.util.io.PersistentMapImpl.<init>(PersistentMapImpl.java:165)
                 at org.jetbrains.kotlin.com.intellij.util.io.PersistentMapImpl.<init>(PersistentMapImpl.java:140)
                 at org.jetbrains.kotlin.com.intellij.util.io.PersistentMapBuilder.buildImplementation(PersistentMapBuilder.java:88)
                 at org.jetbrains.kotlin.com.intellij.util.io.PersistentMapBuilder.build(PersistentMapBuilder.java:71)
-                at org.jetbrains.kotlin.com.intellij.util.io.PersistentHashMap.<init>(PersistentHashMap.java:45)
-                at org.jetbrains.kotlin.com.intellij.util.io.PersistentHashMap.<init>(PersistentHashMap.java:71)
+                at org.jetbrains.kotlin.com.intellij.util.io.PersistentHashMap.<init>(PersistentHashMap.java:46)
+                at org.jetbrains.kotlin.com.intellij.util.io.PersistentHashMap.<init>(PersistentHashMap.java:72)
                 at org.jetbrains.kotlin.incremental.storage.LazyStorage.createMap(LazyStorage.kt:62)
                 at org.jetbrains.kotlin.incremental.storage.LazyStorage.getStorageOrCreateNew(LazyStorage.kt:59)
                 at org.jetbrains.kotlin.incremental.storage.LazyStorage.set(LazyStorage.kt:80)
@@ -92,26 +92,26 @@ Caused by: java.lang.Exception: Could not close incremental caches in /Users/mma
                 at org.jetbrains.kotlin.incremental.storage.BasicMapsOwner$close$1.invoke(BasicMapsOwner.kt:53)
                 at org.jetbrains.kotlin.incremental.storage.BasicMapsOwner.forEachMapSafe(BasicMapsOwner.kt:87)
                 ... 24 more
-                Suppressed: java.lang.Exception: Storage[/Users/mmacbook/develop/moribito/core/build/kotlin/compileKotlinJvm/cacheable/caches-jvm/jvm/kotlin/class-attributes.tab] registration stack trace
+                Suppressed: java.lang.Exception: Storage[/Users/mmacbook/develop/moribito/gui/build/kotlin/compileKotlin/cacheable/caches-jvm/jvm/kotlin/proto.tab] registration stack trace
                         at org.jetbrains.kotlin.com.intellij.util.io.FilePageCache.registerPagedFileStorage(FilePageCache.java:437)
                         ... 43 more
-        Suppressed: java.lang.Exception: Could not close incremental caches in /Users/mmacbook/develop/moribito/core/build/kotlin/compileKotlinJvm/cacheable/caches-jvm/lookups: id-to-file.tab
+        Suppressed: java.lang.Exception: Could not close incremental caches in /Users/mmacbook/develop/moribito/gui/build/kotlin/compileKotlin/cacheable/caches-jvm/lookups: id-to-file.tab
                 at org.jetbrains.kotlin.incremental.storage.BasicMapsOwner.forEachMapSafe(BasicMapsOwner.kt:95)
                 at org.jetbrains.kotlin.incremental.storage.BasicMapsOwner.close(BasicMapsOwner.kt:53)
                 at org.jetbrains.kotlin.incremental.LookupStorage.close(LookupStorage.kt:155)
                 ... 23 more
-                Suppressed: java.lang.IllegalStateException: Storage for [/Users/mmacbook/develop/moribito/core/build/kotlin/compileKotlinJvm/cacheable/caches-jvm/lookups/id-to-file.tab] is already registered
+                Suppressed: java.lang.IllegalStateException: Storage for [/Users/mmacbook/develop/moribito/gui/build/kotlin/compileKotlin/cacheable/caches-jvm/lookups/id-to-file.tab] is already registered
                         at org.jetbrains.kotlin.com.intellij.util.io.FilePageCache.registerPagedFileStorage(FilePageCache.java:410)
                         at org.jetbrains.kotlin.com.intellij.util.io.PagedFileStorage.<init>(PagedFileStorage.java:72)
-                        at org.jetbrains.kotlin.com.intellij.util.io.ResizeableMappedFile.<init>(ResizeableMappedFile.java:55)
+                        at org.jetbrains.kotlin.com.intellij.util.io.ResizeableMappedFile.<init>(ResizeableMappedFile.java:68)
                         at org.jetbrains.kotlin.com.intellij.util.io.PersistentBTreeEnumerator.<init>(PersistentBTreeEnumerator.java:128)
                         at org.jetbrains.kotlin.com.intellij.util.io.PersistentEnumerator.createDefaultEnumerator(PersistentEnumerator.java:52)
                         at org.jetbrains.kotlin.com.intellij.util.io.PersistentMapImpl.<init>(PersistentMapImpl.java:165)
                         at org.jetbrains.kotlin.com.intellij.util.io.PersistentMapImpl.<init>(PersistentMapImpl.java:140)
                         at org.jetbrains.kotlin.com.intellij.util.io.PersistentMapBuilder.buildImplementation(PersistentMapBuilder.java:88)
                         at org.jetbrains.kotlin.com.intellij.util.io.PersistentMapBuilder.build(PersistentMapBuilder.java:71)
-                        at org.jetbrains.kotlin.com.intellij.util.io.PersistentHashMap.<init>(PersistentHashMap.java:45)
-                        at org.jetbrains.kotlin.com.intellij.util.io.PersistentHashMap.<init>(PersistentHashMap.java:71)
+                        at org.jetbrains.kotlin.com.intellij.util.io.PersistentHashMap.<init>(PersistentHashMap.java:46)
+                        at org.jetbrains.kotlin.com.intellij.util.io.PersistentHashMap.<init>(PersistentHashMap.java:72)
                         at org.jetbrains.kotlin.incremental.storage.LazyStorage.createMap(LazyStorage.kt:62)
                         at org.jetbrains.kotlin.incremental.storage.LazyStorage.getStorageOrCreateNew(LazyStorage.kt:59)
                         at org.jetbrains.kotlin.incremental.storage.LazyStorage.set(LazyStorage.kt:80)
@@ -122,16 +122,16 @@ Caused by: java.lang.Exception: Could not close incremental caches in /Users/mma
                         at org.jetbrains.kotlin.incremental.storage.BasicMapsOwner$close$1.invoke(BasicMapsOwner.kt:53)
                         at org.jetbrains.kotlin.incremental.storage.BasicMapsOwner.forEachMapSafe(BasicMapsOwner.kt:87)
                         ... 25 more
-                        Suppressed: java.lang.Exception: Storage[/Users/mmacbook/develop/moribito/core/build/kotlin/compileKotlinJvm/cacheable/caches-jvm/lookups/id-to-file.tab] registration stack trace
+                        Suppressed: java.lang.Exception: Storage[/Users/mmacbook/develop/moribito/gui/build/kotlin/compileKotlin/cacheable/caches-jvm/lookups/id-to-file.tab] registration stack trace
                                 at org.jetbrains.kotlin.com.intellij.util.io.FilePageCache.registerPagedFileStorage(FilePageCache.java:437)
                                 ... 44 more
 Failed to compile with Kotlin daemon: java.lang.Exception
         at org.jetbrains.kotlin.daemon.common.CompileService$CallResult$Error.get(CompileService.kt:69)
         at org.jetbrains.kotlin.daemon.common.CompileService$CallResult$Error.get(CompileService.kt:65)
-        at org.jetbrains.kotlin.compilerRunner.GradleKotlinCompilerWork.compileWithDaemon(GradleKotlinCompilerWork.kt:240)
-        at org.jetbrains.kotlin.compilerRunner.GradleKotlinCompilerWork.compileWithDaemonOrFallbackImpl(GradleKotlinCompilerWork.kt:159)
-        at org.jetbrains.kotlin.compilerRunner.GradleKotlinCompilerWork.run(GradleKotlinCompilerWork.kt:111)
-        at org.jetbrains.kotlin.compilerRunner.GradleCompilerRunnerWithWorkers$GradleKotlinCompilerWorkAction.execute(GradleCompilerRunnerWithWorkers.kt:76)
+        at org.jetbrains.kotlin.compilerRunner.GradleKotlinCompilerWork.compileWithDaemon(GradleKotlinCompilerWork.kt:224)
+        at org.jetbrains.kotlin.compilerRunner.GradleKotlinCompilerWork.compileWithDaemonOrFallbackImpl(GradleKotlinCompilerWork.kt:143)
+        at org.jetbrains.kotlin.compilerRunner.GradleKotlinCompilerWork.run(GradleKotlinCompilerWork.kt:107)
+        at org.jetbrains.kotlin.compilerRunner.GradleCompilerRunnerWithWorkers$GradleKotlinCompilerWorkAction.execute(GradleCompilerRunnerWithWorkers.kt:75)
         at org.gradle.workers.internal.DefaultWorkerServer.execute(DefaultWorkerServer.java:68)
         at org.gradle.workers.internal.NoIsolationWorkerFactory$1$1.create(NoIsolationWorkerFactory.java:66)
         at org.gradle.workers.internal.NoIsolationWorkerFactory$1$1.create(NoIsolationWorkerFactory.java:62)
@@ -166,15 +166,15 @@ Failed to compile with Kotlin daemon: java.lang.Exception
         at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1144)
         at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:642)
         at java.base/java.lang.Thread.run(Thread.java:1575)
-Caused by: java.lang.AssertionError: java.lang.Exception: Could not close incremental caches in /Users/mmacbook/develop/moribito/core/build/kotlin/compileKotlinJvm/cacheable/caches-jvm/jvm/kotlin: class-attributes.tab
-        at org.jetbrains.kotlin.com.google.common.io.Closer.close(Closer.java:236)
-        at org.jetbrains.kotlin.incremental.IncrementalCachesManager.close(IncrementalCachesManager.kt:55)
-        at kotlin.io.CloseableKt.closeFinally(Closeable.kt:56)
+Caused by: java.lang.AssertionError: java.lang.Exception: Could not close incremental caches in /Users/mmacbook/develop/moribito/gui/build/kotlin/compileKotlin/cacheable/caches-jvm/jvm/kotlin: proto.tab
+        at org.jetbrains.kotlin.com.google.common.io.Closer.close(Closer.java:218)
+        at org.jetbrains.kotlin.incremental.IncrementalCachesManager.close(IncrementalCachesManager.kt:57)
+        at kotlin.io.CloseableKt.closeFinally(Closeable.kt:47)
         at org.jetbrains.kotlin.incremental.IncrementalCompilerRunner.compileNonIncrementally(IncrementalCompilerRunner.kt:293)
-        at org.jetbrains.kotlin.incremental.IncrementalCompilerRunner.compile(IncrementalCompilerRunner.kt:129)
-        at org.jetbrains.kotlin.daemon.CompileServiceImplBase.execIncrementalCompiler(CompileServiceImpl.kt:674)
-        at org.jetbrains.kotlin.daemon.CompileServiceImplBase.access$execIncrementalCompiler(CompileServiceImpl.kt:91)
-        at org.jetbrains.kotlin.daemon.CompileServiceImpl.compile(CompileServiceImpl.kt:1659)
+        at org.jetbrains.kotlin.incremental.IncrementalCompilerRunner.compile(IncrementalCompilerRunner.kt:128)
+        at org.jetbrains.kotlin.daemon.CompileServiceImplBase.execIncrementalCompiler(CompileServiceImpl.kt:684)
+        at org.jetbrains.kotlin.daemon.CompileServiceImplBase.access$execIncrementalCompiler(CompileServiceImpl.kt:94)
+        at org.jetbrains.kotlin.daemon.CompileServiceImpl.compile(CompileServiceImpl.kt:1810)
         at java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:103)
         at java.base/java.lang.reflect.Method.invoke(Method.java:580)
         at java.rmi/sun.rmi.server.UnicastServerRef.dispatch(UnicastServerRef.java:360)
@@ -188,23 +188,23 @@ Caused by: java.lang.AssertionError: java.lang.Exception: Could not close increm
         at java.base/java.security.AccessController.doPrivileged(AccessController.java:400)
         at java.rmi/sun.rmi.transport.tcp.TCPTransport$ConnectionHandler.run(TCPTransport.java:720)
         ... 3 more
-Caused by: java.lang.Exception: Could not close incremental caches in /Users/mmacbook/develop/moribito/core/build/kotlin/compileKotlinJvm/cacheable/caches-jvm/jvm/kotlin: class-attributes.tab
+Caused by: java.lang.Exception: Could not close incremental caches in /Users/mmacbook/develop/moribito/gui/build/kotlin/compileKotlin/cacheable/caches-jvm/jvm/kotlin: proto.tab
         at org.jetbrains.kotlin.incremental.storage.BasicMapsOwner.forEachMapSafe(BasicMapsOwner.kt:95)
         at org.jetbrains.kotlin.incremental.storage.BasicMapsOwner.close(BasicMapsOwner.kt:53)
-        at org.jetbrains.kotlin.com.google.common.io.Closer.close(Closer.java:223)
+        at org.jetbrains.kotlin.com.google.common.io.Closer.close(Closer.java:205)
         ... 22 more
-        Suppressed: java.lang.IllegalStateException: Storage for [/Users/mmacbook/develop/moribito/core/build/kotlin/compileKotlinJvm/cacheable/caches-jvm/jvm/kotlin/class-attributes.tab] is already registered
+        Suppressed: java.lang.IllegalStateException: Storage for [/Users/mmacbook/develop/moribito/gui/build/kotlin/compileKotlin/cacheable/caches-jvm/jvm/kotlin/proto.tab] is already registered
                 at org.jetbrains.kotlin.com.intellij.util.io.FilePageCache.registerPagedFileStorage(FilePageCache.java:410)
                 at org.jetbrains.kotlin.com.intellij.util.io.PagedFileStorage.<init>(PagedFileStorage.java:72)
-                at org.jetbrains.kotlin.com.intellij.util.io.ResizeableMappedFile.<init>(ResizeableMappedFile.java:55)
+                at org.jetbrains.kotlin.com.intellij.util.io.ResizeableMappedFile.<init>(ResizeableMappedFile.java:68)
                 at org.jetbrains.kotlin.com.intellij.util.io.PersistentBTreeEnumerator.<init>(PersistentBTreeEnumerator.java:128)
                 at org.jetbrains.kotlin.com.intellij.util.io.PersistentEnumerator.createDefaultEnumerator(PersistentEnumerator.java:52)
                 at org.jetbrains.kotlin.com.intellij.util.io.PersistentMapImpl.<init>(PersistentMapImpl.java:165)
                 at org.jetbrains.kotlin.com.intellij.util.io.PersistentMapImpl.<init>(PersistentMapImpl.java:140)
                 at org.jetbrains.kotlin.com.intellij.util.io.PersistentMapBuilder.buildImplementation(PersistentMapBuilder.java:88)
                 at org.jetbrains.kotlin.com.intellij.util.io.PersistentMapBuilder.build(PersistentMapBuilder.java:71)
-                at org.jetbrains.kotlin.com.intellij.util.io.PersistentHashMap.<init>(PersistentHashMap.java:45)
-                at org.jetbrains.kotlin.com.intellij.util.io.PersistentHashMap.<init>(PersistentHashMap.java:71)
+                at org.jetbrains.kotlin.com.intellij.util.io.PersistentHashMap.<init>(PersistentHashMap.java:46)
+                at org.jetbrains.kotlin.com.intellij.util.io.PersistentHashMap.<init>(PersistentHashMap.java:72)
                 at org.jetbrains.kotlin.incremental.storage.LazyStorage.createMap(LazyStorage.kt:62)
                 at org.jetbrains.kotlin.incremental.storage.LazyStorage.getStorageOrCreateNew(LazyStorage.kt:59)
                 at org.jetbrains.kotlin.incremental.storage.LazyStorage.set(LazyStorage.kt:80)
@@ -215,26 +215,26 @@ Caused by: java.lang.Exception: Could not close incremental caches in /Users/mma
                 at org.jetbrains.kotlin.incremental.storage.BasicMapsOwner$close$1.invoke(BasicMapsOwner.kt:53)
                 at org.jetbrains.kotlin.incremental.storage.BasicMapsOwner.forEachMapSafe(BasicMapsOwner.kt:87)
                 ... 24 more
-                Suppressed: java.lang.Exception: Storage[/Users/mmacbook/develop/moribito/core/build/kotlin/compileKotlinJvm/cacheable/caches-jvm/jvm/kotlin/class-attributes.tab] registration stack trace
+                Suppressed: java.lang.Exception: Storage[/Users/mmacbook/develop/moribito/gui/build/kotlin/compileKotlin/cacheable/caches-jvm/jvm/kotlin/proto.tab] registration stack trace
                         at org.jetbrains.kotlin.com.intellij.util.io.FilePageCache.registerPagedFileStorage(FilePageCache.java:437)
                         ... 43 more
-        Suppressed: java.lang.Exception: Could not close incremental caches in /Users/mmacbook/develop/moribito/core/build/kotlin/compileKotlinJvm/cacheable/caches-jvm/lookups: id-to-file.tab
+        Suppressed: java.lang.Exception: Could not close incremental caches in /Users/mmacbook/develop/moribito/gui/build/kotlin/compileKotlin/cacheable/caches-jvm/lookups: id-to-file.tab
                 at org.jetbrains.kotlin.incremental.storage.BasicMapsOwner.forEachMapSafe(BasicMapsOwner.kt:95)
                 at org.jetbrains.kotlin.incremental.storage.BasicMapsOwner.close(BasicMapsOwner.kt:53)
                 at org.jetbrains.kotlin.incremental.LookupStorage.close(LookupStorage.kt:155)
                 ... 23 more
-                Suppressed: java.lang.IllegalStateException: Storage for [/Users/mmacbook/develop/moribito/core/build/kotlin/compileKotlinJvm/cacheable/caches-jvm/lookups/id-to-file.tab] is already registered
+                Suppressed: java.lang.IllegalStateException: Storage for [/Users/mmacbook/develop/moribito/gui/build/kotlin/compileKotlin/cacheable/caches-jvm/lookups/id-to-file.tab] is already registered
                         at org.jetbrains.kotlin.com.intellij.util.io.FilePageCache.registerPagedFileStorage(FilePageCache.java:410)
                         at org.jetbrains.kotlin.com.intellij.util.io.PagedFileStorage.<init>(PagedFileStorage.java:72)
-                        at org.jetbrains.kotlin.com.intellij.util.io.ResizeableMappedFile.<init>(ResizeableMappedFile.java:55)
+                        at org.jetbrains.kotlin.com.intellij.util.io.ResizeableMappedFile.<init>(ResizeableMappedFile.java:68)
                         at org.jetbrains.kotlin.com.intellij.util.io.PersistentBTreeEnumerator.<init>(PersistentBTreeEnumerator.java:128)
                         at org.jetbrains.kotlin.com.intellij.util.io.PersistentEnumerator.createDefaultEnumerator(PersistentEnumerator.java:52)
                         at org.jetbrains.kotlin.com.intellij.util.io.PersistentMapImpl.<init>(PersistentMapImpl.java:165)
                         at org.jetbrains.kotlin.com.intellij.util.io.PersistentMapImpl.<init>(PersistentMapImpl.java:140)
                         at org.jetbrains.kotlin.com.intellij.util.io.PersistentMapBuilder.buildImplementation(PersistentMapBuilder.java:88)
                         at org.jetbrains.kotlin.com.intellij.util.io.PersistentMapBuilder.build(PersistentMapBuilder.java:71)
-                        at org.jetbrains.kotlin.com.intellij.util.io.PersistentHashMap.<init>(PersistentHashMap.java:45)
-                        at org.jetbrains.kotlin.com.intellij.util.io.PersistentHashMap.<init>(PersistentHashMap.java:71)
+                        at org.jetbrains.kotlin.com.intellij.util.io.PersistentHashMap.<init>(PersistentHashMap.java:46)
+                        at org.jetbrains.kotlin.com.intellij.util.io.PersistentHashMap.<init>(PersistentHashMap.java:72)
                         at org.jetbrains.kotlin.incremental.storage.LazyStorage.createMap(LazyStorage.kt:62)
                         at org.jetbrains.kotlin.incremental.storage.LazyStorage.getStorageOrCreateNew(LazyStorage.kt:59)
                         at org.jetbrains.kotlin.incremental.storage.LazyStorage.set(LazyStorage.kt:80)
@@ -245,30 +245,19 @@ Caused by: java.lang.Exception: Could not close incremental caches in /Users/mma
                         at org.jetbrains.kotlin.incremental.storage.BasicMapsOwner$close$1.invoke(BasicMapsOwner.kt:53)
                         at org.jetbrains.kotlin.incremental.storage.BasicMapsOwner.forEachMapSafe(BasicMapsOwner.kt:87)
                         ... 25 more
-                        Suppressed: java.lang.Exception: Storage[/Users/mmacbook/develop/moribito/core/build/kotlin/compileKotlinJvm/cacheable/caches-jvm/lookups/id-to-file.tab] registration stack trace
+                        Suppressed: java.lang.Exception: Storage[/Users/mmacbook/develop/moribito/gui/build/kotlin/compileKotlin/cacheable/caches-jvm/lookups/id-to-file.tab] registration stack trace
                                 at org.jetbrains.kotlin.com.intellij.util.io.FilePageCache.registerPagedFileStorage(FilePageCache.java:437)
                                 ... 44 more
 Using fallback strategy: Compile without Kotlin daemon
 Try ./gradlew --stop if this issue persists
 If it does not look related to your configuration, please file an issue with logs to https://kotl.in/issue
-> Task :gui:compileKotlin
-Kotlin does not yet support 25 JDK target, falling back to Kotlin JVM_23 JVM target
-> Task :gui:compileKotlin FAILED
+exception: gui/src/main/kotlin/com/moribito/gui/view/LogViewerWindow.kt:256:36: warning: 'fun toString(): String' is deprecated. kotlinx.datetime.Instant is superseded by kotlin.time.Instant.
+exception:             text = entry.timestamp.toString().substring(0, 23),
+exception:                                    ^^^^^^^^
 [Incubating] Problems report is available at: file:///Users/mmacbook/develop/moribito/build/reports/problems/problems-report.html
-FAILURE: Build failed with an exception.
-* What went wrong:
-Execution failed for task ':gui:compileKotlin'.
-> Inconsistent JVM-target compatibility detected for tasks 'compileJava' (25) and 'compileKotlin' (23).
-
-  Consider using JVM Toolchain: https://kotl.in/gradle/jvm/toolchain
-  Learn more about JVM-target validation: https://kotl.in/gradle/jvm/target-validation
-* Try:
-> Run with --stacktrace option to get the stack trace.
-> Run with --info or --debug option to get more log output.
-> Run with --scan to generate a Build Scan (Powered by Develocity).
-> Get more help at https://help.gradle.org.
 Deprecated Gradle features were used in this build, making it incompatible with Gradle 10.
 You can use '--warning-mode all' to show the individual deprecation warnings and determine if they come from your own scripts or plugins.
 For more on this, please refer to https://docs.gradle.org/9.1.0/userguide/command_line_interface.html#sec:command_line_warnings in the Gradle documentation.
-BUILD FAILED in 59s
-5 actionable tasks: 3 executed, 2 up-to-date
+BUILD SUCCESSFUL in 25s
+7 actionable tasks: 3 executed, 4 up-to-date
+Consider enabling configuration cache to speed up this build: https://docs.gradle.org/9.1.0/userguide/configuration_cache_enabling.html
