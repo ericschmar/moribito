@@ -53,6 +53,9 @@ fun FrameWindowScope.App(windowState: WindowState) {
         Menu("Settings") {
             Item("Settings", enabled = false, onClick = {})
         }
+        Menu("Tools") {
+            Item("Schema Viewer", enabled = state.connectionState == ConnectionState.Connected, onClick = { viewModel.toggleAttributeViewer(true)})
+        }
     }
 
     when (state.currentView) {

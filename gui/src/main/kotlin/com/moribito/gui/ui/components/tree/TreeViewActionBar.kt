@@ -74,14 +74,19 @@ fun TreeViewActionBar(
         }
 
         Box {
-            Icon(
-                key = AllIconsKeys.General.ChevronDown,
-                contentDescription = "Tree View Settings",
-                modifier = Modifier
-                    .size(16.dp)
-                    .clickable { showMenu = !showMenu }
-                    .padding(2.dp)
-            )
+            IconButton(
+                onClick = onShowDirectory,
+                modifier = Modifier.size(28.dp)
+            ) {
+                Icon(
+                    key = AllIconsKeys.General.ChevronDown,
+                    contentDescription = "Tree View Settings",
+                    modifier = Modifier
+                        .size(24.dp)
+                        .clickable { showMenu = !showMenu }
+                        .padding(2.dp)
+                )
+            }
 
             if (showMenu) {
                 Popup(
