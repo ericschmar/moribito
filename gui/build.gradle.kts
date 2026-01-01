@@ -8,6 +8,7 @@ plugins {
 }
 repositories {
     maven("https://packages.jetbrains.team/maven/p/kpm/public/")
+    maven("https://www.jetbrains.com/intellij-repository/releases/")
     mavenCentral()
 }
 
@@ -16,6 +17,9 @@ dependencies {
     implementation(project(":core"))
 
     implementation("org.jetbrains.jewel:jewel-int-ui-standalone:0.33.0-253.29795")
+
+    // IntelliJ Platform icons for AllIconsKeys
+    implementation("com.jetbrains.intellij.platform:icons:253.29346.145")
 
     // Optional, for custom decorated windows:
     implementation("org.jetbrains.jewel:jewel-decorated-window:0.32.1-253.28294.285")

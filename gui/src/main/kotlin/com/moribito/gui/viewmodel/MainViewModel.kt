@@ -1,7 +1,7 @@
 package com.moribito.gui.viewmodel
 
-import RootConfig
-import LdapConfig as ConfigLdapConfig
+import com.moribito.config.*
+import com.moribito.config.LdapConfig as ConfigLdapConfig
 import com.moribito.ldap.*
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -14,9 +14,11 @@ import kotlinx.coroutines.flow.update
  *
  * Manages application state, LDAP connection, and business logic.
  */
-class MainViewModel(private var config: RootConfig) {
+class MainViewModel(private val configService: ConfigurationService) {
     private val scope = CoroutineScope(Dispatchers.Default + SupervisorJob())
     private var ldapClient: LdapClient? = null
+
+    private var config: RootConfig = configService.load()
 
     // Application state
     private val _state = MutableStateFlow(AppState())
@@ -64,11 +66,13 @@ class MainViewModel(private var config: RootConfig) {
         baseDN: String,
         useSsl: Boolean,
         useTls: Boolean,
-        bindUser: String,
-        bindPass: String
+        bindCredentials: List<com.moribito.config.BindCredential>? = null
     ) {
         println("[MainViewModel] updateConfig called for connection at index $currentConnectionIndex")
         println("[MainViewModel] Updating to: name=$name, host=$host, port=$port")
+
+        val currentConn = getCurrentConnection()
+        val finalCredentials = bindCredentials ?: currentConn.effectiveBindCredentials
 
         val updatedConnection = ConfigLdapConfig(
             name = name,
@@ -77,8 +81,9 @@ class MainViewModel(private var config: RootConfig) {
             baseDN = baseDN,
             useSsl = useSsl,
             useTls = useTls,
-            bindUser = bindUser,
-            bindPass = bindPass
+            _legacyBindUser = null,  // Clear legacy fields
+            _legacyBindPass = null,
+            bindCredentials = finalCredentials
         )
 
         val updatedConnections = config.connections.toMutableList()
@@ -100,7 +105,6 @@ class MainViewModel(private var config: RootConfig) {
      * Returns the final connection name.
      */
     fun saveConnection(
-        configService: com.moribito.config.ConfigurationService,
         selectedConnectionName: String,
         name: String,
         host: String,
@@ -108,8 +112,7 @@ class MainViewModel(private var config: RootConfig) {
         baseDN: String,
         useSsl: Boolean,
         useTls: Boolean,
-        bindUser: String,
-        bindPass: String
+        bindCredentials: List<com.moribito.config.BindCredential>? = null
     ): String {
         println("[MainViewModel] saveConnection called for: $selectedConnectionName")
 
@@ -130,8 +133,7 @@ class MainViewModel(private var config: RootConfig) {
                 baseDN = baseDN,
                 useSsl = useSsl,
                 useTls = useTls,
-                bindUser = bindUser,
-                bindPass = bindPass
+                bindCredentials = bindCredentials
             )
         } else {
             println("[MainViewModel] WARNING: Connection not found: $selectedConnectionName")
@@ -148,7 +150,6 @@ class MainViewModel(private var config: RootConfig) {
      * Saves and connects to the LDAP server.
      */
     fun saveAndConnect(
-        configService: com.moribito.config.ConfigurationService,
         selectedConnectionName: String,
         name: String,
         host: String,
@@ -156,14 +157,12 @@ class MainViewModel(private var config: RootConfig) {
         baseDN: String,
         useSsl: Boolean,
         useTls: Boolean,
-        bindUser: String,
-        bindPass: String
+        bindCredentials: List<com.moribito.config.BindCredential>? = null
     ): String {
         println("[MainViewModel] saveAndConnect called")
 
         // Save the connection first
         val finalName = saveConnection(
-            configService,
             selectedConnectionName,
             name,
             host,
@@ -171,8 +170,7 @@ class MainViewModel(private var config: RootConfig) {
             baseDN,
             useSsl,
             useTls,
-            bindUser,
-            bindPass
+            bindCredentials = bindCredentials
         )
 
         // Now connect
@@ -182,22 +180,129 @@ class MainViewModel(private var config: RootConfig) {
     }
 
     /**
-     * Connects to the LDAP server with current configuration.
+     * Adds a new bind credential to a connection.
      */
-    fun connect() {
+    fun addBindCredential(connectionName: String): com.moribito.config.BindCredential {
+        val connectionIndex = getConnectionIndexByName(connectionName)
+        if (connectionIndex < 0) throw IllegalArgumentException("Connection not found: $connectionName")
+
+        val conn = config.connections[connectionIndex]
+        val newCredential = com.moribito.config.BindCredential(
+            label = "New Credential",
+            bindUser = "",
+            bindPass = "",
+            isDefault = conn.effectiveBindCredentials.isEmpty()
+        )
+
+        val updatedCredentials = conn.effectiveBindCredentials.toMutableList()
+        updatedCredentials.add(newCredential)
+
+        val updatedConn = conn.copy(
+            bindCredentials = updatedCredentials,
+            _legacyBindUser = null,
+            _legacyBindPass = null
+        )
+
+        val updatedConnections = config.connections.toMutableList()
+        updatedConnections[connectionIndex] = updatedConn
+        config = config.copy(connections = updatedConnections)
+
+        return newCredential
+    }
+
+    /**
+     * Deletes a bind credential from a connection.
+     */
+    fun deleteBindCredential(connectionName: String, credentialId: String) {
+        val connectionIndex = getConnectionIndexByName(connectionName)
+        if (connectionIndex < 0) return
+
+        val conn = config.connections[connectionIndex]
+        val updatedCredentials = conn.effectiveBindCredentials.filterNot { it.id == credentialId }
+
+        val updatedConn = conn.copy(
+            bindCredentials = updatedCredentials,
+            _legacyBindUser = null,
+            _legacyBindPass = null
+        )
+
+        val updatedConnections = config.connections.toMutableList()
+        updatedConnections[connectionIndex] = updatedConn
+        config = config.copy(connections = updatedConnections)
+    }
+
+    /**
+     * Updates a bind credential in a connection.
+     */
+    fun updateBindCredential(connectionName: String, updatedCredential: com.moribito.config.BindCredential) {
+        val connectionIndex = getConnectionIndexByName(connectionName)
+        if (connectionIndex < 0) return
+
+        val conn = config.connections[connectionIndex]
+        val updatedCredentials = conn.effectiveBindCredentials.map {
+            if (it.id == updatedCredential.id) {
+                // If this is set to default, unset others
+                if (updatedCredential.isDefault) it.copy(isDefault = true) else it.copy(isDefault = false)
+                updatedCredential
+            } else {
+                // If new one is default, this one cannot be
+                if (updatedCredential.isDefault) it.copy(isDefault = false) else it
+            }
+        }
+
+        val updatedConn = conn.copy(
+            bindCredentials = updatedCredentials,
+            _legacyBindUser = null,
+            _legacyBindPass = null
+        )
+
+        val updatedConnections = config.connections.toMutableList()
+        updatedConnections[connectionIndex] = updatedConn
+        config = config.copy(connections = updatedConnections)
+    }
+
+    /**
+     * Connects to the LDAP server with current configuration.
+     * Optionally specify which credential to use.
+     */
+    fun connect(credential: com.moribito.config.BindCredential? = null) {
         println("[MainViewModel] connect() called")
+        
+        val currentConn = getCurrentConnection()
+        val credentials = currentConn.effectiveBindCredentials
+        
+        // If no specific credential is provided and there are multiple, prompt the user
+        if (credential == null && credentials.size > 1) {
+            println("[MainViewModel] Multiple credentials found, showing selection dialog")
+            _state.update { it.copy(
+                showBindDnSelection = true,
+                connectionForSelection = currentConn
+            )}
+            return
+        }
+
         scope.launch {
             try {
                 println("[MainViewModel] Starting connection process...")
                 _state.update { it.copy(
                     connectionState = ConnectionState.Connecting,
-                    loadingState = LoadingState.Loading("Connecting to LDAP server...")
+                    loadingState = LoadingState.Loading("Connecting to LDAP server..."),
+                    showBindDnSelection = false
                 )}
                 println("[MainViewModel] State updated to Connecting")
 
                 // Get the current connection from the list
-                val currentConn = getCurrentConnection()
                 println("[MainViewModel] Current connection: host=${currentConn.host}, port=${currentConn.port}, baseDN=${currentConn.baseDN}")
+
+                // Use provided credential, or default, or first
+                val selectedCredential = credential 
+                    ?: credentials.firstOrNull { it.isDefault } 
+                    ?: credentials.firstOrNull()
+                
+                if (selectedCredential == null) {
+                    throw IllegalStateException("No credentials configured for connection: ${currentConn.name}")
+                }
+                println("[MainViewModel] Using credential: ${selectedCredential.label}")
 
                 // Map config connection to LdapClient config
                 val ldapConfig = LdapConfig(
@@ -206,17 +311,15 @@ class MainViewModel(private var config: RootConfig) {
                     baseDN = currentConn.baseDN,
                     useSSL = currentConn.useSsl,
                     useTLS = currentConn.useTls,
-                    bindUser = currentConn.bindUser,
-                    bindPass = currentConn.bindPass,
                     retryEnabled = true,
                     maxRetries = 3,
                     initialDelayMs = 500,
                     maxDelayMs = 5000
                 )
 
-                // Create new LDAP client
+                // Create new LDAP client with credential
                 println("[MainViewModel] Creating LDAP client...")
-                val client = LdapClient(ldapConfig)
+                val client = LdapClient(ldapConfig, selectedCredential)
                 println("[MainViewModel] Calling client.connect()...")
                 client.connect()
                 println("[MainViewModel] Client connected successfully!")
@@ -232,7 +335,8 @@ class MainViewModel(private var config: RootConfig) {
                     connectionState = ConnectionState.Connected,
                     loadingState = LoadingState.Success("Connected successfully"),
                     treeRoot = root,
-                    currentView = AppView.Workspace
+                    currentView = AppView.Workspace,
+                    currentCredential = selectedCredential
                 )}
                 println("[MainViewModel] State updated! Current view should now be: ${_state.value.currentView}")
 
@@ -806,8 +910,9 @@ class MainViewModel(private var config: RootConfig) {
             baseDN = "",
             useSsl = false,
             useTls = false,
-            bindUser = "",
-            bindPass = ""
+            _legacyBindUser = null,
+            _legacyBindPass = null,
+            bindCredentials = emptyList()
         )
 
         val updatedConnections = config.connections.toMutableList()
@@ -945,6 +1050,34 @@ class MainViewModel(private var config: RootConfig) {
         _state.update { it.copy(
             attributeSortAscending = !it.attributeSortAscending
         )}
+    }
+
+    /**
+     * Cancels the bind DN selection dialog.
+     */
+    fun cancelBindDnSelection() {
+        _state.update { it.copy(showBindDnSelection = false, connectionForSelection = null) }
+    }
+
+    /**
+     * Switches to the configuration view.
+     */
+    fun navigateToConfiguration() {
+        _state.update { it.copy(currentView = AppView.Configuration) }
+    }
+
+    /**
+     * Opens the configuration window.
+     */
+    fun openConfigurationWindow() {
+        _state.update { it.copy(isConfigurationWindowOpen = true) }
+    }
+
+    /**
+     * Closes the configuration window.
+     */
+    fun closeConfigurationWindow() {
+        _state.update { it.copy(isConfigurationWindowOpen = false) }
     }
 
     /**

@@ -72,7 +72,11 @@ data class AppState(
     val isAttributeViewerOpen: Boolean = false,
     val isAttributeViewerLoading: Boolean = false,
     val attributeViewerSchema: LdapSchema? = null,
-    val attributeSortAscending: Boolean = true
+    val attributeSortAscending: Boolean = true,
+    val showBindDnSelection: Boolean = false,
+    val connectionForSelection: com.moribito.config.LdapConfig? = null,
+    val currentCredential: com.moribito.config.BindCredential? = null,
+    val isConfigurationWindowOpen: Boolean = false
 )
 
 /**

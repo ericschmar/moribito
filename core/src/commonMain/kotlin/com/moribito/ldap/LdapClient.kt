@@ -10,6 +10,7 @@ import com.moribito.ldap.query.LdapQueryConverter
 
 /**
  * Configuration for LDAP client connection and retry behavior.
+ * Note: Credentials are now passed separately via BindCredential parameter.
  */
 data class LdapConfig(
     val host: String,
@@ -17,8 +18,6 @@ data class LdapConfig(
     val baseDN: String,
     val useSSL: Boolean = false,
     val useTLS: Boolean = false,
-    val bindUser: String = "",
-    val bindPass: String = "",
     val retryEnabled: Boolean = true,
     val maxRetries: Int = 3,
     val initialDelayMs: Int = 500,
@@ -34,8 +33,14 @@ data class LdapConfig(
  * - SSL/TLS connection support
  * - Paginated search results
  * - Lazy tree loading for directory browsing
+ *
+ * @param config Connection configuration (host, port, SSL/TLS settings)
+ * @param credential Bind credentials (DN and password) - if null, anonymous bind is used
  */
-class LdapClient(private val config: LdapConfig) : AutoCloseable {
+class LdapClient(
+    private val config: LdapConfig,
+    private val credential: com.moribito.config.BindCredential? = null
+) : AutoCloseable {
     private var connectionFactory: DefaultConnectionFactory? = null
     private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
 
@@ -70,9 +75,9 @@ class LdapClient(private val config: LdapConfig) : AutoCloseable {
             factory.connection.use { conn ->
                 conn.open()
 
-                if (config.bindUser.isNotEmpty()) {
+                if (credential != null && credential.bindUser.isNotEmpty()) {
                     val bindOp = BindOperation(factory)
-                    val bindRequest = SimpleBindRequest(config.bindUser, config.bindPass)
+                    val bindRequest = SimpleBindRequest(credential.bindUser, credential.bindPass)
                     val result = bindOp.execute(bindRequest)
 
                     if (!result.isSuccess) {

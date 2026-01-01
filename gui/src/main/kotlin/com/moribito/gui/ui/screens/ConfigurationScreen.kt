@@ -1,13 +1,11 @@
 package com.moribito.gui.ui.screens
 
-import RootConfig
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.hoverable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsHoveredAsState
 import androidx.compose.foundation.layout.*
-import androidx.compose.material3.Icon
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -17,37 +15,35 @@ import androidx.compose.ui.input.pointer.PointerIcon
 import androidx.compose.ui.input.pointer.pointerHoverIcon
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.moribito.config.ConfigurationService
+import com.moribito.config.RootConfig
 import com.moribito.gui.theme.*
 import com.moribito.gui.ui.components.ActionBar
-import com.moribito.gui.ui.components.TextField as AppTextField
+import com.moribito.gui.ui.components.BindCredentialTable
+import com.moribito.gui.ui.components.ConfigTreeNode
 import com.moribito.gui.viewmodel.ConnectionState
 import com.moribito.gui.viewmodel.MainViewModel
 import compose.icons.Octicons
-import org.jetbrains.jewel.foundation.theme.JewelTheme
-import org.jetbrains.jewel.ui.component.CircularProgressIndicator
-import org.jetbrains.jewel.ui.component.Text
-import compose.icons.octicons.CheckCircle16
-import compose.icons.octicons.Dash16
-import compose.icons.octicons.Eye16
-import compose.icons.octicons.EyeClosed16
-import compose.icons.octicons.Gear16
-import compose.icons.octicons.Lock16
-import compose.icons.octicons.Mention16
-import compose.icons.octicons.Person16
-import compose.icons.octicons.Plus16
-import compose.icons.octicons.Server16
-import compose.icons.octicons.Workflow16
+import compose.icons.octicons.*
 import org.jetbrains.compose.splitpane.ExperimentalSplitPaneApi
 import org.jetbrains.compose.splitpane.HorizontalSplitPane
 import org.jetbrains.compose.splitpane.rememberSplitPaneState
-import org.jetbrains.jewel.ui.component.Checkbox
-import org.jetbrains.jewel.ui.component.DefaultButton
-import org.jetbrains.jewel.ui.component.OutlinedButton
-import org.jetbrains.jewel.ui.component.VerticallyScrollableContainer
-import org.jetbrains.jewel.ui.component.styling.CheckboxColors
+import org.jetbrains.jewel.foundation.ExperimentalJewelApi
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.ExperimentalComposeUiApi
+import androidx.compose.ui.input.pointer.PointerEventType
+import androidx.compose.ui.input.pointer.onPointerEvent
+import org.jetbrains.jewel.foundation.theme.JewelTheme
+import org.jetbrains.jewel.ui.component.*
+import org.jetbrains.jewel.ui.icons.AllIconsKeys
 import org.koin.compose.koinInject
+import com.moribito.gui.ui.components.TextField as AppTextField
 
 @Composable
 private fun IconButton(
@@ -78,7 +74,7 @@ private fun IconButton(
     }
 }
 
-@OptIn(ExperimentalLayoutApi::class, ExperimentalSplitPaneApi::class)
+@OptIn(ExperimentalLayoutApi::class, ExperimentalSplitPaneApi::class, ExperimentalComposeUiApi::class)
 @Composable
 fun ConfigurationScreen(
     viewModel: MainViewModel,
@@ -86,6 +82,8 @@ fun ConfigurationScreen(
     connectionState: ConnectionState,
     configService: ConfigurationService = koinInject()
 ) {
+    val appState by viewModel.state.collectAsState()
+
     // Get the current connection
     val currentConn = viewModel.getCurrentConnection()
 
@@ -95,25 +93,47 @@ fun ConfigurationScreen(
     var baseDN by remember { mutableStateOf(currentConn.baseDN) }
     var useSSL by remember { mutableStateOf(currentConn.useSsl) }
     var useTLS by remember { mutableStateOf(currentConn.useTls) }
-    var bindUser by remember { mutableStateOf(currentConn.bindUser) }
-    var bindPass by remember { mutableStateOf(currentConn.bindPass) }
+
+    // Bind DN specific states
+    var bindLabel by remember { mutableStateOf("") }
+    var bindUser by remember { mutableStateOf("") }
+    var bindPass by remember { mutableStateOf("") }
+    var isBindDefault by remember { mutableStateOf(false) }
+
     var showPassword by remember { mutableStateOf(false) }
 
     val state = rememberSplitPaneState(0.3f)
     var configs by remember { mutableStateOf(configService.load().connections) }
     var selectedConnectionName by remember { mutableStateOf(currentConn.name) }
+    var selectedNode by remember { mutableStateOf<ConfigTreeNode?>(ConfigTreeNode.ConnectionNode(currentConn)) }
 
     // Update form fields when selection changes
-    LaunchedEffect(selectedConnectionName) {
-        configs.find { it.name == selectedConnectionName }?.let { conn ->
-            name = conn.name
-            host = conn.host
-            port = conn.port.toString()
-            baseDN = conn.baseDN
-            useSSL = conn.useSsl
-            useTLS = conn.useTls
-            bindUser = conn.bindUser
-            bindPass = conn.bindPass
+    LaunchedEffect(selectedNode) {
+        when (val node = selectedNode) {
+            is ConfigTreeNode.ConnectionNode -> {
+                val conn = node.config
+                selectedConnectionName = conn.name
+                name = conn.name
+                host = conn.host
+                port = conn.port.toString()
+                baseDN = conn.baseDN
+                useSSL = conn.useSsl
+                useTLS = conn.useTls
+            }
+
+            is ConfigTreeNode.BindDnNode -> {
+                val conn = node.parentConfig
+                val cred = node.credential
+                selectedConnectionName = conn.name
+                // Also update connection fields in case we want to see them? 
+                // Usually we just show the bind DN fields
+                bindLabel = cred.label
+                bindUser = cred.bindUser
+                bindPass = cred.bindPass
+                isBindDefault = cred.isDefault
+            }
+
+            null -> {}
         }
     }
 
@@ -144,7 +164,7 @@ fun ConfigurationScreen(
 
     HorizontalSplitPane(
         splitPaneState = state,
-        modifier = Modifier.fillMaxSize().background(IntelliJColors.islandBackground)
+        modifier = Modifier.fillMaxSize().background(IntelliJColors.baseBackground)
     ) {
         splitter {
             visiblePart {
@@ -164,48 +184,83 @@ fun ConfigurationScreen(
         }
         first(minSize = 200.dp) {
             Column(
-                Modifier.fillMaxSize().background(IntelliJColors.islandBackground)
+                Modifier.fillMaxSize().background(IntelliJColors.baseBackground)
                     .absolutePadding(top = AppSpacing.xs, bottom = AppSpacing.xs),
                 verticalArrangement = Arrangement.SpaceBetween
             ) {
-                VerticallyScrollableContainer(modifier = Modifier.weight(1f)) {
-                    Column(modifier = Modifier.fillMaxWidth()) {
-                        configs.forEach {
-                            Box(
-                                modifier = Modifier.fillMaxWidth()
+                VerticallyScrollableContainer(modifier = Modifier.weight(1f).fillMaxWidth()) {
+                    Column(
+                        modifier = Modifier.fillMaxWidth().padding(AppSpacing.xs),
+                        verticalArrangement = Arrangement.spacedBy(AppSpacing.xxs)
+                    ) {
+                        configs.forEach { config ->
+                            var isHovered by remember { mutableStateOf(false) }
+                            val isSelected = selectedNode is ConfigTreeNode.ConnectionNode &&
+                                    (selectedNode as? ConfigTreeNode.ConnectionNode)?.config?.name == config.name
+
+                            // Match TreeNodeItem styling
+                            val backgroundColor = when {
+                                isSelected && isHovered -> Color(0xFF4A90E2).copy(alpha = 0.4f)
+                                isSelected -> Color(0xFF4A90E2).copy(alpha = 0.3f)
+                                isHovered -> Color(0xFF4A90E2).copy(alpha = 0.15f)
+                                else -> Color.Transparent
+                            }
+
+                            val borderColor = if (isSelected) {
+                                Color(0xFF2E5F8E)
+                            } else {
+                                Color.Transparent
+                            }
+
+                            val textColor = if (isSelected) {
+                                JewelTheme.contentColor
+                            } else {
+                                JewelTheme.contentColor.copy(alpha = 0.6f)
+                            }
+
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
                                     .height(26.dp)
-                                    .clickable(
-                                        enabled = true,
-                                        onClick = {
-                                            selectedConnectionName = it.name
-                                        },
-                                    ),
-                                contentAlignment = Alignment.CenterStart,
+                                    .drawBehind {
+                                        if (isSelected) {
+                                            drawRoundRect(
+                                                color = borderColor,
+                                                topLeft = Offset.Zero,
+                                                size = size,
+                                                cornerRadius = CornerRadius(6.dp.toPx()),
+                                                style = Stroke(width = 1.dp.toPx())
+                                            )
+                                        }
+                                    }
+                                    .background(backgroundColor, RoundedCornerShape(6.dp))
+                                    .onPointerEvent(PointerEventType.Enter) { isHovered = true }
+                                    .onPointerEvent(PointerEventType.Exit) { isHovered = false }
+                                    .clickable {
+                                        selectedConnectionName = config.name
+                                        selectedNode = ConfigTreeNode.ConnectionNode(config)
+                                    }
+                                    .padding(horizontal = AppSpacing.xs, vertical = AppSpacing.xxs),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween
                             ) {
-                                Row(
-                                    modifier = Modifier.fillMaxSize()
-                                        .absolutePadding(right = 4.dp),
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    if (selectedConnectionName == it.name) {
-                                        Box(
-                                            Modifier.width(4.dp).fillMaxHeight().background(IntelliJColors.warning),
-                                        )
-                                    }
-                                    Row(
-                                        modifier = Modifier.fillMaxWidth()
-                                            .absolutePadding(left = if (selectedConnectionName != it.name) 8.dp else 4.dp),
-                                        horizontalArrangement = Arrangement.SpaceBetween,
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
-                                        Text(text = it.name, fontSize = AppTypography.labelLarge.fontSize)
-                                        Text(
-                                            text = "${it.host}:${it.port}",
-                                            fontSize = AppMonospace.small.fontSize,
-                                            fontFamily = AppMonospace.small.fontFamily
-                                        )
-                                    }
-                                }
+                                Text(
+                                    text = config.name,
+                                    fontSize = AppTypography.labelLarge.fontSize,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                    color = textColor,
+                                    modifier = Modifier.weight(1f, fill = false)
+                                )
+                                Spacer(Modifier.width(AppSpacing.xs))
+                                Text(
+                                    text = "${config.host}:${config.port}",
+                                    fontSize = AppMonospace.small.fontSize,
+                                    fontFamily = AppMonospace.small.fontFamily,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                    color = textColor
+                                )
                             }
                         }
                     }
@@ -243,239 +298,247 @@ fun ConfigurationScreen(
             }
         }
         second(minSize = 400.dp) {
+            val currentSelectedConnection = configs.find { it.name == selectedConnectionName }
+
             Column(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(AppSpacing.lg)
-                    .background(IntelliJColors.islandBackground),
-                verticalArrangement = Arrangement.spacedBy(AppSpacing.lg)
+                    .background(IntelliJColors.baseBackground)
             ) {
                 // Section Title
                 Text(
-                    text = "LDAP Configuration",
-                    style = AppTypography.titleMedium
+                    text = if (selectedNode is ConfigTreeNode.BindDnNode) "Bind DN Configuration" else "LDAP Configuration",
+                    style = AppTypography.titleMedium,
+                    modifier = Modifier.padding(bottom = AppSpacing.lg)
                 )
 
-                // Configuration Form Card
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth(),
-                    verticalArrangement = Arrangement.spacedBy(AppSpacing.lg)
-                ) {
-                    // Name Field (Optional)
-                    AppTextField(
-                        value = name,
-                        onValueChange = { name = it },
-                        label = "Connection Name (Optional)",
-                        placeholder = "My LDAP Server",
-                        leadingIcon = {
-                            Icon(
-                                imageVector = Octicons.Mention16,
-                                contentDescription = "Name",
-                                modifier = Modifier.size(12.dp),
-                                tint = JewelTheme.contentColor
+                if (selectedNode is ConfigTreeNode.BindDnNode) {
+                    // Bind DN Form (scrollable)
+                    VerticallyScrollableContainer(
+                        modifier = Modifier.weight(1f).fillMaxWidth()
+                    ) {
+                        Column(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalArrangement = Arrangement.spacedBy(AppSpacing.lg)
+                        ) {
+                            AppTextField(
+                                value = bindLabel,
+                                onValueChange = { bindLabel = it },
+                                label = "Credential Label",
+                                placeholder = "Default",
+                                modifier = Modifier.fillMaxWidth(),
+                                singleLine = true
                             )
-                        },
-                        modifier = Modifier.fillMaxWidth(),
-                        singleLine = true
-                    )
 
-                    // Host Field
-                    AppTextField(
-                        value = host,
-                        onValueChange = {
-                            host = it
-                        },
-                        label = "Server Host",
-                        placeholder = "ldap.example.com",
-                        leadingIcon = {
-                            Icon(
-                                imageVector = Octicons.Server16,
-                                contentDescription = "Host",
-                                modifier = Modifier.size(12.dp),
-                                tint = JewelTheme.contentColor
+                            AppTextField(
+                                value = bindUser,
+                                onValueChange = { bindUser = it },
+                                label = "Bind User",
+                                placeholder = "cn=admin,dc=example,dc=com",
+                                leadingIcon = {
+                                    Icon(
+                                        imageVector = Octicons.Person16,
+                                        contentDescription = "User",
+                                        modifier = Modifier.size(12.dp),
+                                        tint = JewelTheme.contentColor
+                                    )
+                                },
+                                modifier = Modifier.fillMaxWidth(),
+                                singleLine = true
                             )
-                        },
-                        trailingIcon = {
-                            if (isHostValid && host.isNotEmpty()) {
-                                Icon(
-                                    imageVector = Octicons.CheckCircle16,
-                                    contentDescription = "Valid",
-                                    tint = IntelliJColors.success,
-                                    modifier = Modifier.size(14.dp)
+
+                            AppTextField(
+                                value = bindPass,
+                                onValueChange = { bindPass = it },
+                                label = "Bind Password",
+                                leadingIcon = {
+                                    Icon(
+                                        imageVector = Octicons.Lock16,
+                                        contentDescription = "Password",
+                                        modifier = Modifier.size(12.dp),
+                                        tint = JewelTheme.contentColor
+                                    )
+                                },
+                                trailingIcon = {
+                                    IconButton(
+                                        icon = if (showPassword) Octicons.EyeClosed16 else Octicons.Eye16,
+                                        contentDescription = if (showPassword) "Hide password" else "Show password",
+                                        onClick = { showPassword = !showPassword }
+                                    )
+                                },
+                                modifier = Modifier.fillMaxWidth(),
+                                singleLine = true,
+                                visualTransformation = if (showPassword) VisualTransformation.None else PasswordVisualTransformation()
+                            )
+
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm)
+                            ) {
+                                Checkbox(
+                                    checked = isBindDefault,
+                                    onCheckedChange = { isBindDefault = it }
+                                )
+                                Text("Set as default credential")
+                            }
+                        }
+                    }
+                } else {
+                    // Connection Form (scrollable)
+                    VerticallyScrollableContainer(
+                        modifier = Modifier.weight(1f).fillMaxWidth()
+                    ) {
+                        Column(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalArrangement = Arrangement.spacedBy(AppSpacing.lg)
+                        ) {
+                            AppTextField(
+                                value = name,
+                                onValueChange = { name = it },
+                                label = "Connection Name (Optional)",
+                                placeholder = "My LDAP Server",
+                                leadingIcon = {
+                                    Icon(
+                                        key = AllIconsKeys.General.User,
+                                        contentDescription = "Name",
+                                        modifier = Modifier.size(12.dp),
+                                        tint = JewelTheme.contentColor
+                                    )
+                                },
+                                modifier = Modifier.fillMaxWidth(),
+                                singleLine = true
+                            )
+
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(AppSpacing.md)
+                            ) {
+                                AppTextField(
+                                    value = host,
+                                    onValueChange = { host = it },
+                                    label = "Server Host",
+                                    placeholder = "ldap.example.com",
+                                    leadingIcon = {
+                                        Icon(
+                                            key = AllIconsKeys.Webreferences.Server,
+                                            contentDescription = "Host",
+                                            modifier = Modifier.size(12.dp),
+                                            tint = JewelTheme.contentColor
+                                        )
+                                    },
+                                    modifier = Modifier.weight(0.7f),
+                                    isError = showHostError,
+                                    errorMessage = "Required",
+                                    singleLine = true
+                                )
+
+                                AppTextField(
+                                    value = port,
+                                    onValueChange = { port = it },
+                                    label = "Port",
+                                    placeholder = "389",
+                                    modifier = Modifier.weight(0.3f),
+                                    isError = showPortError,
+                                    errorMessage = "Invalid",
+                                    singleLine = true
                                 )
                             }
-                        },
-                        isError = showHostError,
-                        errorMessage = "Server host is required",
-                        isRequired = true,
-                        modifier = Modifier.fillMaxWidth(),
-                        singleLine = true
-                    )
 
-                    // Port Field
-                    AppTextField(
-                        value = port,
-                        onValueChange = {
-                            port = it
-                        },
-                        label = "Port",
-                        placeholder = "389",
-                        leadingIcon = {
-                            Icon(
-                                imageVector = Octicons.Gear16,
-                                contentDescription = "Port",
-                                modifier = Modifier.size(12.dp),
-                                tint = JewelTheme.contentColor
+                            AppTextField(
+                                value = baseDN,
+                                onValueChange = { baseDN = it },
+                                label = "Base DN",
+                                placeholder = "dc=example,dc=com",
+                                leadingIcon = {
+                                    Icon(
+                                        key = AllIconsKeys.Toolwindows.ToolWindowStructure,
+                                        contentDescription = "Base DN",
+                                        modifier = Modifier.size(12.dp),
+                                        tint = JewelTheme.contentColor
+                                    )
+                                },
+                                modifier = Modifier.fillMaxWidth(),
+                                isError = showBaseDNError,
+                                errorMessage = "Required",
+                                singleLine = true
                             )
-                        },
-                        trailingIcon = {
-                            if (isPortValid && port.isNotEmpty()) {
-                                Icon(
-                                    imageVector = Octicons.CheckCircle16,
-                                    contentDescription = "Valid",
-                                    tint = IntelliJColors.success,
-                                    modifier = Modifier.size(14.dp)
+
+                            // SSL/TLS Options
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(AppSpacing.lg),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm)
+                                ) {
+                                    Checkbox(
+                                        checked = useSSL,
+                                        onCheckedChange = { newState ->
+                                            useSSL = newState
+                                            if (useSSL) useTLS = false
+                                        }
+                                    )
+                                    Text("Use SSL")
+                                }
+
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm)
+                                ) {
+                                    Checkbox(
+                                        checked = useTLS,
+                                        onCheckedChange = { newState ->
+                                            useTLS = newState
+                                            if (useTLS) useSSL = false
+                                        }
+                                    )
+                                    Text("Use TLS")
+                                }
+                            }
+
+                            // Bind Credentials Table
+                            Text(
+                                text = "Bind Credentials",
+                                style = AppTypography.labelLarge,
+                                color = AppColors.neutral140
+                            )
+
+                            currentSelectedConnection?.let { conn ->
+                                BindCredentialTable(
+                                    credentials = conn.effectiveBindCredentials,
+                                    selectedCredential = (selectedNode as? ConfigTreeNode.BindDnNode)?.credential,
+                                    onCredentialSelected = { cred ->
+                                        selectedNode = ConfigTreeNode.BindDnNode(conn, cred)
+                                    },
+                                    onAddCredential = {
+                                        val newCred = viewModel.addBindCredential(conn.name)
+                                        configs = viewModel.getConfig().connections
+                                        newCred // Return the new credential so table can edit it inline
+                                    },
+                                    onDeleteCredential = { cred ->
+                                        viewModel.deleteBindCredential(conn.name, cred.id)
+                                        configs = viewModel.getConfig().connections
+                                        selectedNode =
+                                            ConfigTreeNode.ConnectionNode(viewModel.getConfig().connections.find { it.name == conn.name }
+                                                ?: conn)
+                                    },
+                                    onUpdateCredential = { cred ->
+                                        viewModel.updateBindCredential(conn.name, cred)
+                                        configs = viewModel.getConfig().connections
+                                    },
+                                    modifier = Modifier.height(320.dp)
                                 )
                             }
-                        },
-                        isError = showPortError,
-                        errorMessage = "Port must be between 1-65535",
-                        isRequired = true,
-                        modifier = Modifier.fillMaxWidth(),
-                        singleLine = true
-                    )
-
-                    // Base DN Field
-                    AppTextField(
-                        value = baseDN,
-                        onValueChange = {
-                            baseDN = it
-                        },
-                        label = "Base DN",
-                        placeholder = "dc=example,dc=com",
-                        leadingIcon = {
-                            Icon(
-                                imageVector = Octicons.Workflow16,
-                                contentDescription = "Base DN",
-                                modifier = Modifier.size(12.dp),
-                                tint = JewelTheme.contentColor
-                            )
-                        },
-                        trailingIcon = {
-                            if (isBaseDNValid && baseDN.isNotEmpty()) {
-                                Icon(
-                                    imageVector = Octicons.CheckCircle16,
-                                    contentDescription = "Valid",
-                                    tint = IntelliJColors.success,
-                                    modifier = Modifier.size(14.dp)
-                                )
-                            }
-                        },
-                        isError = showBaseDNError,
-                        errorMessage = "Base DN is required",
-                        isRequired = true,
-                        modifier = Modifier.fillMaxWidth(),
-                        singleLine = true
-                    )
-
-                    // Bind User Field
-                    AppTextField(
-                        value = bindUser,
-                        onValueChange = {
-                            bindUser = it
-                        },
-                        label = "Bind User",
-                        placeholder = "cn=admin,dc=example,dc=com",
-                        leadingIcon = {
-                            Icon(
-                                imageVector = Octicons.Person16,
-                                contentDescription = "User",
-                                modifier = Modifier.size(12.dp),
-                                tint = JewelTheme.contentColor
-                            )
-                        },
-                        trailingIcon = {
-                            if (isBindUserValid && bindUser.isNotEmpty()) {
-                                Icon(
-                                    imageVector = Octicons.CheckCircle16,
-                                    contentDescription = "Valid",
-                                    tint = IntelliJColors.success,
-                                    modifier = Modifier.size(14.dp)
-                                )
-                            }
-                        },
-                        isError = showBindUserError,
-                        errorMessage = "Bind user is required",
-                        isRequired = true,
-                        modifier = Modifier.fillMaxWidth(),
-                        singleLine = true
-                    )
-
-                    // Bind Password Field
-                    AppTextField(
-                        value = bindPass,
-                        onValueChange = { bindPass = it },
-                        label = "Bind Password",
-                        leadingIcon = {
-                            Icon(
-                                imageVector = Octicons.Lock16,
-                                contentDescription = "Password",
-                                modifier = Modifier.size(12.dp),
-                                tint = JewelTheme.contentColor
-                            )
-                        },
-                        trailingIcon = {
-                            IconButton(
-                                icon = if (showPassword) Octicons.EyeClosed16 else Octicons.Eye16,
-                                contentDescription = if (showPassword) "Hide password" else "Show password",
-                                onClick = { showPassword = !showPassword }
-                            )
-                        },
-                        modifier = Modifier.fillMaxWidth(),
-                        singleLine = true,
-                        visualTransformation = if (showPassword) VisualTransformation.None else PasswordVisualTransformation()
-                    )
+                        }
+                    }
                 }
 
-                // SSL/TLS Options
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(AppSpacing.lg),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm)
-                    ) {
-                        Checkbox(
-                            checked = useSSL,
-                            onCheckedChange = { newState ->
-                                useSSL = newState
-                                if (useSSL) useTLS = false
-                            }
-                        )
-                        Text("Use SSL")
-                    }
+                Spacer(modifier = Modifier.height(AppSpacing.lg))
 
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm)
-                    ) {
-                        Checkbox(
-                            checked = useTLS,
-                            onCheckedChange = { newState ->
-                                useTLS = newState
-                                if (useTLS) useSSL = false
-                            }
-                        )
-                        Text("Use TLS")
-                    }
-                }
-
-                Spacer(modifier = Modifier.weight(1f))
-
-                // Action Buttons
+                // Action Buttons (fixed at bottom)
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.End,
@@ -508,38 +571,37 @@ fun ConfigurationScreen(
                         }
 
                         else -> {
-                            // Save button (outlined style for visual distinction)
+                            // Save button
                             OutlinedButton(
                                 onClick = {
-                                    println("=== [ConfigurationScreen] Save button CLICKED ===")
-                                    println("[ConfigurationScreen] isFormValid = $isFormValid")
-
-                                    if (isFormValid) {
-                                        println("[ConfigurationScreen] Form is valid, proceeding with save")
-                                        val portInt = port.toIntOrNull() ?: 389
-
-                                        // Use ViewModel to save
-                                        val finalName = viewModel.saveConnection(
-                                            configService = configService,
-                                            selectedConnectionName = selectedConnectionName,
-                                            name = name,
-                                            host = host,
-                                            port = portInt,
-                                            baseDN = baseDN,
-                                            useSsl = useSSL,
-                                            useTls = useTLS,
+                                    if (selectedNode is ConfigTreeNode.BindDnNode) {
+                                        val node = selectedNode as ConfigTreeNode.BindDnNode
+                                        val updatedCred = node.credential.copy(
+                                            label = bindLabel,
                                             bindUser = bindUser,
-                                            bindPass = bindPass
+                                            bindPass = bindPass,
+                                            isDefault = isBindDefault
                                         )
-
-                                        // Refresh the configs list and update selected connection name
+                                        viewModel.updateBindCredential(node.parentConfig.name, updatedCred)
+                                        configService.save(viewModel.getConfig())
                                         configs = viewModel.getConfig().connections
-                                        selectedConnectionName = finalName
-
-                                        println("[ConfigurationScreen] Save completed. New selected name: $finalName")
+                                        // Update selected node to reflect changes
+                                        selectedNode = ConfigTreeNode.BindDnNode(node.parentConfig, updatedCred)
                                     } else {
-                                        println("[ConfigurationScreen] Form is INVALID - cannot save")
-                                        println("[ConfigurationScreen]   hostValid=$isHostValid, portValid=$isPortValid, baseDNValid=$isBaseDNValid, bindUserValid=$isBindUserValid")
+                                        if (isFormValid) {
+                                            val portInt = port.toIntOrNull() ?: 389
+                                            val finalName = viewModel.saveConnection(
+                                                selectedConnectionName = selectedConnectionName,
+                                                name = name,
+                                                host = host,
+                                                port = portInt,
+                                                baseDN = baseDN,
+                                                useSsl = useSSL,
+                                                useTls = useTLS
+                                            )
+                                            configs = viewModel.getConfig().connections
+                                            selectedConnectionName = finalName
+                                        }
                                     }
                                 }
                             ) {
@@ -548,38 +610,39 @@ fun ConfigurationScreen(
 
                             Spacer(modifier = Modifier.width(AppSpacing.sm))
 
-                            // Connect button (primary action)
+                            // Connect button
                             DefaultButton(
                                 onClick = {
-                                    println("=== [ConfigurationScreen] Connect button CLICKED ===")
-                                    println("[ConfigurationScreen] isFormValid = $isFormValid")
-
-                                    if (isFormValid) {
-                                        println("[ConfigurationScreen] Form is valid, proceeding with connect")
-                                        val portInt = port.toIntOrNull() ?: 389
-
-                                        // Use ViewModel to save and connect
-                                        val finalName = viewModel.saveAndConnect(
-                                            configService = configService,
-                                            selectedConnectionName = selectedConnectionName,
-                                            name = name,
-                                            host = host,
-                                            port = portInt,
-                                            baseDN = baseDN,
-                                            useSsl = useSSL,
-                                            useTls = useTLS,
+                                    if (selectedNode is ConfigTreeNode.BindDnNode) {
+                                        val node = selectedNode as ConfigTreeNode.BindDnNode
+                                        // In a real app, we might want to save first
+                                        val updatedCred = node.credential.copy(
+                                            label = bindLabel,
                                             bindUser = bindUser,
-                                            bindPass = bindPass
+                                            bindPass = bindPass,
+                                            isDefault = isBindDefault
                                         )
+                                        viewModel.updateBindCredential(node.parentConfig.name, updatedCred)
+                                        configService.save(viewModel.getConfig())
 
-                                        // Refresh the configs list and update selected connection name
-                                        configs = viewModel.getConfig().connections
-                                        selectedConnectionName = finalName
-
-                                        println("[ConfigurationScreen] Connect initiated. New selected name: $finalName")
+                                        // TODO: Connect using SPECIFIC credential
+                                        // For now, it will use the one marked default or first
+                                        viewModel.connect()
                                     } else {
-                                        println("[ConfigurationScreen] Form is INVALID - cannot connect")
-                                        println("[ConfigurationScreen]   hostValid=$isHostValid, portValid=$isPortValid, baseDNValid=$isBaseDNValid, bindUserValid=$isBindUserValid")
+                                        if (isFormValid) {
+                                            val portInt = port.toIntOrNull() ?: 389
+                                            val finalName = viewModel.saveAndConnect(
+                                                selectedConnectionName = selectedConnectionName,
+                                                name = name,
+                                                host = host,
+                                                port = portInt,
+                                                baseDN = baseDN,
+                                                useSsl = useSSL,
+                                                useTls = useTLS
+                                            )
+                                            configs = viewModel.getConfig().connections
+                                            selectedConnectionName = finalName
+                                        }
                                     }
                                 }
                             ) {
@@ -590,5 +653,13 @@ fun ConfigurationScreen(
                 }
             }
         }
+    }
+
+    if (appState.showBindDnSelection && appState.connectionForSelection != null) {
+        com.moribito.gui.ui.components.BindDnSelectionDialog(
+            connection = appState.connectionForSelection!!,
+            onSelect = { viewModel.connect(it) },
+            onCancel = { viewModel.cancelBindDnSelection() }
+        )
     }
 }

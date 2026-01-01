@@ -13,6 +13,7 @@ import org.jetbrains.jewel.ui.component.Icon
 import org.jetbrains.jewel.ui.component.IconButton
 import org.jetbrains.jewel.ui.component.Text
 import org.jetbrains.jewel.ui.component.Tooltip
+import org.jetbrains.jewel.ui.icons.AllIconsKeys
 
 @OptIn(androidx.compose.foundation.ExperimentalFoundationApi::class)
 @Composable
@@ -33,10 +34,9 @@ fun MainToolbar(
                 modifier = Modifier.size(28.dp)
             ) {
                 Icon(
-                    imageVector = Octicons.Search16,
+                    key = AllIconsKeys.Nodes.Annotationtype,
                     contentDescription = "Inspect Schema",
                     modifier = Modifier.size(14.dp),
-                    tint = JewelTheme.globalColors.text.normal
                 )
             }
         }

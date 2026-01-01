@@ -14,3 +14,5 @@ Appendix:
 **Identicons EXAMPLE (React)** https://github.com/doke-v/react-identicons/blob/master/src/index.js
 
 **Identicons EXAMPLE (Kotlin)** https://github.com/WycliffeAssociates/jdenticon-kotlin/tree/master/src/commonMain/kotlin/jdenticon
+
+**Lazy Tree** https://github.com/JetBrains/intellij-community/blob/master/platform/jewel/ui/src/main/kotlin/org/jetbrains/jewel/ui/component/LazyTree.kt

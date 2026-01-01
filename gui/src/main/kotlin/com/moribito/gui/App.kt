@@ -18,122 +18,63 @@ import com.moribito.gui.ui.screens.WorkspaceScreen
 import com.moribito.gui.viewmodel.AppView
 import com.moribito.gui.viewmodel.MainViewModel
 import io.github.composefluent.component.*
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
-import org.koin.compose.KoinApplication
-import org.koin.core.module.dsl.singleOf
-import org.koin.dsl.module
-import com.moribito.config.ConfigurationService
-import LdapConfig
 import com.moribito.gui.viewmodel.ConnectionState
 import org.koin.compose.koinInject
 
 @Composable
 fun FrameWindowScope.App(windowState: WindowState) {
-    KoinApplication(application = {
-        modules(
-            module {
-                singleOf(::ConfigurationService)
-            }
-        )
-    }) {
-        // Load config and create ViewModel
-        var viewModel by remember { mutableStateOf<MainViewModel?>(null) }
-        var configLoadError by remember { mutableStateOf<String?>(null) }
+    val viewModel: MainViewModel = koinInject()
+    val state by viewModel.state.collectAsState()
 
-        val configService = koinInject<ConfigurationService>()
-        LaunchedEffect(Unit) {
-            try {
-                val config = configService.load()
-                viewModel = MainViewModel(config)
-            } catch (e: Exception) {
-                configLoadError = "Failed to load configuration: ${e.message}"
+    LaunchedEffect(state.currentView) {
+        when (state.currentView) {
+            is AppView.Start, is AppView.Configuration -> {
+                windowState.size = DpSize(900.dp, 700.dp)
+            }
+            is AppView.Workspace -> {
+                windowState.size = DpSize(1280.dp, 960.dp)
             }
         }
+    }
 
-        if (viewModel != null) {
-            val vm = viewModel!!
-            val state by vm.state.collectAsState()
+    MenuBar {
+        Menu("Connections") {
+            Item("Manage Connections", onClick = {
+                viewModel.navigateTo(AppView.Configuration)
+            })
+            Separator()
+            Item("Disconnect", enabled = state.connectionState == ConnectionState.Connected, onClick = {
+                viewModel.disconnect()
+            })
+            Item("Reconnect", enabled = state.connectionState == ConnectionState.Connected, onClick = {
+                viewModel.reconnect()
+            })
+        }
+        Menu("Settings") {
+            Item("Settings", enabled = false, onClick = {})
+        }
+    }
 
-            LaunchedEffect(state.currentView) {
-                when (state.currentView) {
-                    is AppView.Start, is AppView.Configuration -> {
-                        windowState.size = DpSize(900.dp, 700.dp)
-                    }
-                    is AppView.Workspace -> {
-                        windowState.size = DpSize(1280.dp, 960.dp)
-                    }
-                }
-            }
-
-            MenuBar {
-                Menu("Connections") {
-                    Item("Manage Connections", onClick = {
-                        vm.navigateTo(AppView.Configuration)
-                    })
-                    Separator()
-                    Item("Disconnect", enabled = state.connectionState == ConnectionState.Connected, onClick = {
-                        vm.disconnect()
-                    })
-                    Item("Reconnect", enabled = state.connectionState == ConnectionState.Connected, onClick = {
-                        vm.reconnect()
-                    })
-                }
-                Menu("Settings") {
-                    Item("Settings", enabled = false, onClick = {})
-                }
-            }
+    when (state.currentView) {
+        is AppView.Start -> {
+            StartScreen(
+                viewModel = viewModel
+            )
         }
 
-        when {
-            configLoadError != null -> {
-                // Show error screen
-                Box(
-                    contentAlignment = Alignment.Center,
-                    modifier = Modifier.fillMaxSize()
-                ) {
-                    Text(text = "Error: $configLoadError")
-                }
-            }
+        is AppView.Configuration -> {
+            ConfigurationScreen(
+                viewModel = viewModel,
+                ldapConfig = viewModel.getConfig(),
+                connectionState = state.connectionState
+            )
+        }
 
-            viewModel == null -> {
-                // Show loading screen
-                Box(
-                    contentAlignment = Alignment.Center,
-                    modifier = Modifier.fillMaxSize()
-                ) {
-                    ProgressRing()
-                }
-            }
-
-            else -> {
-                // Show main app
-                val vm = viewModel!!
-                val state by vm.state.collectAsState()
-
-                when (state.currentView) {
-                    is AppView.Start -> {
-                        StartScreen(
-                            viewModel = vm
-                        )
-                    }
-
-                    is AppView.Configuration -> {
-                        ConfigurationScreen(
-                            viewModel = vm,
-                            ldapConfig = vm.getConfig(),
-                            connectionState = state.connectionState
-                        )
-                    }
-
-                    is AppView.Workspace -> {
-                        WorkspaceScreen(
-                            viewModel = vm,
-                            state = state
-                        )
-                    }
-                }
-            }
+        is AppView.Workspace -> {
+            WorkspaceScreen(
+                viewModel = viewModel,
+                state = state
+            )
         }
     }
 }

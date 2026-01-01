@@ -14,6 +14,7 @@ import androidx.compose.ui.window.PopupProperties
 import com.moribito.gui.theme.AppSizes
 import com.moribito.gui.theme.AppSpacing
 import com.moribito.gui.theme.IntelliJColors
+import compose.icons.AllIcons
 import compose.icons.Octicons
 import compose.icons.octicons.Check16
 import compose.icons.octicons.FileDirectory16
@@ -23,6 +24,7 @@ import org.jetbrains.jewel.foundation.theme.JewelTheme
 import org.jetbrains.jewel.ui.component.Icon
 import org.jetbrains.jewel.ui.component.IconButton
 import org.jetbrains.jewel.ui.component.Text
+import org.jetbrains.jewel.ui.icons.AllIconsKeys
 
 /**
  * Action bar for the tree view with a settings dropdown menu.
@@ -62,9 +64,8 @@ fun TreeViewActionBar(
                 modifier = Modifier.size(28.dp)
             ) {
                 Icon(
-                    imageVector = Octicons.X16,
+                    key = AllIconsKeys.Diff.Remove,
                     contentDescription = "Show Directory",
-                    tint = JewelTheme.globalColors.text.info,
                     modifier = Modifier
                         .size(16.dp)
                 )
@@ -74,9 +75,8 @@ fun TreeViewActionBar(
 
         Box {
             Icon(
-                imageVector = Octicons.ThreeBars16,
+                key = AllIconsKeys.General.ChevronDown,
                 contentDescription = "Tree View Settings",
-                tint = JewelTheme.globalColors.text.normal,
                 modifier = Modifier
                     .size(16.dp)
                     .clickable { showMenu = !showMenu }

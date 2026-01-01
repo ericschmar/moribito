@@ -21,7 +21,7 @@ fun ActionBar(
         modifier = modifier
             .fillMaxWidth()
             .height(40.dp)
-            .background(IntelliJColors.islandBackground)
+            .background(IntelliJColors.baseBackground)
             .padding(horizontal = AppSpacing.md),
         verticalAlignment = Alignment.CenterVertically
     ) {

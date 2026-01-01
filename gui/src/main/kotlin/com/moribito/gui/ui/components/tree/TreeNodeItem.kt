@@ -34,6 +34,7 @@ import androidx.compose.foundation.ContextMenuArea
 import androidx.compose.foundation.ContextMenuItem
 import org.jetbrains.jewel.ui.component.Icon
 import org.jetbrains.jewel.ui.component.Text
+import org.jetbrains.jewel.ui.icons.AllIconsKeys
 
 @OptIn(ExperimentalFoundationApi::class, ExperimentalComposeUiApi::class)
 @Composable
@@ -111,7 +112,7 @@ fun TreeNodeItem(
             // Expand/collapse chevron (12dp)
             if (node.hasChildren()) {
                 Icon(
-                    imageVector = if (isExpanded) Octicons.ChevronDown16 else Octicons.ChevronRight16,
+                    key = if (isExpanded) AllIconsKeys.General.ChevronDown else AllIconsKeys.General.ChevronRight,
                     contentDescription = if (isExpanded) "Collapse" else "Expand",
                     modifier = Modifier
                         .size(12.dp)
@@ -122,7 +123,7 @@ fun TreeNodeItem(
 
             // Folder/file icon (12dp)
             Icon(
-                imageVector = if (node.hasChildren()) Octicons.FileDirectory16 else Octicons.Person16,
+                key = if (node.hasChildren()) AllIconsKeys.Nodes.Folder else AllIconsKeys.General.User,
                 contentDescription = null,
                 modifier = Modifier.size(12.dp),
                 tint = if (node.hasChildren()) AppColors.blue100 else AppColors.neutral60

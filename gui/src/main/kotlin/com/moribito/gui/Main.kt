@@ -7,6 +7,8 @@ import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.awt.ComposeWindow
 import androidx.compose.ui.graphics.Color
@@ -20,6 +22,7 @@ import androidx.compose.ui.unit.dp
 import com.moribito.gui.theme.IntelliJColors
 import com.moribito.gui.ui.components.Background
 import com.moribito.gui.view.TitleBarView
+import com.moribito.gui.view.ConfigurationWindow
 import org.jetbrains.jewel.foundation.theme.JewelTheme
 import org.jetbrains.jewel.intui.standalone.theme.IntUiTheme
 import org.jetbrains.jewel.intui.standalone.theme.createDefaultTextStyle
@@ -32,6 +35,12 @@ import org.jetbrains.jewel.ui.ComponentStyling
 import org.jetbrains.jewel.window.DecoratedWindow
 import org.jetbrains.jewel.window.styling.TitleBarColors
 import org.jetbrains.jewel.window.styling.TitleBarStyle
+import org.koin.compose.KoinApplication
+import org.koin.core.module.dsl.singleOf
+import org.koin.dsl.module
+import com.moribito.config.ConfigurationService
+import com.moribito.gui.viewmodel.MainViewModel
+import org.koin.compose.koinInject
 
 object NoIndication : IndicationNodeFactory {
 
@@ -56,45 +65,65 @@ object NoIndication : IndicationNodeFactory {
 fun main() {
     System.setProperty("apple.awt.application.name", "Moribito")
     application {
-        val textStyle = JewelTheme.createDefaultTextStyle()
-        val editorStyle = JewelTheme.createEditorTextStyle()
+        KoinApplication(application = {
+            modules(
+                module {
+                    singleOf(::ConfigurationService)
+                    singleOf(::MainViewModel)
+                }
+            )
+        }) {
+            val textStyle = JewelTheme.createDefaultTextStyle()
+            val editorStyle = JewelTheme.createEditorTextStyle()
 
-        val themeDefinition = JewelTheme.darkThemeDefinition(defaultTextStyle = textStyle, editorTextStyle = editorStyle)
+            val themeDefinition = JewelTheme.darkThemeDefinition(defaultTextStyle = textStyle, editorTextStyle = editorStyle)
 
-        IntUiTheme(
-            theme = themeDefinition,
-            styling =
-                ComponentStyling.default()
-                    .decoratedWindow(
-                        titleBarStyle = TitleBarStyle.dark(
-                            colors = TitleBarColors.dark(
-                                backgroundColor = IntelliJColors.baseBackground,
-                                borderColor = Color(0xFF2B2D30)
+            IntUiTheme(
+                theme = themeDefinition,
+                styling =
+                    ComponentStyling.default()
+                        .decoratedWindow(
+                            titleBarStyle = TitleBarStyle.dark(
+                                colors = TitleBarColors.dark(
+                                    backgroundColor = IntelliJColors.baseBackground,
+                                    borderColor = Color(0xFF2B2D30)
+                                )
                             )
-                        )
-                    ),
-        ) {
-            CompositionLocalProvider(
-                LocalIndication provides NoIndication
+                        ),
             ) {
-                val windowState = rememberWindowState(width = 900.dp, height = 700.dp)
-                DecoratedWindow(
-                    state = windowState,
-                    onCloseRequest = { exitApplication() },
-                    title = "Moribito",
-                    content = {
-                        val decoratedWindowScope = this
-                        TitleBarView()
-                        Background(modifier = Modifier.fillMaxSize()) {
-                            val windowScope = remember(decoratedWindowScope) {
-                                object : FrameWindowScope {
-                                    override val window: ComposeWindow get() = decoratedWindowScope.window
+                CompositionLocalProvider(
+                    LocalIndication provides NoIndication
+                ) {
+                    val viewModel: MainViewModel = koinInject()
+                    val state by viewModel.state.collectAsState()
+
+                    val windowState = rememberWindowState(width = 900.dp, height = 700.dp)
+                    DecoratedWindow(
+                        state = windowState,
+                        onCloseRequest = { exitApplication() },
+                        title = "Moribito",
+                        content = {
+                            val decoratedWindowScope = this
+                            TitleBarView()
+                            Background(modifier = Modifier.fillMaxSize()) {
+                                val windowScope = remember(decoratedWindowScope) {
+                                    object : FrameWindowScope {
+                                        override val window: ComposeWindow get() = decoratedWindowScope.window
+                                    }
                                 }
+                                windowScope.App(windowState)
                             }
-                            windowScope.App(windowState)
-                        }
-                    },
-                )
+                        },
+                    )
+
+                    // Configuration window
+                    if (state.isConfigurationWindowOpen) {
+                        ConfigurationWindow(
+                            viewModel = viewModel,
+                            onCloseRequest = { viewModel.closeConfigurationWindow() }
+                        )
+                    }
+                }
             }
         }
     }

@@ -1,8 +1,6 @@
 package com.moribito.gui.ui.screens
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
-import androidx.compose.material3.Icon
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -17,14 +15,13 @@ import com.moribito.gui.ui.components.ConnectionCard
 import com.moribito.gui.ui.components.Island
 import com.moribito.gui.viewmodel.AppView
 import com.moribito.gui.viewmodel.MainViewModel
-import compose.icons.Octicons
-import compose.icons.octicons.Plug16
 import org.jetbrains.compose.splitpane.ExperimentalSplitPaneApi
 import org.jetbrains.compose.splitpane.HorizontalSplitPane
 import org.jetbrains.compose.splitpane.rememberSplitPaneState
-import org.jetbrains.jewel.foundation.theme.JewelTheme
+import org.jetbrains.jewel.ui.component.Icon
 import org.jetbrains.jewel.ui.component.OutlinedButton
 import org.jetbrains.jewel.ui.component.Text
+import org.jetbrains.jewel.ui.icons.AllIconsKeys
 
 /**
  * Start screen displayed on app launch.
@@ -114,10 +111,9 @@ fun StartScreen(
                         ) {
                             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                 Icon(
-                                    imageVector = Octicons.Plug16,
+                                    key = AllIconsKeys.General.Settings,
                                     contentDescription = "Plug",
-                                    modifier = Modifier.size(12.dp),
-                                    tint = JewelTheme.contentColor
+                                    modifier = Modifier.size(14.dp),
                                 )
                                 Text("Manage Connections")
                             }

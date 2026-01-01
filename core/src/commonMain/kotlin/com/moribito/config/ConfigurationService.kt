@@ -1,7 +1,5 @@
 package com.moribito.config
 
-import LdapConfig
-import RootConfig
 import com.akuleshov7.ktoml.Toml
 import java.io.File
 
@@ -55,11 +53,52 @@ class ConfigurationService {
         return try {
             val config = toml.decodeFromString(RootConfig.serializer(), content)
             println("[ConfigurationService] Successfully decoded ${config.connections.size} connections")
-            config
+
+            // Apply migration to all connections
+            val migratedConfig = config.copy(
+                connections = config.connections.map { migrateLdapConfig(it) }
+            )
+            println("[ConfigurationService] Migration complete")
+
+            migratedConfig
         } catch (e: Exception) {
             println("[ConfigurationService] Format error: ${e.message}")
             RootConfig()
         }
+    }
+
+    /**
+     * Migrates legacy LdapConfig format to new multi-credential format.
+     * If the config already has bindCredentials, returns it unchanged.
+     * If it has legacy bindUser/bindPass, converts them to a single BindCredential.
+     */
+    private fun migrateLdapConfig(config: LdapConfig): LdapConfig {
+        // Already migrated or has new format
+        if (config.bindCredentials.isNotEmpty()) {
+            println("[ConfigurationService] Config '${config.name}' already has ${config.bindCredentials.size} credentials")
+            return config
+        }
+
+        // No legacy credentials either
+        if (config._legacyBindUser.isNullOrEmpty()) {
+            println("[ConfigurationService] Config '${config.name}' has no credentials (anonymous bind)")
+            return config
+        }
+
+        // Migrate legacy single credential to new format
+        println("[ConfigurationService] Migrating config '${config.name}' from legacy format")
+        return config.copy(
+            bindCredentials = listOf(
+                BindCredential(
+                    label = "Default",
+                    bindUser = config._legacyBindUser,
+                    bindPass = config._legacyBindPass ?: "",
+                    isDefault = true
+                )
+            ),
+            _legacyBindUser = null,
+            _legacyBindPass = null
+        )
     }
 
     fun importFromExternalFile(externalFile: File): List<LdapConfig> {
