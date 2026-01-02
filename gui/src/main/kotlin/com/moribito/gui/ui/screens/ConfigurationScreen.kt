@@ -19,6 +19,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.moribito.config.ConfigurationService
 import com.moribito.config.RootConfig
+import com.moribito.config.BindCredential
 import com.moribito.gui.theme.*
 import com.moribito.gui.ui.components.ActionBar
 import com.moribito.gui.ui.components.BindCredentialTable
@@ -149,17 +150,21 @@ fun ConfigurationScreen(
     val showBaseDNError = !isBaseDNValid
     val showBindUserError = !isBindUserValid
 
-    // Form is valid if all required fields are valid
-    val isFormValid = isHostValid && isPortValid && isBaseDNValid && isBindUserValid
+    // Form is valid if required fields are valid based on context
+    val isConnectionValid = isHostValid && isPortValid && isBaseDNValid
+    val isCredentialValid = isBindUserValid
+    val isFormValid = if (selectedNode is ConfigTreeNode.BindDnNode) {
+        isConnectionValid && isCredentialValid
+    } else {
+        isConnectionValid
+    }
 
     // Log validation state changes
-    LaunchedEffect(isFormValid, isHostValid, isPortValid, isBaseDNValid, isBindUserValid) {
+    LaunchedEffect(isFormValid, isConnectionValid, isCredentialValid) {
         println("[ConfigurationScreen] Validation state changed:")
         println("  isFormValid = $isFormValid")
-        println("  isHostValid = $isHostValid (host='$host')")
-        println("  isPortValid = $isPortValid (port='$port')")
-        println("  isBaseDNValid = $isBaseDNValid (baseDN='$baseDN')")
-        println("  isBindUserValid = $isBindUserValid (bindUser='$bindUser')")
+        println("  isConnectionValid = $isConnectionValid (host='$host', port='$port', baseDN='$baseDN')")
+        println("  isCredentialValid = $isCredentialValid (bindUser='$bindUser')")
     }
 
     HorizontalSplitPane(
@@ -529,6 +534,38 @@ fun ConfigurationScreen(
                                         viewModel.updateBindCredential(conn.name, cred)
                                         configs = viewModel.getConfig().connections
                                     },
+                                    onConnect = { cred ->
+                                        // Save everything before connecting to ensure changes are picked up
+                                        var targetCredential = cred
+                                        if (selectedNode is ConfigTreeNode.BindDnNode) {
+                                            val node = selectedNode as ConfigTreeNode.BindDnNode
+                                            val updatedCred = node.credential.copy(
+                                                label = bindLabel,
+                                                bindUser = bindUser,
+                                                bindPass = bindPass,
+                                                isDefault = isBindDefault
+                                            )
+                                            viewModel.updateBindCredential(node.parentConfig.name, updatedCred)
+                                            if (cred.id == updatedCred.id) {
+                                                targetCredential = updatedCred
+                                            }
+                                        }
+
+                                        // Also save connection fields
+                                        val portInt = port.toIntOrNull() ?: 389
+                                        viewModel.saveConnection(
+                                            selectedConnectionName = selectedConnectionName,
+                                            name = name,
+                                            host = host,
+                                            port = portInt,
+                                            baseDN = baseDN,
+                                            useSsl = useSSL,
+                                            useTls = useTLS
+                                        )
+
+                                        configs = viewModel.getConfig().connections
+                                        viewModel.connect(targetCredential)
+                                    },
                                     modifier = Modifier.height(320.dp)
                                 )
                             }
@@ -583,12 +620,28 @@ fun ConfigurationScreen(
                                             isDefault = isBindDefault
                                         )
                                         viewModel.updateBindCredential(node.parentConfig.name, updatedCred)
-                                        configService.save(viewModel.getConfig())
+
+                                        // Also save connection fields (even if on BindDnNode, we should ensure parent is synced)
+                                        val portInt = port.toIntOrNull() ?: 389
+                                        val finalName = viewModel.saveConnection(
+                                            selectedConnectionName = selectedConnectionName,
+                                            name = name,
+                                            host = host,
+                                            port = portInt,
+                                            baseDN = baseDN,
+                                            useSsl = useSSL,
+                                            useTls = useTLS
+                                        )
+                                        
                                         configs = viewModel.getConfig().connections
+                                        selectedConnectionName = finalName
                                         // Update selected node to reflect changes
-                                        selectedNode = ConfigTreeNode.BindDnNode(node.parentConfig, updatedCred)
+                                        selectedNode = ConfigTreeNode.BindDnNode(
+                                            configs.find { it.name == finalName } ?: node.parentConfig,
+                                            updatedCred
+                                        )
                                     } else {
-                                        if (isFormValid) {
+                                        if (isConnectionValid) {
                                             val portInt = port.toIntOrNull() ?: 389
                                             val finalName = viewModel.saveConnection(
                                                 selectedConnectionName = selectedConnectionName,
@@ -601,6 +654,10 @@ fun ConfigurationScreen(
                                             )
                                             configs = viewModel.getConfig().connections
                                             selectedConnectionName = finalName
+                                            // Update selected node
+                                            configs.find { it.name == finalName }?.let {
+                                                selectedNode = ConfigTreeNode.ConnectionNode(it)
+                                            }
                                         }
                                     }
                                 }
@@ -615,7 +672,6 @@ fun ConfigurationScreen(
                                 onClick = {
                                     if (selectedNode is ConfigTreeNode.BindDnNode) {
                                         val node = selectedNode as ConfigTreeNode.BindDnNode
-                                        // In a real app, we might want to save first
                                         val updatedCred = node.credential.copy(
                                             label = bindLabel,
                                             bindUser = bindUser,
@@ -623,14 +679,37 @@ fun ConfigurationScreen(
                                             isDefault = isBindDefault
                                         )
                                         viewModel.updateBindCredential(node.parentConfig.name, updatedCred)
-                                        configService.save(viewModel.getConfig())
 
-                                        // TODO: Connect using SPECIFIC credential
-                                        // For now, it will use the one marked default or first
-                                        viewModel.connect()
+                                        // Also save connection fields
+                                        val portInt = port.toIntOrNull() ?: 389
+                                        val finalName = viewModel.saveConnection(
+                                            selectedConnectionName = selectedConnectionName,
+                                            name = name,
+                                            host = host,
+                                            port = portInt,
+                                            baseDN = baseDN,
+                                            useSsl = useSSL,
+                                            useTls = useTLS
+                                        )
+
+                                        configs = viewModel.getConfig().connections
+                                        selectedConnectionName = finalName
+                                        // Update selected node
+                                        val updatedNode = ConfigTreeNode.BindDnNode(
+                                            configs.find { it.name == finalName } ?: node.parentConfig,
+                                            updatedCred
+                                        )
+                                        selectedNode = updatedNode
+
+                                        viewModel.connect(updatedCred)
                                     } else {
-                                        if (isFormValid) {
+                                        if (isConnectionValid) {
                                             val portInt = port.toIntOrNull() ?: 389
+                                            // Find default credential to connect with
+                                            val conn = configs.find { it.name == selectedConnectionName }
+                                            val targetCred = conn?.effectiveBindCredentials?.find { it.isDefault }
+                                                ?: conn?.effectiveBindCredentials?.firstOrNull()
+
                                             val finalName = viewModel.saveAndConnect(
                                                 selectedConnectionName = selectedConnectionName,
                                                 name = name,
@@ -638,10 +717,15 @@ fun ConfigurationScreen(
                                                 port = portInt,
                                                 baseDN = baseDN,
                                                 useSsl = useSSL,
-                                                useTls = useTLS
+                                                useTls = useTLS,
+                                                credential = targetCred
                                             )
                                             configs = viewModel.getConfig().connections
                                             selectedConnectionName = finalName
+                                            // Update selected node
+                                            configs.find { it.name == finalName }?.let {
+                                                selectedNode = ConfigTreeNode.ConnectionNode(it)
+                                            }
                                         }
                                     }
                                 }

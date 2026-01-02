@@ -43,6 +43,7 @@ fun BindCredentialTable(
     onAddCredential: () -> BindCredential,
     onDeleteCredential: (BindCredential) -> Unit,
     onUpdateCredential: (BindCredential) -> Unit,
+    onConnect: (BindCredential) -> Unit,
     modifier: Modifier = Modifier
 ) {
     var editingCredentialId by remember { mutableStateOf<String?>(null) }
@@ -84,7 +85,7 @@ fun BindCredentialTable(
                 color = AppColors.neutral140,
                 modifier = Modifier.weight(0.1f)
             )
-            Spacer(modifier = Modifier.width(40.dp)) // Space for action buttons
+            Spacer(modifier = Modifier.width(64.dp)) // Space for action buttons
         }
 
         // Table rows
@@ -130,7 +131,8 @@ fun BindCredentialTable(
                             },
                             onStopEdit = { editingCredentialId = null },
                             onDelete = { onDeleteCredential(credential) },
-                            onUpdate = onUpdateCredential
+                            onUpdate = onUpdateCredential,
+                            onConnect = { onConnect(credential) }
                         )
                     }
                 }
@@ -172,6 +174,7 @@ private fun BindCredentialRow(
     onStopEdit: () -> Unit,
     onDelete: () -> Unit,
     onUpdate: (BindCredential) -> Unit,
+    onConnect: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     // Darker stripe uses island background, lighter stripe is slightly lighter
@@ -276,17 +279,28 @@ private fun BindCredentialRow(
 
         // Action buttons
         Row(
-            horizontalArrangement = Arrangement.spacedBy(4.dp),
-            modifier = Modifier.width(40.dp),
-            verticalAlignment = Alignment.CenterVertically
+            horizontalArrangement = Arrangement.spacedBy(16.dp),
+            modifier = Modifier.width(64.dp),
+            verticalAlignment = Alignment.CenterVertically,
         ) {
             IconButton(
                 onClick = onDelete,
                 modifier = Modifier.size(16.dp)
             ) {
                 Icon(
-                    key = AllIconsKeys.Actions.Close,
+                    key = AllIconsKeys.General.Delete,
                     contentDescription = "Delete"
+                )
+            }
+
+            IconButton(
+                onClick = onConnect,
+                modifier = Modifier.size(16.dp)
+            ) {
+                Icon(
+                    key = AllIconsKeys.Actions.Execute,
+                    contentDescription = "Connect",
+                    tint = AppColors.success
                 )
             }
         }

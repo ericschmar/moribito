@@ -1,263 +1,2296 @@
+commit 59b52be21dc32e8e810a3fff43118903c7198aa8
+Author: Eric Schmar <ericschmar@gmail.com>
+Date:   Thu Jan 1 10:11:46 2026 -0500
+    multiple bind dns
+diff --git a/gui/src/main/kotlin/com/moribito/gui/ui/screens/ConfigurationScreen.kt b/gui/src/main/kotlin/com/moribito/gui/ui/screens/ConfigurationScreen.kt
+index 9e5ec83..ebc9d76 100644
+--- a/gui/src/main/kotlin/com/moribito/gui/ui/screens/ConfigurationScreen.kt
++++ b/gui/src/main/kotlin/com/moribito/gui/ui/screens/ConfigurationScreen.kt
+@@ -1,13 +1,11 @@
+ package com.moribito.gui.ui.screens
 
-> Task :gui:compileKotlin
-w: file:///Users/mmacbook/develop/moribito/gui/src/main/kotlin/com/moribito/gui/view/LogViewerWindow.kt:256:36 'fun toString(): String' is deprecated. kotlinx.datetime.Instant is superseded by kotlin.time.Instant.
-e: Daemon compilation failed: null
-java.lang.Exception
-        at org.jetbrains.kotlin.daemon.common.CompileService$CallResult$Error.get(CompileService.kt:69)
-        at org.jetbrains.kotlin.daemon.common.CompileService$CallResult$Error.get(CompileService.kt:65)
-        at org.jetbrains.kotlin.compilerRunner.GradleKotlinCompilerWork.compileWithDaemon(GradleKotlinCompilerWork.kt:224)
-        at org.jetbrains.kotlin.compilerRunner.GradleKotlinCompilerWork.compileWithDaemonOrFallbackImpl(GradleKotlinCompilerWork.kt:143)
-        at org.jetbrains.kotlin.compilerRunner.GradleKotlinCompilerWork.run(GradleKotlinCompilerWork.kt:107)
-        at org.jetbrains.kotlin.compilerRunner.GradleCompilerRunnerWithWorkers$GradleKotlinCompilerWorkAction.execute(GradleCompilerRunnerWithWorkers.kt:75)
-        at org.gradle.workers.internal.DefaultWorkerServer.execute(DefaultWorkerServer.java:68)
-        at org.gradle.workers.internal.NoIsolationWorkerFactory$1$1.create(NoIsolationWorkerFactory.java:66)
-        at org.gradle.workers.internal.NoIsolationWorkerFactory$1$1.create(NoIsolationWorkerFactory.java:62)
-        at org.gradle.internal.classloader.ClassLoaderUtils.executeInClassloader(ClassLoaderUtils.java:100)
-        at org.gradle.workers.internal.NoIsolationWorkerFactory$1.lambda$execute$0(NoIsolationWorkerFactory.java:62)
-        at org.gradle.workers.internal.AbstractWorker$1.call(AbstractWorker.java:44)
-        at org.gradle.workers.internal.AbstractWorker$1.call(AbstractWorker.java:41)
-        at org.gradle.internal.operations.DefaultBuildOperationRunner$CallableBuildOperationWorker.execute(DefaultBuildOperationRunner.java:209)
-        at org.gradle.internal.operations.DefaultBuildOperationRunner$CallableBuildOperationWorker.execute(DefaultBuildOperationRunner.java:204)
-        at org.gradle.internal.operations.DefaultBuildOperationRunner$2.execute(DefaultBuildOperationRunner.java:66)
-        at org.gradle.internal.operations.DefaultBuildOperationRunner$2.execute(DefaultBuildOperationRunner.java:59)
-        at org.gradle.internal.operations.DefaultBuildOperationRunner.execute(DefaultBuildOperationRunner.java:166)
-        at org.gradle.internal.operations.DefaultBuildOperationRunner.execute(DefaultBuildOperationRunner.java:59)
-        at org.gradle.internal.operations.DefaultBuildOperationRunner.call(DefaultBuildOperationRunner.java:53)
-        at org.gradle.workers.internal.AbstractWorker.executeWrappedInBuildOperation(AbstractWorker.java:41)
-        at org.gradle.workers.internal.NoIsolationWorkerFactory$1.execute(NoIsolationWorkerFactory.java:59)
-        at org.gradle.workers.internal.DefaultWorkerExecutor.lambda$submitWork$0(DefaultWorkerExecutor.java:176)
-        at java.base/java.util.concurrent.FutureTask.run(FutureTask.java:317)
-        at org.gradle.internal.work.DefaultConditionalExecutionQueue$ExecutionRunner.runExecution(DefaultConditionalExecutionQueue.java:194)
-        at org.gradle.internal.work.DefaultConditionalExecutionQueue$ExecutionRunner.access$700(DefaultConditionalExecutionQueue.java:127)
-        at org.gradle.internal.work.DefaultConditionalExecutionQueue$ExecutionRunner$1.run(DefaultConditionalExecutionQueue.java:169)
-        at org.gradle.internal.Factories$1.create(Factories.java:31)
-        at org.gradle.internal.work.DefaultWorkerLeaseService.withLocks(DefaultWorkerLeaseService.java:263)
-        at org.gradle.internal.work.DefaultWorkerLeaseService.runAsWorkerThread(DefaultWorkerLeaseService.java:127)
-        at org.gradle.internal.work.DefaultWorkerLeaseService.runAsWorkerThread(DefaultWorkerLeaseService.java:132)
-        at org.gradle.internal.work.DefaultConditionalExecutionQueue$ExecutionRunner.runBatch(DefaultConditionalExecutionQueue.java:164)
-        at org.gradle.internal.work.DefaultConditionalExecutionQueue$ExecutionRunner.run(DefaultConditionalExecutionQueue.java:133)
-        at java.base/java.util.concurrent.Executors$RunnableAdapter.call(Executors.java:572)
-        at java.base/java.util.concurrent.FutureTask.run(FutureTask.java:317)
-        at org.gradle.internal.concurrent.ExecutorPolicy$CatchAndRecordFailures.onExecute(ExecutorPolicy.java:64)
-        at org.gradle.internal.concurrent.AbstractManagedExecutor$1.run(AbstractManagedExecutor.java:47)
-        at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1144)
-        at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:642)
-        at java.base/java.lang.Thread.run(Thread.java:1575)
-Caused by: java.lang.AssertionError: java.lang.Exception: Could not close incremental caches in /Users/mmacbook/develop/moribito/gui/build/kotlin/compileKotlin/cacheable/caches-jvm/jvm/kotlin: proto.tab
-        at org.jetbrains.kotlin.com.google.common.io.Closer.close(Closer.java:218)
-        at org.jetbrains.kotlin.incremental.IncrementalCachesManager.close(IncrementalCachesManager.kt:57)
-        at kotlin.io.CloseableKt.closeFinally(Closeable.kt:47)
-        at org.jetbrains.kotlin.incremental.IncrementalCompilerRunner.compileNonIncrementally(IncrementalCompilerRunner.kt:293)
-        at org.jetbrains.kotlin.incremental.IncrementalCompilerRunner.compile(IncrementalCompilerRunner.kt:128)
-        at org.jetbrains.kotlin.daemon.CompileServiceImplBase.execIncrementalCompiler(CompileServiceImpl.kt:684)
-        at org.jetbrains.kotlin.daemon.CompileServiceImplBase.access$execIncrementalCompiler(CompileServiceImpl.kt:94)
-        at org.jetbrains.kotlin.daemon.CompileServiceImpl.compile(CompileServiceImpl.kt:1810)
-        at java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:103)
-        at java.base/java.lang.reflect.Method.invoke(Method.java:580)
-        at java.rmi/sun.rmi.server.UnicastServerRef.dispatch(UnicastServerRef.java:360)
-        at java.rmi/sun.rmi.transport.Transport$1.run(Transport.java:200)
-        at java.rmi/sun.rmi.transport.Transport$1.run(Transport.java:197)
-        at java.base/java.security.AccessController.doPrivileged(AccessController.java:714)
-        at java.rmi/sun.rmi.transport.Transport.serviceCall(Transport.java:196)
-        at java.rmi/sun.rmi.transport.tcp.TCPTransport.handleMessages(TCPTransport.java:598)
-        at java.rmi/sun.rmi.transport.tcp.TCPTransport$ConnectionHandler.run0(TCPTransport.java:844)
-        at java.rmi/sun.rmi.transport.tcp.TCPTransport$ConnectionHandler.lambda$run$0(TCPTransport.java:721)
-        at java.base/java.security.AccessController.doPrivileged(AccessController.java:400)
-        at java.rmi/sun.rmi.transport.tcp.TCPTransport$ConnectionHandler.run(TCPTransport.java:720)
-        ... 3 more
-Caused by: java.lang.Exception: Could not close incremental caches in /Users/mmacbook/develop/moribito/gui/build/kotlin/compileKotlin/cacheable/caches-jvm/jvm/kotlin: proto.tab
-        at org.jetbrains.kotlin.incremental.storage.BasicMapsOwner.forEachMapSafe(BasicMapsOwner.kt:95)
-        at org.jetbrains.kotlin.incremental.storage.BasicMapsOwner.close(BasicMapsOwner.kt:53)
-        at org.jetbrains.kotlin.com.google.common.io.Closer.close(Closer.java:205)
-        ... 22 more
-        Suppressed: java.lang.IllegalStateException: Storage for [/Users/mmacbook/develop/moribito/gui/build/kotlin/compileKotlin/cacheable/caches-jvm/jvm/kotlin/proto.tab] is already registered
-                at org.jetbrains.kotlin.com.intellij.util.io.FilePageCache.registerPagedFileStorage(FilePageCache.java:410)
-                at org.jetbrains.kotlin.com.intellij.util.io.PagedFileStorage.<init>(PagedFileStorage.java:72)
-                at org.jetbrains.kotlin.com.intellij.util.io.ResizeableMappedFile.<init>(ResizeableMappedFile.java:68)
-                at org.jetbrains.kotlin.com.intellij.util.io.PersistentBTreeEnumerator.<init>(PersistentBTreeEnumerator.java:128)
-                at org.jetbrains.kotlin.com.intellij.util.io.PersistentEnumerator.createDefaultEnumerator(PersistentEnumerator.java:52)
-                at org.jetbrains.kotlin.com.intellij.util.io.PersistentMapImpl.<init>(PersistentMapImpl.java:165)
-                at org.jetbrains.kotlin.com.intellij.util.io.PersistentMapImpl.<init>(PersistentMapImpl.java:140)
-                at org.jetbrains.kotlin.com.intellij.util.io.PersistentMapBuilder.buildImplementation(PersistentMapBuilder.java:88)
-                at org.jetbrains.kotlin.com.intellij.util.io.PersistentMapBuilder.build(PersistentMapBuilder.java:71)
-                at org.jetbrains.kotlin.com.intellij.util.io.PersistentHashMap.<init>(PersistentHashMap.java:46)
-                at org.jetbrains.kotlin.com.intellij.util.io.PersistentHashMap.<init>(PersistentHashMap.java:72)
-                at org.jetbrains.kotlin.incremental.storage.LazyStorage.createMap(LazyStorage.kt:62)
-                at org.jetbrains.kotlin.incremental.storage.LazyStorage.getStorageOrCreateNew(LazyStorage.kt:59)
-                at org.jetbrains.kotlin.incremental.storage.LazyStorage.set(LazyStorage.kt:80)
-                at org.jetbrains.kotlin.incremental.storage.InMemoryStorage.applyChanges(InMemoryStorage.kt:108)
-                at org.jetbrains.kotlin.incremental.storage.InMemoryStorage.close(InMemoryStorage.kt:136)
-                at org.jetbrains.kotlin.incremental.storage.PersistentStorageWrapper.close(PersistentStorage.kt:124)
-                at org.jetbrains.kotlin.incremental.storage.BasicMapsOwner$close$1.invoke(BasicMapsOwner.kt:53)
-                at org.jetbrains.kotlin.incremental.storage.BasicMapsOwner$close$1.invoke(BasicMapsOwner.kt:53)
-                at org.jetbrains.kotlin.incremental.storage.BasicMapsOwner.forEachMapSafe(BasicMapsOwner.kt:87)
-                ... 24 more
-                Suppressed: java.lang.Exception: Storage[/Users/mmacbook/develop/moribito/gui/build/kotlin/compileKotlin/cacheable/caches-jvm/jvm/kotlin/proto.tab] registration stack trace
-                        at org.jetbrains.kotlin.com.intellij.util.io.FilePageCache.registerPagedFileStorage(FilePageCache.java:437)
-                        ... 43 more
-        Suppressed: java.lang.Exception: Could not close incremental caches in /Users/mmacbook/develop/moribito/gui/build/kotlin/compileKotlin/cacheable/caches-jvm/lookups: id-to-file.tab
-                at org.jetbrains.kotlin.incremental.storage.BasicMapsOwner.forEachMapSafe(BasicMapsOwner.kt:95)
-                at org.jetbrains.kotlin.incremental.storage.BasicMapsOwner.close(BasicMapsOwner.kt:53)
-                at org.jetbrains.kotlin.incremental.LookupStorage.close(LookupStorage.kt:155)
-                ... 23 more
-                Suppressed: java.lang.IllegalStateException: Storage for [/Users/mmacbook/develop/moribito/gui/build/kotlin/compileKotlin/cacheable/caches-jvm/lookups/id-to-file.tab] is already registered
-                        at org.jetbrains.kotlin.com.intellij.util.io.FilePageCache.registerPagedFileStorage(FilePageCache.java:410)
-                        at org.jetbrains.kotlin.com.intellij.util.io.PagedFileStorage.<init>(PagedFileStorage.java:72)
-                        at org.jetbrains.kotlin.com.intellij.util.io.ResizeableMappedFile.<init>(ResizeableMappedFile.java:68)
-                        at org.jetbrains.kotlin.com.intellij.util.io.PersistentBTreeEnumerator.<init>(PersistentBTreeEnumerator.java:128)
-                        at org.jetbrains.kotlin.com.intellij.util.io.PersistentEnumerator.createDefaultEnumerator(PersistentEnumerator.java:52)
-                        at org.jetbrains.kotlin.com.intellij.util.io.PersistentMapImpl.<init>(PersistentMapImpl.java:165)
-                        at org.jetbrains.kotlin.com.intellij.util.io.PersistentMapImpl.<init>(PersistentMapImpl.java:140)
-                        at org.jetbrains.kotlin.com.intellij.util.io.PersistentMapBuilder.buildImplementation(PersistentMapBuilder.java:88)
-                        at org.jetbrains.kotlin.com.intellij.util.io.PersistentMapBuilder.build(PersistentMapBuilder.java:71)
-                        at org.jetbrains.kotlin.com.intellij.util.io.PersistentHashMap.<init>(PersistentHashMap.java:46)
-                        at org.jetbrains.kotlin.com.intellij.util.io.PersistentHashMap.<init>(PersistentHashMap.java:72)
-                        at org.jetbrains.kotlin.incremental.storage.LazyStorage.createMap(LazyStorage.kt:62)
-                        at org.jetbrains.kotlin.incremental.storage.LazyStorage.getStorageOrCreateNew(LazyStorage.kt:59)
-                        at org.jetbrains.kotlin.incremental.storage.LazyStorage.set(LazyStorage.kt:80)
-                        at org.jetbrains.kotlin.incremental.storage.InMemoryStorage.applyChanges(InMemoryStorage.kt:108)
-                        at org.jetbrains.kotlin.incremental.storage.InMemoryStorage.close(InMemoryStorage.kt:136)
-                        at org.jetbrains.kotlin.incremental.storage.PersistentStorageWrapper.close(PersistentStorage.kt:124)
-                        at org.jetbrains.kotlin.incremental.storage.BasicMapsOwner$close$1.invoke(BasicMapsOwner.kt:53)
-                        at org.jetbrains.kotlin.incremental.storage.BasicMapsOwner$close$1.invoke(BasicMapsOwner.kt:53)
-                        at org.jetbrains.kotlin.incremental.storage.BasicMapsOwner.forEachMapSafe(BasicMapsOwner.kt:87)
-                        ... 25 more
-                        Suppressed: java.lang.Exception: Storage[/Users/mmacbook/develop/moribito/gui/build/kotlin/compileKotlin/cacheable/caches-jvm/lookups/id-to-file.tab] registration stack trace
-                                at org.jetbrains.kotlin.com.intellij.util.io.FilePageCache.registerPagedFileStorage(FilePageCache.java:437)
-                                ... 44 more
-Failed to compile with Kotlin daemon: java.lang.Exception
-        at org.jetbrains.kotlin.daemon.common.CompileService$CallResult$Error.get(CompileService.kt:69)
-        at org.jetbrains.kotlin.daemon.common.CompileService$CallResult$Error.get(CompileService.kt:65)
-        at org.jetbrains.kotlin.compilerRunner.GradleKotlinCompilerWork.compileWithDaemon(GradleKotlinCompilerWork.kt:224)
-        at org.jetbrains.kotlin.compilerRunner.GradleKotlinCompilerWork.compileWithDaemonOrFallbackImpl(GradleKotlinCompilerWork.kt:143)
-        at org.jetbrains.kotlin.compilerRunner.GradleKotlinCompilerWork.run(GradleKotlinCompilerWork.kt:107)
-        at org.jetbrains.kotlin.compilerRunner.GradleCompilerRunnerWithWorkers$GradleKotlinCompilerWorkAction.execute(GradleCompilerRunnerWithWorkers.kt:75)
-        at org.gradle.workers.internal.DefaultWorkerServer.execute(DefaultWorkerServer.java:68)
-        at org.gradle.workers.internal.NoIsolationWorkerFactory$1$1.create(NoIsolationWorkerFactory.java:66)
-        at org.gradle.workers.internal.NoIsolationWorkerFactory$1$1.create(NoIsolationWorkerFactory.java:62)
-        at org.gradle.internal.classloader.ClassLoaderUtils.executeInClassloader(ClassLoaderUtils.java:100)
-        at org.gradle.workers.internal.NoIsolationWorkerFactory$1.lambda$execute$0(NoIsolationWorkerFactory.java:62)
-        at org.gradle.workers.internal.AbstractWorker$1.call(AbstractWorker.java:44)
-        at org.gradle.workers.internal.AbstractWorker$1.call(AbstractWorker.java:41)
-        at org.gradle.internal.operations.DefaultBuildOperationRunner$CallableBuildOperationWorker.execute(DefaultBuildOperationRunner.java:209)
-        at org.gradle.internal.operations.DefaultBuildOperationRunner$CallableBuildOperationWorker.execute(DefaultBuildOperationRunner.java:204)
-        at org.gradle.internal.operations.DefaultBuildOperationRunner$2.execute(DefaultBuildOperationRunner.java:66)
-        at org.gradle.internal.operations.DefaultBuildOperationRunner$2.execute(DefaultBuildOperationRunner.java:59)
-        at org.gradle.internal.operations.DefaultBuildOperationRunner.execute(DefaultBuildOperationRunner.java:166)
-        at org.gradle.internal.operations.DefaultBuildOperationRunner.execute(DefaultBuildOperationRunner.java:59)
-        at org.gradle.internal.operations.DefaultBuildOperationRunner.call(DefaultBuildOperationRunner.java:53)
-        at org.gradle.workers.internal.AbstractWorker.executeWrappedInBuildOperation(AbstractWorker.java:41)
-        at org.gradle.workers.internal.NoIsolationWorkerFactory$1.execute(NoIsolationWorkerFactory.java:59)
-        at org.gradle.workers.internal.DefaultWorkerExecutor.lambda$submitWork$0(DefaultWorkerExecutor.java:176)
-        at java.base/java.util.concurrent.FutureTask.run(FutureTask.java:317)
-        at org.gradle.internal.work.DefaultConditionalExecutionQueue$ExecutionRunner.runExecution(DefaultConditionalExecutionQueue.java:194)
-        at org.gradle.internal.work.DefaultConditionalExecutionQueue$ExecutionRunner.access$700(DefaultConditionalExecutionQueue.java:127)
-        at org.gradle.internal.work.DefaultConditionalExecutionQueue$ExecutionRunner$1.run(DefaultConditionalExecutionQueue.java:169)
-        at org.gradle.internal.Factories$1.create(Factories.java:31)
-        at org.gradle.internal.work.DefaultWorkerLeaseService.withLocks(DefaultWorkerLeaseService.java:263)
-        at org.gradle.internal.work.DefaultWorkerLeaseService.runAsWorkerThread(DefaultWorkerLeaseService.java:127)
-        at org.gradle.internal.work.DefaultWorkerLeaseService.runAsWorkerThread(DefaultWorkerLeaseService.java:132)
-        at org.gradle.internal.work.DefaultConditionalExecutionQueue$ExecutionRunner.runBatch(DefaultConditionalExecutionQueue.java:164)
-        at org.gradle.internal.work.DefaultConditionalExecutionQueue$ExecutionRunner.run(DefaultConditionalExecutionQueue.java:133)
-        at java.base/java.util.concurrent.Executors$RunnableAdapter.call(Executors.java:572)
-        at java.base/java.util.concurrent.FutureTask.run(FutureTask.java:317)
-        at org.gradle.internal.concurrent.ExecutorPolicy$CatchAndRecordFailures.onExecute(ExecutorPolicy.java:64)
-        at org.gradle.internal.concurrent.AbstractManagedExecutor$1.run(AbstractManagedExecutor.java:47)
-        at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1144)
-        at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:642)
-        at java.base/java.lang.Thread.run(Thread.java:1575)
-Caused by: java.lang.AssertionError: java.lang.Exception: Could not close incremental caches in /Users/mmacbook/develop/moribito/gui/build/kotlin/compileKotlin/cacheable/caches-jvm/jvm/kotlin: proto.tab
-        at org.jetbrains.kotlin.com.google.common.io.Closer.close(Closer.java:218)
-        at org.jetbrains.kotlin.incremental.IncrementalCachesManager.close(IncrementalCachesManager.kt:57)
-        at kotlin.io.CloseableKt.closeFinally(Closeable.kt:47)
-        at org.jetbrains.kotlin.incremental.IncrementalCompilerRunner.compileNonIncrementally(IncrementalCompilerRunner.kt:293)
-        at org.jetbrains.kotlin.incremental.IncrementalCompilerRunner.compile(IncrementalCompilerRunner.kt:128)
-        at org.jetbrains.kotlin.daemon.CompileServiceImplBase.execIncrementalCompiler(CompileServiceImpl.kt:684)
-        at org.jetbrains.kotlin.daemon.CompileServiceImplBase.access$execIncrementalCompiler(CompileServiceImpl.kt:94)
-        at org.jetbrains.kotlin.daemon.CompileServiceImpl.compile(CompileServiceImpl.kt:1810)
-        at java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:103)
-        at java.base/java.lang.reflect.Method.invoke(Method.java:580)
-        at java.rmi/sun.rmi.server.UnicastServerRef.dispatch(UnicastServerRef.java:360)
-        at java.rmi/sun.rmi.transport.Transport$1.run(Transport.java:200)
-        at java.rmi/sun.rmi.transport.Transport$1.run(Transport.java:197)
-        at java.base/java.security.AccessController.doPrivileged(AccessController.java:714)
-        at java.rmi/sun.rmi.transport.Transport.serviceCall(Transport.java:196)
-        at java.rmi/sun.rmi.transport.tcp.TCPTransport.handleMessages(TCPTransport.java:598)
-        at java.rmi/sun.rmi.transport.tcp.TCPTransport$ConnectionHandler.run0(TCPTransport.java:844)
-        at java.rmi/sun.rmi.transport.tcp.TCPTransport$ConnectionHandler.lambda$run$0(TCPTransport.java:721)
-        at java.base/java.security.AccessController.doPrivileged(AccessController.java:400)
-        at java.rmi/sun.rmi.transport.tcp.TCPTransport$ConnectionHandler.run(TCPTransport.java:720)
-        ... 3 more
-Caused by: java.lang.Exception: Could not close incremental caches in /Users/mmacbook/develop/moribito/gui/build/kotlin/compileKotlin/cacheable/caches-jvm/jvm/kotlin: proto.tab
-        at org.jetbrains.kotlin.incremental.storage.BasicMapsOwner.forEachMapSafe(BasicMapsOwner.kt:95)
-        at org.jetbrains.kotlin.incremental.storage.BasicMapsOwner.close(BasicMapsOwner.kt:53)
-        at org.jetbrains.kotlin.com.google.common.io.Closer.close(Closer.java:205)
-        ... 22 more
-        Suppressed: java.lang.IllegalStateException: Storage for [/Users/mmacbook/develop/moribito/gui/build/kotlin/compileKotlin/cacheable/caches-jvm/jvm/kotlin/proto.tab] is already registered
-                at org.jetbrains.kotlin.com.intellij.util.io.FilePageCache.registerPagedFileStorage(FilePageCache.java:410)
-                at org.jetbrains.kotlin.com.intellij.util.io.PagedFileStorage.<init>(PagedFileStorage.java:72)
-                at org.jetbrains.kotlin.com.intellij.util.io.ResizeableMappedFile.<init>(ResizeableMappedFile.java:68)
-                at org.jetbrains.kotlin.com.intellij.util.io.PersistentBTreeEnumerator.<init>(PersistentBTreeEnumerator.java:128)
-                at org.jetbrains.kotlin.com.intellij.util.io.PersistentEnumerator.createDefaultEnumerator(PersistentEnumerator.java:52)
-                at org.jetbrains.kotlin.com.intellij.util.io.PersistentMapImpl.<init>(PersistentMapImpl.java:165)
-                at org.jetbrains.kotlin.com.intellij.util.io.PersistentMapImpl.<init>(PersistentMapImpl.java:140)
-                at org.jetbrains.kotlin.com.intellij.util.io.PersistentMapBuilder.buildImplementation(PersistentMapBuilder.java:88)
-                at org.jetbrains.kotlin.com.intellij.util.io.PersistentMapBuilder.build(PersistentMapBuilder.java:71)
-                at org.jetbrains.kotlin.com.intellij.util.io.PersistentHashMap.<init>(PersistentHashMap.java:46)
-                at org.jetbrains.kotlin.com.intellij.util.io.PersistentHashMap.<init>(PersistentHashMap.java:72)
-                at org.jetbrains.kotlin.incremental.storage.LazyStorage.createMap(LazyStorage.kt:62)
-                at org.jetbrains.kotlin.incremental.storage.LazyStorage.getStorageOrCreateNew(LazyStorage.kt:59)
-                at org.jetbrains.kotlin.incremental.storage.LazyStorage.set(LazyStorage.kt:80)
-                at org.jetbrains.kotlin.incremental.storage.InMemoryStorage.applyChanges(InMemoryStorage.kt:108)
-                at org.jetbrains.kotlin.incremental.storage.InMemoryStorage.close(InMemoryStorage.kt:136)
-                at org.jetbrains.kotlin.incremental.storage.PersistentStorageWrapper.close(PersistentStorage.kt:124)
-                at org.jetbrains.kotlin.incremental.storage.BasicMapsOwner$close$1.invoke(BasicMapsOwner.kt:53)
-                at org.jetbrains.kotlin.incremental.storage.BasicMapsOwner$close$1.invoke(BasicMapsOwner.kt:53)
-                at org.jetbrains.kotlin.incremental.storage.BasicMapsOwner.forEachMapSafe(BasicMapsOwner.kt:87)
-                ... 24 more
-                Suppressed: java.lang.Exception: Storage[/Users/mmacbook/develop/moribito/gui/build/kotlin/compileKotlin/cacheable/caches-jvm/jvm/kotlin/proto.tab] registration stack trace
-                        at org.jetbrains.kotlin.com.intellij.util.io.FilePageCache.registerPagedFileStorage(FilePageCache.java:437)
-                        ... 43 more
-        Suppressed: java.lang.Exception: Could not close incremental caches in /Users/mmacbook/develop/moribito/gui/build/kotlin/compileKotlin/cacheable/caches-jvm/lookups: id-to-file.tab
-                at org.jetbrains.kotlin.incremental.storage.BasicMapsOwner.forEachMapSafe(BasicMapsOwner.kt:95)
-                at org.jetbrains.kotlin.incremental.storage.BasicMapsOwner.close(BasicMapsOwner.kt:53)
-                at org.jetbrains.kotlin.incremental.LookupStorage.close(LookupStorage.kt:155)
-                ... 23 more
-                Suppressed: java.lang.IllegalStateException: Storage for [/Users/mmacbook/develop/moribito/gui/build/kotlin/compileKotlin/cacheable/caches-jvm/lookups/id-to-file.tab] is already registered
-                        at org.jetbrains.kotlin.com.intellij.util.io.FilePageCache.registerPagedFileStorage(FilePageCache.java:410)
-                        at org.jetbrains.kotlin.com.intellij.util.io.PagedFileStorage.<init>(PagedFileStorage.java:72)
-                        at org.jetbrains.kotlin.com.intellij.util.io.ResizeableMappedFile.<init>(ResizeableMappedFile.java:68)
-                        at org.jetbrains.kotlin.com.intellij.util.io.PersistentBTreeEnumerator.<init>(PersistentBTreeEnumerator.java:128)
-                        at org.jetbrains.kotlin.com.intellij.util.io.PersistentEnumerator.createDefaultEnumerator(PersistentEnumerator.java:52)
-                        at org.jetbrains.kotlin.com.intellij.util.io.PersistentMapImpl.<init>(PersistentMapImpl.java:165)
-                        at org.jetbrains.kotlin.com.intellij.util.io.PersistentMapImpl.<init>(PersistentMapImpl.java:140)
-                        at org.jetbrains.kotlin.com.intellij.util.io.PersistentMapBuilder.buildImplementation(PersistentMapBuilder.java:88)
-                        at org.jetbrains.kotlin.com.intellij.util.io.PersistentMapBuilder.build(PersistentMapBuilder.java:71)
-                        at org.jetbrains.kotlin.com.intellij.util.io.PersistentHashMap.<init>(PersistentHashMap.java:46)
-                        at org.jetbrains.kotlin.com.intellij.util.io.PersistentHashMap.<init>(PersistentHashMap.java:72)
-                        at org.jetbrains.kotlin.incremental.storage.LazyStorage.createMap(LazyStorage.kt:62)
-                        at org.jetbrains.kotlin.incremental.storage.LazyStorage.getStorageOrCreateNew(LazyStorage.kt:59)
-                        at org.jetbrains.kotlin.incremental.storage.LazyStorage.set(LazyStorage.kt:80)
-                        at org.jetbrains.kotlin.incremental.storage.InMemoryStorage.applyChanges(InMemoryStorage.kt:108)
-                        at org.jetbrains.kotlin.incremental.storage.InMemoryStorage.close(InMemoryStorage.kt:136)
-                        at org.jetbrains.kotlin.incremental.storage.PersistentStorageWrapper.close(PersistentStorage.kt:124)
-                        at org.jetbrains.kotlin.incremental.storage.BasicMapsOwner$close$1.invoke(BasicMapsOwner.kt:53)
-                        at org.jetbrains.kotlin.incremental.storage.BasicMapsOwner$close$1.invoke(BasicMapsOwner.kt:53)
-                        at org.jetbrains.kotlin.incremental.storage.BasicMapsOwner.forEachMapSafe(BasicMapsOwner.kt:87)
-                        ... 25 more
-                        Suppressed: java.lang.Exception: Storage[/Users/mmacbook/develop/moribito/gui/build/kotlin/compileKotlin/cacheable/caches-jvm/lookups/id-to-file.tab] registration stack trace
-                                at org.jetbrains.kotlin.com.intellij.util.io.FilePageCache.registerPagedFileStorage(FilePageCache.java:437)
-                                ... 44 more
-Using fallback strategy: Compile without Kotlin daemon
-Try ./gradlew --stop if this issue persists
-If it does not look related to your configuration, please file an issue with logs to https://kotl.in/issue
-exception: gui/src/main/kotlin/com/moribito/gui/view/LogViewerWindow.kt:256:36: warning: 'fun toString(): String' is deprecated. kotlinx.datetime.Instant is superseded by kotlin.time.Instant.
-exception:             text = entry.timestamp.toString().substring(0, 23),
-exception:                                    ^^^^^^^^
-[Incubating] Problems report is available at: file:///Users/mmacbook/develop/moribito/build/reports/problems/problems-report.html
-Deprecated Gradle features were used in this build, making it incompatible with Gradle 10.
-You can use '--warning-mode all' to show the individual deprecation warnings and determine if they come from your own scripts or plugins.
-For more on this, please refer to https://docs.gradle.org/9.1.0/userguide/command_line_interface.html#sec:command_line_warnings in the Gradle documentation.
-BUILD SUCCESSFUL in 25s
-7 actionable tasks: 3 executed, 4 up-to-date
-Consider enabling configuration cache to speed up this build: https://docs.gradle.org/9.1.0/userguide/configuration_cache_enabling.html
+-import RootConfig
+ import androidx.compose.foundation.background
+ import androidx.compose.foundation.clickable
+ import androidx.compose.foundation.hoverable
+ import androidx.compose.foundation.interaction.MutableInteractionSource
+ import androidx.compose.foundation.interaction.collectIsHoveredAsState
+ import androidx.compose.foundation.layout.*
+-import androidx.compose.material3.Icon
+ import androidx.compose.runtime.*
+ import androidx.compose.ui.Alignment
+ import androidx.compose.ui.Modifier
+@@ -17,37 +15,35 @@ import androidx.compose.ui.input.pointer.PointerIcon
+ import androidx.compose.ui.input.pointer.pointerHoverIcon
+ import androidx.compose.ui.text.input.PasswordVisualTransformation
+ import androidx.compose.ui.text.input.VisualTransformation
++import androidx.compose.ui.text.style.TextOverflow
+ import androidx.compose.ui.unit.dp
+ import com.moribito.config.ConfigurationService
++import com.moribito.config.RootConfig
+ import com.moribito.gui.theme.*
+ import com.moribito.gui.ui.components.ActionBar
+-import com.moribito.gui.ui.components.TextField as AppTextField
++import com.moribito.gui.ui.components.BindCredentialTable
++import com.moribito.gui.ui.components.ConfigTreeNode
+ import com.moribito.gui.viewmodel.ConnectionState
+ import com.moribito.gui.viewmodel.MainViewModel
+ import compose.icons.Octicons
+-import org.jetbrains.jewel.foundation.theme.JewelTheme
+-import org.jetbrains.jewel.ui.component.CircularProgressIndicator
+-import org.jetbrains.jewel.ui.component.Text
+-import compose.icons.octicons.CheckCircle16
+-import compose.icons.octicons.Dash16
+-import compose.icons.octicons.Eye16
+-import compose.icons.octicons.EyeClosed16
+-import compose.icons.octicons.Gear16
+-import compose.icons.octicons.Lock16
+-import compose.icons.octicons.Mention16
+-import compose.icons.octicons.Person16
+-import compose.icons.octicons.Plus16
+-import compose.icons.octicons.Server16
+-import compose.icons.octicons.Workflow16
++import compose.icons.octicons.*
+ import org.jetbrains.compose.splitpane.ExperimentalSplitPaneApi
+ import org.jetbrains.compose.splitpane.HorizontalSplitPane
+ import org.jetbrains.compose.splitpane.rememberSplitPaneState
+-import org.jetbrains.jewel.ui.component.Checkbox
+-import org.jetbrains.jewel.ui.component.DefaultButton
+-import org.jetbrains.jewel.ui.component.OutlinedButton
+-import org.jetbrains.jewel.ui.component.VerticallyScrollableContainer
+-import org.jetbrains.jewel.ui.component.styling.CheckboxColors
++import org.jetbrains.jewel.foundation.ExperimentalJewelApi
++import androidx.compose.foundation.shape.RoundedCornerShape
++import androidx.compose.ui.draw.drawBehind
++import androidx.compose.ui.geometry.CornerRadius
++import androidx.compose.ui.geometry.Offset
++import androidx.compose.ui.graphics.drawscope.Stroke
++import androidx.compose.ui.ExperimentalComposeUiApi
++import androidx.compose.ui.input.pointer.PointerEventType
++import androidx.compose.ui.input.pointer.onPointerEvent
++import org.jetbrains.jewel.foundation.theme.JewelTheme
++import org.jetbrains.jewel.ui.component.*
++import org.jetbrains.jewel.ui.icons.AllIconsKeys
+ import org.koin.compose.koinInject
++import com.moribito.gui.ui.components.TextField as AppTextField
+
+ @Composable
+ private fun IconButton(
+@@ -78,7 +74,7 @@ private fun IconButton(
+     }
+ }
+
+-@OptIn(ExperimentalLayoutApi::class, ExperimentalSplitPaneApi::class)
++@OptIn(ExperimentalLayoutApi::class, ExperimentalSplitPaneApi::class, ExperimentalComposeUiApi::class)
+ @Composable
+ fun ConfigurationScreen(
+     viewModel: MainViewModel,
+@@ -86,6 +82,8 @@ fun ConfigurationScreen(
+     connectionState: ConnectionState,
+     configService: ConfigurationService = koinInject()
+ ) {
++    val appState by viewModel.state.collectAsState()
++
+     // Get the current connection
+     val currentConn = viewModel.getCurrentConnection()
+
+@@ -95,25 +93,47 @@ fun ConfigurationScreen(
+     var baseDN by remember { mutableStateOf(currentConn.baseDN) }
+     var useSSL by remember { mutableStateOf(currentConn.useSsl) }
+     var useTLS by remember { mutableStateOf(currentConn.useTls) }
+-    var bindUser by remember { mutableStateOf(currentConn.bindUser) }
+-    var bindPass by remember { mutableStateOf(currentConn.bindPass) }
++
++    // Bind DN specific states
++    var bindLabel by remember { mutableStateOf("") }
++    var bindUser by remember { mutableStateOf("") }
++    var bindPass by remember { mutableStateOf("") }
++    var isBindDefault by remember { mutableStateOf(false) }
++
+     var showPassword by remember { mutableStateOf(false) }
+
+     val state = rememberSplitPaneState(0.3f)
+     var configs by remember { mutableStateOf(configService.load().connections) }
+     var selectedConnectionName by remember { mutableStateOf(currentConn.name) }
++    var selectedNode by remember { mutableStateOf<ConfigTreeNode?>(ConfigTreeNode.ConnectionNode(currentConn)) }
+
+     // Update form fields when selection changes
+-    LaunchedEffect(selectedConnectionName) {
+-        configs.find { it.name == selectedConnectionName }?.let { conn ->
+-            name = conn.name
+-            host = conn.host
+-            port = conn.port.toString()
+-            baseDN = conn.baseDN
+-            useSSL = conn.useSsl
+-            useTLS = conn.useTls
+-            bindUser = conn.bindUser
+-            bindPass = conn.bindPass
++    LaunchedEffect(selectedNode) {
++        when (val node = selectedNode) {
++            is ConfigTreeNode.ConnectionNode -> {
++                val conn = node.config
++                selectedConnectionName = conn.name
++                name = conn.name
++                host = conn.host
++                port = conn.port.toString()
++                baseDN = conn.baseDN
++                useSSL = conn.useSsl
++                useTLS = conn.useTls
++            }
++
++            is ConfigTreeNode.BindDnNode -> {
++                val conn = node.parentConfig
++                val cred = node.credential
++                selectedConnectionName = conn.name
++                // Also update connection fields in case we want to see them?
++                // Usually we just show the bind DN fields
++                bindLabel = cred.label
++                bindUser = cred.bindUser
++                bindPass = cred.bindPass
++                isBindDefault = cred.isDefault
++            }
++
++            null -> {}
+         }
+     }
+
+@@ -144,7 +164,7 @@ fun ConfigurationScreen(
+
+     HorizontalSplitPane(
+         splitPaneState = state,
+-        modifier = Modifier.fillMaxSize().background(IntelliJColors.islandBackground)
++        modifier = Modifier.fillMaxSize().background(IntelliJColors.baseBackground)
+     ) {
+         splitter {
+             visiblePart {
+@@ -164,48 +184,83 @@ fun ConfigurationScreen(
+         }
+         first(minSize = 200.dp) {
+             Column(
+-                Modifier.fillMaxSize().background(IntelliJColors.islandBackground)
++                Modifier.fillMaxSize().background(IntelliJColors.baseBackground)
+                     .absolutePadding(top = AppSpacing.xs, bottom = AppSpacing.xs),
+                 verticalArrangement = Arrangement.SpaceBetween
+             ) {
+-                VerticallyScrollableContainer(modifier = Modifier.weight(1f)) {
+-                    Column(modifier = Modifier.fillMaxWidth()) {
+-                        configs.forEach {
+-                            Box(
+-                                modifier = Modifier.fillMaxWidth()
++                VerticallyScrollableContainer(modifier = Modifier.weight(1f).fillMaxWidth()) {
++                    Column(
++                        modifier = Modifier.fillMaxWidth().padding(AppSpacing.xs),
++                        verticalArrangement = Arrangement.spacedBy(AppSpacing.xxs)
++                    ) {
++                        configs.forEach { config ->
++                            var isHovered by remember { mutableStateOf(false) }
++                            val isSelected = selectedNode is ConfigTreeNode.ConnectionNode &&
++                                    (selectedNode as? ConfigTreeNode.ConnectionNode)?.config?.name == config.name
++
++                            // Match TreeNodeItem styling
++                            val backgroundColor = when {
++                                isSelected && isHovered -> Color(0xFF4A90E2).copy(alpha = 0.4f)
++                                isSelected -> Color(0xFF4A90E2).copy(alpha = 0.3f)
++                                isHovered -> Color(0xFF4A90E2).copy(alpha = 0.15f)
++                                else -> Color.Transparent
++                            }
++
++                            val borderColor = if (isSelected) {
++                                Color(0xFF2E5F8E)
++                            } else {
++                                Color.Transparent
++                            }
++
++                            val textColor = if (isSelected) {
++                                JewelTheme.contentColor
++                            } else {
++                                JewelTheme.contentColor.copy(alpha = 0.6f)
++                            }
++
++                            Row(
++                                modifier = Modifier
++                                    .fillMaxWidth()
+                                     .height(26.dp)
+-                                    .clickable(
+-                                        enabled = true,
+-                                        onClick = {
+-                                            selectedConnectionName = it.name
+-                                        },
+-                                    ),
+-                                contentAlignment = Alignment.CenterStart,
+-                            ) {
+-                                Row(
+-                                    modifier = Modifier.fillMaxSize()
+-                                        .absolutePadding(right = 4.dp),
+-                                    verticalAlignment = Alignment.CenterVertically
+-                                ) {
+-                                    if (selectedConnectionName == it.name) {
+-                                        Box(
+-                                            Modifier.width(4.dp).fillMaxHeight().background(IntelliJColors.warning),
+-                                        )
++                                    .drawBehind {
++                                        if (isSelected) {
++                                            drawRoundRect(
++                                                color = borderColor,
++                                                topLeft = Offset.Zero,
++                                                size = size,
++                                                cornerRadius = CornerRadius(6.dp.toPx()),
++                                                style = Stroke(width = 1.dp.toPx())
++                                            )
++                                        }
+                                     }
+-                                    Row(
+-                                        modifier = Modifier.fillMaxWidth()
+-                                            .absolutePadding(left = if (selectedConnectionName != it.name) 8.dp else 4.dp),
+-                                        horizontalArrangement = Arrangement.SpaceBetween,
+-                                        verticalAlignment = Alignment.CenterVertically
+-                                    ) {
+-                                        Text(text = it.name, fontSize = AppTypography.labelLarge.fontSize)
+-                                        Text(
+-                                            text = "${it.host}:${it.port}",
+-                                            fontSize = AppMonospace.small.fontSize,
+-                                            fontFamily = AppMonospace.small.fontFamily
+-                                        )
++                                    .background(backgroundColor, RoundedCornerShape(6.dp))
++                                    .onPointerEvent(PointerEventType.Enter) { isHovered = true }
++                                    .onPointerEvent(PointerEventType.Exit) { isHovered = false }
++                                    .clickable {
++                                        selectedConnectionName = config.name
++                                        selectedNode = ConfigTreeNode.ConnectionNode(config)
+                                     }
+-                                }
++                                    .padding(horizontal = AppSpacing.xs, vertical = AppSpacing.xxs),
++                                verticalAlignment = Alignment.CenterVertically,
++                                horizontalArrangement = Arrangement.SpaceBetween
++                            ) {
++                                Text(
++                                    text = config.name,
++                                    fontSize = AppTypography.labelLarge.fontSize,
++                                    maxLines = 1,
++                                    overflow = TextOverflow.Ellipsis,
++                                    color = textColor,
++                                    modifier = Modifier.weight(1f, fill = false)
++                                )
++                                Spacer(Modifier.width(AppSpacing.xs))
++                                Text(
++                                    text = "${config.host}:${config.port}",
++                                    fontSize = AppMonospace.small.fontSize,
++                                    fontFamily = AppMonospace.small.fontFamily,
++                                    maxLines = 1,
++                                    overflow = TextOverflow.Ellipsis,
++                                    color = textColor
++                                )
+                             }
+                         }
+                     }
+@@ -243,239 +298,247 @@ fun ConfigurationScreen(
+             }
+         }
+         second(minSize = 400.dp) {
++            val currentSelectedConnection = configs.find { it.name == selectedConnectionName }
++
+             Column(
+                 modifier = Modifier
+                     .fillMaxSize()
+                     .padding(AppSpacing.lg)
+-                    .background(IntelliJColors.islandBackground),
+-                verticalArrangement = Arrangement.spacedBy(AppSpacing.lg)
++                    .background(IntelliJColors.baseBackground)
+             ) {
+                 // Section Title
+                 Text(
+-                    text = "LDAP Configuration",
+-                    style = AppTypography.titleMedium
++                    text = if (selectedNode is ConfigTreeNode.BindDnNode) "Bind DN Configuration" else "LDAP Configuration",
++                    style = AppTypography.titleMedium,
++                    modifier = Modifier.padding(bottom = AppSpacing.lg)
+                 )
+
+-                // Configuration Form Card
+-                Column(
+-                    modifier = Modifier
+-                        .fillMaxWidth(),
+-                    verticalArrangement = Arrangement.spacedBy(AppSpacing.lg)
+-                ) {
+-                    // Name Field (Optional)
+-                    AppTextField(
+-                        value = name,
+-                        onValueChange = { name = it },
+-                        label = "Connection Name (Optional)",
+-                        placeholder = "My LDAP Server",
+-                        leadingIcon = {
+-                            Icon(
+-                                imageVector = Octicons.Mention16,
+-                                contentDescription = "Name",
+-                                modifier = Modifier.size(12.dp),
+-                                tint = JewelTheme.contentColor
++                if (selectedNode is ConfigTreeNode.BindDnNode) {
++                    // Bind DN Form (scrollable)
++                    VerticallyScrollableContainer(
++                        modifier = Modifier.weight(1f).fillMaxWidth()
++                    ) {
++                        Column(
++                            modifier = Modifier.fillMaxWidth(),
++                            verticalArrangement = Arrangement.spacedBy(AppSpacing.lg)
++                        ) {
++                            AppTextField(
++                                value = bindLabel,
++                                onValueChange = { bindLabel = it },
++                                label = "Credential Label",
++                                placeholder = "Default",
++                                modifier = Modifier.fillMaxWidth(),
++                                singleLine = true
+                             )
+-                        },
+-                        modifier = Modifier.fillMaxWidth(),
+-                        singleLine = true
+-                    )
+-
+-                    // Host Field
+-                    AppTextField(
+-                        value = host,
+-                        onValueChange = {
+-                            host = it
+-                        },
+-                        label = "Server Host",
+-                        placeholder = "ldap.example.com",
+-                        leadingIcon = {
+-                            Icon(
+-                                imageVector = Octicons.Server16,
+-                                contentDescription = "Host",
+-                                modifier = Modifier.size(12.dp),
+-                                tint = JewelTheme.contentColor
++
++                            AppTextField(
++                                value = bindUser,
++                                onValueChange = { bindUser = it },
++                                label = "Bind User",
++                                placeholder = "cn=admin,dc=example,dc=com",
++                                leadingIcon = {
++                                    Icon(
++                                        imageVector = Octicons.Person16,
++                                        contentDescription = "User",
++                                        modifier = Modifier.size(12.dp),
++                                        tint = JewelTheme.contentColor
++                                    )
++                                },
++                                modifier = Modifier.fillMaxWidth(),
++                                singleLine = true
+                             )
+-                        },
+-                        trailingIcon = {
+-                            if (isHostValid && host.isNotEmpty()) {
+-                                Icon(
+-                                    imageVector = Octicons.CheckCircle16,
+-                                    contentDescription = "Valid",
+-                                    tint = IntelliJColors.success,
+-                                    modifier = Modifier.size(14.dp)
+-                                )
+-                            }
+-                        },
+-                        isError = showHostError,
+-                        errorMessage = "Server host is required",
+-                        isRequired = true,
+-                        modifier = Modifier.fillMaxWidth(),
+-                        singleLine = true
+-                    )
+-
+-                    // Port Field
+-                    AppTextField(
+-                        value = port,
+-                        onValueChange = {
+-                            port = it
+-                        },
+-                        label = "Port",
+-                        placeholder = "389",
+-                        leadingIcon = {
+-                            Icon(
+-                                imageVector = Octicons.Gear16,
+-                                contentDescription = "Port",
+-                                modifier = Modifier.size(12.dp),
+-                                tint = JewelTheme.contentColor
++
++                            AppTextField(
++                                value = bindPass,
++                                onValueChange = { bindPass = it },
++                                label = "Bind Password",
++                                leadingIcon = {
++                                    Icon(
++                                        imageVector = Octicons.Lock16,
++                                        contentDescription = "Password",
++                                        modifier = Modifier.size(12.dp),
++                                        tint = JewelTheme.contentColor
++                                    )
++                                },
++                                trailingIcon = {
++                                    IconButton(
++                                        icon = if (showPassword) Octicons.EyeClosed16 else Octicons.Eye16,
++                                        contentDescription = if (showPassword) "Hide password" else "Show password",
++                                        onClick = { showPassword = !showPassword }
++                                    )
++                                },
++                                modifier = Modifier.fillMaxWidth(),
++                                singleLine = true,
++                                visualTransformation = if (showPassword) VisualTransformation.None else PasswordVisualTransformation()
+                             )
+-                        },
+-                        trailingIcon = {
+-                            if (isPortValid && port.isNotEmpty()) {
+-                                Icon(
+-                                    imageVector = Octicons.CheckCircle16,
+-                                    contentDescription = "Valid",
+-                                    tint = IntelliJColors.success,
+-                                    modifier = Modifier.size(14.dp)
++
++                            Row(
++                                verticalAlignment = Alignment.CenterVertically,
++                                horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm)
++                            ) {
++                                Checkbox(
++                                    checked = isBindDefault,
++                                    onCheckedChange = { isBindDefault = it }
+                                 )
++                                Text("Set as default credential")
+                             }
+-                        },
+-                        isError = showPortError,
+-                        errorMessage = "Port must be between 1-65535",
+-                        isRequired = true,
+-                        modifier = Modifier.fillMaxWidth(),
+-                        singleLine = true
+-                    )
+-
+-                    // Base DN Field
+-                    AppTextField(
+-                        value = baseDN,
+-                        onValueChange = {
+-                            baseDN = it
+-                        },
+-                        label = "Base DN",
+-                        placeholder = "dc=example,dc=com",
+-                        leadingIcon = {
+-                            Icon(
+-                                imageVector = Octicons.Workflow16,
+-                                contentDescription = "Base DN",
+-                                modifier = Modifier.size(12.dp),
+-                                tint = JewelTheme.contentColor
++                        }
++                    }
++                } else {
++                    // Connection Form (scrollable)
++                    VerticallyScrollableContainer(
++                        modifier = Modifier.weight(1f).fillMaxWidth()
++                    ) {
++                        Column(
++                            modifier = Modifier.fillMaxWidth(),
++                            verticalArrangement = Arrangement.spacedBy(AppSpacing.lg)
++                        ) {
++                            AppTextField(
++                                value = name,
++                                onValueChange = { name = it },
++                                label = "Connection Name (Optional)",
++                                placeholder = "My LDAP Server",
++                                leadingIcon = {
++                                    Icon(
++                                        key = AllIconsKeys.General.User,
++                                        contentDescription = "Name",
++                                        modifier = Modifier.size(12.dp),
++                                        tint = JewelTheme.contentColor
++                                    )
++                                },
++                                modifier = Modifier.fillMaxWidth(),
++                                singleLine = true
+                             )
+-                        },
+-                        trailingIcon = {
+-                            if (isBaseDNValid && baseDN.isNotEmpty()) {
+-                                Icon(
+-                                    imageVector = Octicons.CheckCircle16,
+-                                    contentDescription = "Valid",
+-                                    tint = IntelliJColors.success,
+-                                    modifier = Modifier.size(14.dp)
++
++                            Row(
++                                modifier = Modifier.fillMaxWidth(),
++                                horizontalArrangement = Arrangement.spacedBy(AppSpacing.md)
++                            ) {
++                                AppTextField(
++                                    value = host,
++                                    onValueChange = { host = it },
++                                    label = "Server Host",
++                                    placeholder = "ldap.example.com",
++                                    leadingIcon = {
++                                        Icon(
++                                            key = AllIconsKeys.Webreferences.Server,
++                                            contentDescription = "Host",
++                                            modifier = Modifier.size(12.dp),
++                                            tint = JewelTheme.contentColor
++                                        )
++                                    },
++                                    modifier = Modifier.weight(0.7f),
++                                    isError = showHostError,
++                                    errorMessage = "Required",
++                                    singleLine = true
+                                 )
+-                            }
+-                        },
+-                        isError = showBaseDNError,
+-                        errorMessage = "Base DN is required",
+-                        isRequired = true,
+-                        modifier = Modifier.fillMaxWidth(),
+-                        singleLine = true
+-                    )
+-
+-                    // Bind User Field
+-                    AppTextField(
+-                        value = bindUser,
+-                        onValueChange = {
+-                            bindUser = it
+-                        },
+-                        label = "Bind User",
+-                        placeholder = "cn=admin,dc=example,dc=com",
+-                        leadingIcon = {
+-                            Icon(
+-                                imageVector = Octicons.Person16,
+-                                contentDescription = "User",
+-                                modifier = Modifier.size(12.dp),
+-                                tint = JewelTheme.contentColor
+-                            )
+-                        },
+-                        trailingIcon = {
+-                            if (isBindUserValid && bindUser.isNotEmpty()) {
+-                                Icon(
+-                                    imageVector = Octicons.CheckCircle16,
+-                                    contentDescription = "Valid",
+-                                    tint = IntelliJColors.success,
+-                                    modifier = Modifier.size(14.dp)
++
++                                AppTextField(
++                                    value = port,
++                                    onValueChange = { port = it },
++                                    label = "Port",
++                                    placeholder = "389",
++                                    modifier = Modifier.weight(0.3f),
++                                    isError = showPortError,
++                                    errorMessage = "Invalid",
++                                    singleLine = true
+                                 )
+                             }
+-                        },
+-                        isError = showBindUserError,
+-                        errorMessage = "Bind user is required",
+-                        isRequired = true,
+-                        modifier = Modifier.fillMaxWidth(),
+-                        singleLine = true
+-                    )
+-
+-                    // Bind Password Field
+-                    AppTextField(
+-                        value = bindPass,
+-                        onValueChange = { bindPass = it },
+-                        label = "Bind Password",
+-                        leadingIcon = {
+-                            Icon(
+-                                imageVector = Octicons.Lock16,
+-                                contentDescription = "Password",
+-                                modifier = Modifier.size(12.dp),
+-                                tint = JewelTheme.contentColor
+-                            )
+-                        },
+-                        trailingIcon = {
+-                            IconButton(
+-                                icon = if (showPassword) Octicons.EyeClosed16 else Octicons.Eye16,
+-                                contentDescription = if (showPassword) "Hide password" else "Show password",
+-                                onClick = { showPassword = !showPassword }
++
++                            AppTextField(
++                                value = baseDN,
++                                onValueChange = { baseDN = it },
++                                label = "Base DN",
++                                placeholder = "dc=example,dc=com",
++                                leadingIcon = {
++                                    Icon(
++                                        key = AllIconsKeys.Toolwindows.ToolWindowStructure,
++                                        contentDescription = "Base DN",
++                                        modifier = Modifier.size(12.dp),
++                                        tint = JewelTheme.contentColor
++                                    )
++                                },
++                                modifier = Modifier.fillMaxWidth(),
++                                isError = showBaseDNError,
++                                errorMessage = "Required",
++                                singleLine = true
+                             )
+-                        },
+-                        modifier = Modifier.fillMaxWidth(),
+-                        singleLine = true,
+-                        visualTransformation = if (showPassword) VisualTransformation.None else PasswordVisualTransformation()
+-                    )
+-                }
+
+-                // SSL/TLS Options
+-                Row(
+-                    modifier = Modifier.fillMaxWidth(),
+-                    horizontalArrangement = Arrangement.spacedBy(AppSpacing.lg),
+-                    verticalAlignment = Alignment.CenterVertically
+-                ) {
+-                    Row(
+-                        verticalAlignment = Alignment.CenterVertically,
+-                        horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm)
+-                    ) {
+-                        Checkbox(
+-                            checked = useSSL,
+-                            onCheckedChange = { newState ->
+-                                useSSL = newState
+-                                if (useSSL) useTLS = false
++                            // SSL/TLS Options
++                            Row(
++                                modifier = Modifier.fillMaxWidth(),
++                                horizontalArrangement = Arrangement.spacedBy(AppSpacing.lg),
++                                verticalAlignment = Alignment.CenterVertically
++                            ) {
++                                Row(
++                                    verticalAlignment = Alignment.CenterVertically,
++                                    horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm)
++                                ) {
++                                    Checkbox(
++                                        checked = useSSL,
++                                        onCheckedChange = { newState ->
++                                            useSSL = newState
++                                            if (useSSL) useTLS = false
++                                        }
++                                    )
++                                    Text("Use SSL")
++                                }
++
++                                Row(
++                                    verticalAlignment = Alignment.CenterVertically,
++                                    horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm)
++                                ) {
++                                    Checkbox(
++                                        checked = useTLS,
++                                        onCheckedChange = { newState ->
++                                            useTLS = newState
++                                            if (useTLS) useSSL = false
++                                        }
++                                    )
++                                    Text("Use TLS")
++                                }
+                             }
+-                        )
+-                        Text("Use SSL")
+-                    }
+
+-                    Row(
+-                        verticalAlignment = Alignment.CenterVertically,
+-                        horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm)
+-                    ) {
+-                        Checkbox(
+-                            checked = useTLS,
+-                            onCheckedChange = { newState ->
+-                                useTLS = newState
+-                                if (useTLS) useSSL = false
++                            // Bind Credentials Table
++                            Text(
++                                text = "Bind Credentials",
++                                style = AppTypography.labelLarge,
++                                color = AppColors.neutral140
++                            )
++
++                            currentSelectedConnection?.let { conn ->
++                                BindCredentialTable(
++                                    credentials = conn.effectiveBindCredentials,
++                                    selectedCredential = (selectedNode as? ConfigTreeNode.BindDnNode)?.credential,
++                                    onCredentialSelected = { cred ->
++                                        selectedNode = ConfigTreeNode.BindDnNode(conn, cred)
++                                    },
++                                    onAddCredential = {
++                                        val newCred = viewModel.addBindCredential(conn.name)
++                                        configs = viewModel.getConfig().connections
++                                        newCred // Return the new credential so table can edit it inline
++                                    },
++                                    onDeleteCredential = { cred ->
++                                        viewModel.deleteBindCredential(conn.name, cred.id)
++                                        configs = viewModel.getConfig().connections
++                                        selectedNode =
++                                            ConfigTreeNode.ConnectionNode(viewModel.getConfig().connections.find { it.name == conn.name }
++                                                ?: conn)
++                                    },
++                                    onUpdateCredential = { cred ->
++                                        viewModel.updateBindCredential(conn.name, cred)
++                                        configs = viewModel.getConfig().connections
++                                    },
++                                    modifier = Modifier.height(320.dp)
++                                )
+                             }
+-                        )
+-                        Text("Use TLS")
++                        }
+                     }
+                 }
+
+-                Spacer(modifier = Modifier.weight(1f))
++                Spacer(modifier = Modifier.height(AppSpacing.lg))
+
+-                // Action Buttons
++                // Action Buttons (fixed at bottom)
+                 Row(
+                     modifier = Modifier.fillMaxWidth(),
+                     horizontalArrangement = Arrangement.End,
+@@ -508,38 +571,37 @@ fun ConfigurationScreen(
+                         }
+
+                         else -> {
+-                            // Save button (outlined style for visual distinction)
++                            // Save button
+                             OutlinedButton(
+                                 onClick = {
+-                                    println("=== [ConfigurationScreen] Save button CLICKED ===")
+-                                    println("[ConfigurationScreen] isFormValid = $isFormValid")
+-
+-                                    if (isFormValid) {
+-                                        println("[ConfigurationScreen] Form is valid, proceeding with save")
+-                                        val portInt = port.toIntOrNull() ?: 389
+-
+-                                        // Use ViewModel to save
+-                                        val finalName = viewModel.saveConnection(
+-                                            configService = configService,
+-                                            selectedConnectionName = selectedConnectionName,
+-                                            name = name,
+-                                            host = host,
+-                                            port = portInt,
+-                                            baseDN = baseDN,
+-                                            useSsl = useSSL,
+-                                            useTls = useTLS,
++                                    if (selectedNode is ConfigTreeNode.BindDnNode) {
++                                        val node = selectedNode as ConfigTreeNode.BindDnNode
++                                        val updatedCred = node.credential.copy(
++                                            label = bindLabel,
+                                             bindUser = bindUser,
+-                                            bindPass = bindPass
++                                            bindPass = bindPass,
++                                            isDefault = isBindDefault
+                                         )
+-
+-                                        // Refresh the configs list and update selected connection name
++                                        viewModel.updateBindCredential(node.parentConfig.name, updatedCred)
++                                        configService.save(viewModel.getConfig())
+                                         configs = viewModel.getConfig().connections
+-                                        selectedConnectionName = finalName
+-
+-                                        println("[ConfigurationScreen] Save completed. New selected name: $finalName")
++                                        // Update selected node to reflect changes
++                                        selectedNode = ConfigTreeNode.BindDnNode(node.parentConfig, updatedCred)
+                                     } else {
+-                                        println("[ConfigurationScreen] Form is INVALID - cannot save")
+-                                        println("[ConfigurationScreen]   hostValid=$isHostValid, portValid=$isPortValid, baseDNValid=$isBaseDNValid, bindUserValid=$isBindUserValid")
++                                        if (isFormValid) {
++                                            val portInt = port.toIntOrNull() ?: 389
++                                            val finalName = viewModel.saveConnection(
++                                                selectedConnectionName = selectedConnectionName,
++                                                name = name,
++                                                host = host,
++                                                port = portInt,
++                                                baseDN = baseDN,
++                                                useSsl = useSSL,
++                                                useTls = useTLS
++                                            )
++                                            configs = viewModel.getConfig().connections
++                                            selectedConnectionName = finalName
++                                        }
+                                     }
+                                 }
+                             ) {
+@@ -548,38 +610,39 @@ fun ConfigurationScreen(
+
+                             Spacer(modifier = Modifier.width(AppSpacing.sm))
+
+-                            // Connect button (primary action)
++                            // Connect button
+                             DefaultButton(
+                                 onClick = {
+-                                    println("=== [ConfigurationScreen] Connect button CLICKED ===")
+-                                    println("[ConfigurationScreen] isFormValid = $isFormValid")
+-
+-                                    if (isFormValid) {
+-                                        println("[ConfigurationScreen] Form is valid, proceeding with connect")
+-                                        val portInt = port.toIntOrNull() ?: 389
+-
+-                                        // Use ViewModel to save and connect
+-                                        val finalName = viewModel.saveAndConnect(
+-                                            configService = configService,
+-                                            selectedConnectionName = selectedConnectionName,
+-                                            name = name,
+-                                            host = host,
+-                                            port = portInt,
+-                                            baseDN = baseDN,
+-                                            useSsl = useSSL,
+-                                            useTls = useTLS,
++                                    if (selectedNode is ConfigTreeNode.BindDnNode) {
++                                        val node = selectedNode as ConfigTreeNode.BindDnNode
++                                        // In a real app, we might want to save first
++                                        val updatedCred = node.credential.copy(
++                                            label = bindLabel,
+                                             bindUser = bindUser,
+-                                            bindPass = bindPass
++                                            bindPass = bindPass,
++                                            isDefault = isBindDefault
+                                         )
++                                        viewModel.updateBindCredential(node.parentConfig.name, updatedCred)
++                                        configService.save(viewModel.getConfig())
+
+-                                        // Refresh the configs list and update selected connection name
+-                                        configs = viewModel.getConfig().connections
+-                                        selectedConnectionName = finalName
+-
+-                                        println("[ConfigurationScreen] Connect initiated. New selected name: $finalName")
++                                        // TODO: Connect using SPECIFIC credential
++                                        // For now, it will use the one marked default or first
++                                        viewModel.connect()
+                                     } else {
+-                                        println("[ConfigurationScreen] Form is INVALID - cannot connect")
+-                                        println("[ConfigurationScreen]   hostValid=$isHostValid, portValid=$isPortValid, baseDNValid=$isBaseDNValid, bindUserValid=$isBindUserValid")
++                                        if (isFormValid) {
++                                            val portInt = port.toIntOrNull() ?: 389
++                                            val finalName = viewModel.saveAndConnect(
++                                                selectedConnectionName = selectedConnectionName,
++                                                name = name,
++                                                host = host,
++                                                port = portInt,
++                                                baseDN = baseDN,
++                                                useSsl = useSSL,
++                                                useTls = useTLS
++                                            )
++                                            configs = viewModel.getConfig().connections
++                                            selectedConnectionName = finalName
++                                        }
+                                     }
+                                 }
+                             ) {
+@@ -591,4 +654,12 @@ fun ConfigurationScreen(
+             }
+         }
+     }
++
++    if (appState.showBindDnSelection && appState.connectionForSelection != null) {
++        com.moribito.gui.ui.components.BindDnSelectionDialog(
++            connection = appState.connectionForSelection!!,
++            onSelect = { viewModel.connect(it) },
++            onCancel = { viewModel.cancelBindDnSelection() }
++        )
++    }
+ }
+commit c76828472675d05704f50a989c33329102ca58d7
+Author: Eric Schmar <ericschmar@gmail.com>
+Date:   Wed Dec 31 10:33:11 2025 -0500
+    ye
+diff --git a/gui/src/main/kotlin/com/moribito/gui/ui/screens/ConfigurationScreen.kt b/gui/src/main/kotlin/com/moribito/gui/ui/screens/ConfigurationScreen.kt
+index 06b15b8..9e5ec83 100644
+--- a/gui/src/main/kotlin/com/moribito/gui/ui/screens/ConfigurationScreen.kt
++++ b/gui/src/main/kotlin/com/moribito/gui/ui/screens/ConfigurationScreen.kt
+@@ -7,9 +7,7 @@ import androidx.compose.foundation.hoverable
+ import androidx.compose.foundation.interaction.MutableInteractionSource
+ import androidx.compose.foundation.interaction.collectIsHoveredAsState
+ import androidx.compose.foundation.layout.*
+-import androidx.compose.material3.CircularProgressIndicator
+ import androidx.compose.material3.Icon
+-import androidx.compose.material3.Text
+ import androidx.compose.runtime.*
+ import androidx.compose.ui.Alignment
+ import androidx.compose.ui.Modifier
+@@ -27,6 +25,9 @@ import com.moribito.gui.ui.components.TextField as AppTextField
+ import com.moribito.gui.viewmodel.ConnectionState
+ import com.moribito.gui.viewmodel.MainViewModel
+ import compose.icons.Octicons
++import org.jetbrains.jewel.foundation.theme.JewelTheme
++import org.jetbrains.jewel.ui.component.CircularProgressIndicator
++import org.jetbrains.jewel.ui.component.Text
+ import compose.icons.octicons.CheckCircle16
+ import compose.icons.octicons.Dash16
+ import compose.icons.octicons.Eye16
+@@ -54,11 +55,13 @@ private fun IconButton(
+     contentDescription: String,
+     onClick: () -> Unit,
+     modifier: Modifier = Modifier,
+-    tint: Color = AppColors.textPrimary
++    tint: Color? = null
+ ) {
+     val interactionSource = remember { MutableInteractionSource() }
+     val isHovered by interactionSource.collectIsHoveredAsState()
+
++    val iconColor = tint ?: JewelTheme.contentColor
++
+     Box(
+         modifier = modifier
+             .size(24.dp)
+@@ -69,7 +72,7 @@ private fun IconButton(
+         Icon(
+             imageVector = icon,
+             contentDescription = contentDescription,
+-            tint = if (isHovered) tint.copy(alpha = 0.7f) else tint,
++            tint = if (isHovered) iconColor.copy(alpha = 0.7f) else iconColor,
+             modifier = Modifier.size(16.dp)
+         )
+     }
+@@ -141,12 +144,12 @@ fun ConfigurationScreen(
+
+     HorizontalSplitPane(
+         splitPaneState = state,
+-        modifier = Modifier.fillMaxSize()
++        modifier = Modifier.fillMaxSize().background(IntelliJColors.islandBackground)
+     ) {
+         splitter {
+             visiblePart {
+                 // The actual line
+-                Box(Modifier.width(1.dp).fillMaxHeight().background(AppColors.border))
++                Box(Modifier.width(1.dp).fillMaxHeight().background(JewelTheme.globalColors.borders.normal))
+             }
+             handle {
+                 // The "Hitbox" (8dp wide makes it easy to grab)
+@@ -161,7 +164,7 @@ fun ConfigurationScreen(
+         }
+         first(minSize = 200.dp) {
+             Column(
+-                Modifier.fillMaxSize().background(AppColors.surface)
++                Modifier.fillMaxSize().background(IntelliJColors.islandBackground)
+                     .absolutePadding(top = AppSpacing.xs, bottom = AppSpacing.xs),
+                 verticalArrangement = Arrangement.SpaceBetween
+             ) {
+@@ -186,7 +189,7 @@ fun ConfigurationScreen(
+                                 ) {
+                                     if (selectedConnectionName == it.name) {
+                                         Box(
+-                                            Modifier.width(4.dp).fillMaxHeight().background(AppColors.warning),
++                                            Modifier.width(4.dp).fillMaxHeight().background(IntelliJColors.warning),
+                                         )
+                                     }
+                                     Row(
+@@ -221,8 +224,7 @@ fun ConfigurationScreen(
+                                         selectedConnectionName = configs.firstOrNull()?.name ?: ""
+                                         configService.save(viewModel.getConfig())
+                                     }
+-                                },
+-                                tint = AppColors.textPrimary
++                                }
+                             )
+
+                             IconButton(
+@@ -233,8 +235,7 @@ fun ConfigurationScreen(
+                                     configs = viewModel.getConfig().connections
+                                     selectedConnectionName = newConn.name
+                                     configService.save(viewModel.getConfig())
+-                                },
+-                                tint = AppColors.textPrimary
++                                }
+                             )
+                         }
+                     }
+@@ -245,7 +246,8 @@ fun ConfigurationScreen(
+             Column(
+                 modifier = Modifier
+                     .fillMaxSize()
+-                    .padding(AppSpacing.lg),
++                    .padding(AppSpacing.lg)
++                    .background(IntelliJColors.islandBackground),
+                 verticalArrangement = Arrangement.spacedBy(AppSpacing.lg)
+             ) {
+                 // Section Title
+@@ -270,7 +272,8 @@ fun ConfigurationScreen(
+                             Icon(
+                                 imageVector = Octicons.Mention16,
+                                 contentDescription = "Name",
+-                                modifier = Modifier.size(12.dp)
++                                modifier = Modifier.size(12.dp),
++                                tint = JewelTheme.contentColor
+                             )
+                         },
+                         modifier = Modifier.fillMaxWidth(),
+@@ -289,7 +292,8 @@ fun ConfigurationScreen(
+                             Icon(
+                                 imageVector = Octicons.Server16,
+                                 contentDescription = "Host",
+-                                modifier = Modifier.size(12.dp)
++                                modifier = Modifier.size(12.dp),
++                                tint = JewelTheme.contentColor
+                             )
+                         },
+                         trailingIcon = {
+@@ -297,7 +301,7 @@ fun ConfigurationScreen(
+                                 Icon(
+                                     imageVector = Octicons.CheckCircle16,
+                                     contentDescription = "Valid",
+-                                    tint = AppColors.success,
++                                    tint = IntelliJColors.success,
+                                     modifier = Modifier.size(14.dp)
+                                 )
+                             }
+@@ -321,7 +325,8 @@ fun ConfigurationScreen(
+                             Icon(
+                                 imageVector = Octicons.Gear16,
+                                 contentDescription = "Port",
+-                                modifier = Modifier.size(12.dp)
++                                modifier = Modifier.size(12.dp),
++                                tint = JewelTheme.contentColor
+                             )
+                         },
+                         trailingIcon = {
+@@ -329,7 +334,7 @@ fun ConfigurationScreen(
+                                 Icon(
+                                     imageVector = Octicons.CheckCircle16,
+                                     contentDescription = "Valid",
+-                                    tint = AppColors.success,
++                                    tint = IntelliJColors.success,
+                                     modifier = Modifier.size(14.dp)
+                                 )
+                             }
+@@ -353,7 +358,8 @@ fun ConfigurationScreen(
+                             Icon(
+                                 imageVector = Octicons.Workflow16,
+                                 contentDescription = "Base DN",
+-                                modifier = Modifier.size(12.dp)
++                                modifier = Modifier.size(12.dp),
++                                tint = JewelTheme.contentColor
+                             )
+                         },
+                         trailingIcon = {
+@@ -361,7 +367,7 @@ fun ConfigurationScreen(
+                                 Icon(
+                                     imageVector = Octicons.CheckCircle16,
+                                     contentDescription = "Valid",
+-                                    tint = AppColors.success,
++                                    tint = IntelliJColors.success,
+                                     modifier = Modifier.size(14.dp)
+                                 )
+                             }
+@@ -385,7 +391,8 @@ fun ConfigurationScreen(
+                             Icon(
+                                 imageVector = Octicons.Person16,
+                                 contentDescription = "User",
+-                                modifier = Modifier.size(12.dp)
++                                modifier = Modifier.size(12.dp),
++                                tint = JewelTheme.contentColor
+                             )
+                         },
+                         trailingIcon = {
+@@ -393,7 +400,7 @@ fun ConfigurationScreen(
+                                 Icon(
+                                     imageVector = Octicons.CheckCircle16,
+                                     contentDescription = "Valid",
+-                                    tint = AppColors.success,
++                                    tint = IntelliJColors.success,
+                                     modifier = Modifier.size(14.dp)
+                                 )
+                             }
+@@ -414,15 +421,15 @@ fun ConfigurationScreen(
+                             Icon(
+                                 imageVector = Octicons.Lock16,
+                                 contentDescription = "Password",
+-                                modifier = Modifier.size(12.dp)
++                                modifier = Modifier.size(12.dp),
++                                tint = JewelTheme.contentColor
+                             )
+                         },
+                         trailingIcon = {
+                             IconButton(
+                                 icon = if (showPassword) Octicons.EyeClosed16 else Octicons.Eye16,
+                                 contentDescription = if (showPassword) "Hide password" else "Show password",
+-                                onClick = { showPassword = !showPassword },
+-                                tint = AppColors.textSecondary
++                                onClick = { showPassword = !showPassword }
+                             )
+                         },
+                         modifier = Modifier.fillMaxWidth(),
+@@ -446,12 +453,7 @@ fun ConfigurationScreen(
+                             onCheckedChange = { newState ->
+                                 useSSL = newState
+                                 if (useSSL) useTLS = false
+-                            },
+-                            colors = CheckboxColors(
+-                                content = AppColors.primary,
+-                                contentDisabled = AppColors.textDisabled,
+-                                contentSelected = AppColors.primary
+-                            )
++                            }
+                         )
+                         Text("Use SSL")
+                     }
+@@ -465,12 +467,7 @@ fun ConfigurationScreen(
+                             onCheckedChange = { newState ->
+                                 useTLS = newState
+                                 if (useTLS) useSSL = false
+-                            },
+-                            colors = CheckboxColors(
+-                                content = AppColors.primary,
+-                                contentDisabled = AppColors.textDisabled,
+-                                contentSelected = AppColors.primary
+-                            )
++                            }
+                         )
+                         Text("Use TLS")
+                     }
+commit 2fcd928f4db1469f7be7e438e0e1860f9c88249a
+Author: Eric Schmar <ericschmar@gmail.com>
+Date:   Thu Dec 25 22:18:23 2025 -0500
+    ye
+diff --git a/gui/src/main/kotlin/com/moribito/gui/ui/screens/ConfigurationScreen.kt b/gui/src/main/kotlin/com/moribito/gui/ui/screens/ConfigurationScreen.kt
+index 289eb9c..06b15b8 100644
+--- a/gui/src/main/kotlin/com/moribito/gui/ui/screens/ConfigurationScreen.kt
++++ b/gui/src/main/kotlin/com/moribito/gui/ui/screens/ConfigurationScreen.kt
+@@ -1,287 +1,593 @@
+ package com.moribito.gui.ui.screens
+
++import RootConfig
++import androidx.compose.foundation.background
++import androidx.compose.foundation.clickable
++import androidx.compose.foundation.hoverable
++import androidx.compose.foundation.interaction.MutableInteractionSource
++import androidx.compose.foundation.interaction.collectIsHoveredAsState
+ import androidx.compose.foundation.layout.*
+-import androidx.compose.foundation.shape.RoundedCornerShape
++import androidx.compose.material3.CircularProgressIndicator
++import androidx.compose.material3.Icon
++import androidx.compose.material3.Text
+ import androidx.compose.runtime.*
+ import androidx.compose.ui.Alignment
+ import androidx.compose.ui.Modifier
++import androidx.compose.ui.graphics.Color
++import androidx.compose.ui.graphics.vector.ImageVector
++import androidx.compose.ui.input.pointer.PointerIcon
++import androidx.compose.ui.input.pointer.pointerHoverIcon
+ import androidx.compose.ui.text.input.PasswordVisualTransformation
++import androidx.compose.ui.text.input.VisualTransformation
+ import androidx.compose.ui.unit.dp
+-import com.moribito.config.LdapConfig
++import com.moribito.config.ConfigurationService
++import com.moribito.gui.theme.*
++import com.moribito.gui.ui.components.ActionBar
++import com.moribito.gui.ui.components.TextField as AppTextField
+ import com.moribito.gui.viewmodel.ConnectionState
+ import com.moribito.gui.viewmodel.MainViewModel
+-import io.github.composefluent.FluentTheme
+-import io.github.composefluent.background.Mica
+-import io.github.composefluent.component.*
+-import io.github.composefluent.defaultFontFamily
+-import io.github.composefluent.icons.Icons
+-import io.github.composefluent.icons.regular.CheckmarkCircle
+-import io.github.composefluent.icons.regular.Circle
+-import io.github.composefluent.icons.regular.CubeSync
+-import io.github.composefluent.icons.regular.CubeTree
+-import io.github.composefluent.icons.regular.ErrorCircle
+-import io.github.composefluent.icons.regular.LockClosed
+-import io.github.composefluent.icons.regular.Person
+-import io.github.composefluent.icons.regular.Play
+-import io.github.composefluent.icons.regular.Server
+-import io.github.composefluent.icons.regular.Settings
+-import org.jetbrains.skia.FontStyle
++import compose.icons.Octicons
++import compose.icons.octicons.CheckCircle16
++import compose.icons.octicons.Dash16
++import compose.icons.octicons.Eye16
++import compose.icons.octicons.EyeClosed16
++import compose.icons.octicons.Gear16
++import compose.icons.octicons.Lock16
++import compose.icons.octicons.Mention16
++import compose.icons.octicons.Person16
++import compose.icons.octicons.Plus16
++import compose.icons.octicons.Server16
++import compose.icons.octicons.Workflow16
++import org.jetbrains.compose.splitpane.ExperimentalSplitPaneApi
++import org.jetbrains.compose.splitpane.HorizontalSplitPane
++import org.jetbrains.compose.splitpane.rememberSplitPaneState
++import org.jetbrains.jewel.ui.component.Checkbox
++import org.jetbrains.jewel.ui.component.DefaultButton
++import org.jetbrains.jewel.ui.component.OutlinedButton
++import org.jetbrains.jewel.ui.component.VerticallyScrollableContainer
++import org.jetbrains.jewel.ui.component.styling.CheckboxColors
++import org.koin.compose.koinInject
+
++@Composable
++private fun IconButton(
++    icon: ImageVector,
++    contentDescription: String,
++    onClick: () -> Unit,
++    modifier: Modifier = Modifier,
++    tint: Color = AppColors.textPrimary
++) {
++    val interactionSource = remember { MutableInteractionSource() }
++    val isHovered by interactionSource.collectIsHoveredAsState()
++
++    Box(
++        modifier = modifier
++            .size(24.dp)
++            .hoverable(interactionSource)
++            .clickable(onClick = onClick),
++        contentAlignment = Alignment.Center
++    ) {
++        Icon(
++            imageVector = icon,
++            contentDescription = contentDescription,
++            tint = if (isHovered) tint.copy(alpha = 0.7f) else tint,
++            modifier = Modifier.size(16.dp)
++        )
++    }
++}
++
++@OptIn(ExperimentalLayoutApi::class, ExperimentalSplitPaneApi::class)
+ @Composable
+ fun ConfigurationScreen(
+     viewModel: MainViewModel,
+-    ldapConfig: LdapConfig,
+-    connectionState: ConnectionState
++    ldapConfig: RootConfig,
++    connectionState: ConnectionState,
++    configService: ConfigurationService = koinInject()
+ ) {
+-    var host by remember { mutableStateOf(ldapConfig.host) }
+-    var port by remember { mutableStateOf(ldapConfig.port.toString()) }
+-    var baseDN by remember { mutableStateOf(ldapConfig.baseDN) }
+-    var useSSL by remember { mutableStateOf(ldapConfig.useSSL) }
+-    var useTLS by remember { mutableStateOf(ldapConfig.useTLS) }
+-    var bindUser by remember { mutableStateOf(ldapConfig.bindUser) }
+-    var bindPass by remember { mutableStateOf(ldapConfig.bindPass) }
++    // Get the current connection
++    val currentConn = viewModel.getCurrentConnection()
++
++    var name by remember { mutableStateOf(currentConn.name) }
++    var host by remember { mutableStateOf(currentConn.host) }
++    var port by remember { mutableStateOf(currentConn.port.toString()) }
++    var baseDN by remember { mutableStateOf(currentConn.baseDN) }
++    var useSSL by remember { mutableStateOf(currentConn.useSsl) }
++    var useTLS by remember { mutableStateOf(currentConn.useTls) }
++    var bindUser by remember { mutableStateOf(currentConn.bindUser) }
++    var bindPass by remember { mutableStateOf(currentConn.bindPass) }
++    var showPassword by remember { mutableStateOf(false) }
++
++    val state = rememberSplitPaneState(0.3f)
++    var configs by remember { mutableStateOf(configService.load().connections) }
++    var selectedConnectionName by remember { mutableStateOf(currentConn.name) }
++
++    // Update form fields when selection changes
++    LaunchedEffect(selectedConnectionName) {
++        configs.find { it.name == selectedConnectionName }?.let { conn ->
++            name = conn.name
++            host = conn.host
++            port = conn.port.toString()
++            baseDN = conn.baseDN
++            useSSL = conn.useSsl
++            useTLS = conn.useTls
++            bindUser = conn.bindUser
++            bindPass = conn.bindPass
++        }
++    }
+
+     // Validation states
+     val isHostValid = host.isNotBlank()
+-    val isPortValid = port.toIntOrNull() != null
++    val isPortValid = port.toIntOrNull()?.let { it in 1..65535 } ?: false
+     val isBaseDNValid = baseDN.isNotBlank()
++    val isBindUserValid = bindUser.isNotBlank()
++
++    // Show errors only if field has been touched and is invalid
++    val showHostError = !isHostValid
++    val showPortError = !isPortValid
++    val showBaseDNError = !isBaseDNValid
++    val showBindUserError = !isBindUserValid
+
+-    Mica(modifier = Modifier.fillMaxSize()) {
+-        Column(
+-            modifier = Modifier
+-                .fillMaxSize()
+-                .padding(24.dp),
+-            verticalArrangement = Arrangement.spacedBy(24.dp)
+-        ) {
+-            // Section Title
+-            Text(
+-                text = "LDAP Configuration",
+-                style = FluentTheme.typography.title
+-            )
+-
+-            // Connection Status Card
+-            ConnectionStatusCard(connectionState)
+-
+-            // Configuration Form Card
++    // Form is valid if all required fields are valid
++    val isFormValid = isHostValid && isPortValid && isBaseDNValid && isBindUserValid
++
++    // Log validation state changes
++    LaunchedEffect(isFormValid, isHostValid, isPortValid, isBaseDNValid, isBindUserValid) {
++        println("[ConfigurationScreen] Validation state changed:")
++        println("  isFormValid = $isFormValid")
++        println("  isHostValid = $isHostValid (host='$host')")
++        println("  isPortValid = $isPortValid (port='$port')")
++        println("  isBaseDNValid = $isBaseDNValid (baseDN='$baseDN')")
++        println("  isBindUserValid = $isBindUserValid (bindUser='$bindUser')")
++    }
++
++    HorizontalSplitPane(
++        splitPaneState = state,
++        modifier = Modifier.fillMaxSize()
++    ) {
++        splitter {
++            visiblePart {
++                // The actual line
++                Box(Modifier.width(1.dp).fillMaxHeight().background(AppColors.border))
++            }
++            handle {
++                // The "Hitbox" (8dp wide makes it easy to grab)
++                Box(
++                    Modifier
++                        .width(8.dp)
++                        .fillMaxHeight()
++                        .markAsHandle()
++                        .pointerHoverIcon(PointerIcon.Hand)
++                )
++            }
++        }
++        first(minSize = 200.dp) {
+             Column(
+-                modifier = Modifier
+-                    .fillMaxWidth()
+-                    .padding(20.dp),
+-                verticalArrangement = Arrangement.spacedBy(16.dp)
++                Modifier.fillMaxSize().background(AppColors.surface)
++                    .absolutePadding(top = AppSpacing.xs, bottom = AppSpacing.xs),
++                verticalArrangement = Arrangement.SpaceBetween
+             ) {
+-                // Host Field
+-                TextField(
+-                    value = host,
+-                    onValueChange = { host = it },
+-                    header = { Text("Server Host") },
+-                    placeholder = { Text("ldap.example.com") },
+-                    leadingIcon = {
+-                        Icon(
+-                            imageVector = Icons.Regular.Server,
+-                            contentDescription = "Host"
+-                        )
+-                    },
+-                    trailing = {
+-                        if (isHostValid) {
+-                            Icon(
+-                                imageVector = Icons.Regular.CheckmarkCircle,
+-                                contentDescription = "Valid",
+-                                tint = androidx.compose.ui.graphics.Color(0xFF4CAF50)
++                VerticallyScrollableContainer(modifier = Modifier.weight(1f)) {
++                    Column(modifier = Modifier.fillMaxWidth()) {
++                        configs.forEach {
++                            Box(
++                                modifier = Modifier.fillMaxWidth()
++                                    .height(26.dp)
++                                    .clickable(
++                                        enabled = true,
++                                        onClick = {
++                                            selectedConnectionName = it.name
++                                        },
++                                    ),
++                                contentAlignment = Alignment.CenterStart,
++                            ) {
++                                Row(
++                                    modifier = Modifier.fillMaxSize()
++                                        .absolutePadding(right = 4.dp),
++                                    verticalAlignment = Alignment.CenterVertically
++                                ) {
++                                    if (selectedConnectionName == it.name) {
++                                        Box(
++                                            Modifier.width(4.dp).fillMaxHeight().background(AppColors.warning),
++                                        )
++                                    }
++                                    Row(
++                                        modifier = Modifier.fillMaxWidth()
++                                            .absolutePadding(left = if (selectedConnectionName != it.name) 8.dp else 4.dp),
++                                        horizontalArrangement = Arrangement.SpaceBetween,
++                                        verticalAlignment = Alignment.CenterVertically
++                                    ) {
++                                        Text(text = it.name, fontSize = AppTypography.labelLarge.fontSize)
++                                        Text(
++                                            text = "${it.host}:${it.port}",
++                                            fontSize = AppMonospace.small.fontSize,
++                                            fontFamily = AppMonospace.small.fontFamily
++                                        )
++                                    }
++                                }
++                            }
++                        }
++                    }
++                }
++                ActionBar(
++                    rightContent = {
++                        Row(horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs)) {
++                            IconButton(
++                                icon = Octicons.Dash16,
++                                contentDescription = "Delete",
++                                onClick = {
++                                    if (configs.size > 1) {
++                                        viewModel.deleteConnection(selectedConnectionName)
++                                        configs = viewModel.getConfig().connections
++                                        // Select the first connection after deletion
++                                        selectedConnectionName = configs.firstOrNull()?.name ?: ""
++                                        configService.save(viewModel.getConfig())
++                                    }
++                                },
++                                tint = AppColors.textPrimary
++                            )
++
++                            IconButton(
++                                icon = Octicons.Plus16,
++                                contentDescription = "Add",
++                                onClick = {
++                                    val newConn = viewModel.addConnection()
++                                    configs = viewModel.getConfig().connections
++                                    selectedConnectionName = newConn.name
++                                    configService.save(viewModel.getConfig())
++                                },
++                                tint = AppColors.textPrimary
+                             )
+                         }
+-                    },
+-                    modifier = Modifier.fillMaxWidth(),
+-                    singleLine = true
++                    }
++                )
++            }
++        }
++        second(minSize = 400.dp) {
++            Column(
++                modifier = Modifier
++                    .fillMaxSize()
++                    .padding(AppSpacing.lg),
++                verticalArrangement = Arrangement.spacedBy(AppSpacing.lg)
++            ) {
++                // Section Title
++                Text(
++                    text = "LDAP Configuration",
++                    style = AppTypography.titleMedium
+                 )
+
+-                // Port Field
+-                Row(
+-                    modifier = Modifier.fillMaxWidth(),
+-                    horizontalArrangement = Arrangement.spacedBy(16.dp)
++                // Configuration Form Card
++                Column(
++                    modifier = Modifier
++                        .fillMaxWidth(),
++                    verticalArrangement = Arrangement.spacedBy(AppSpacing.lg)
+                 ) {
+-                    TextField(
++                    // Name Field (Optional)
++                    AppTextField(
++                        value = name,
++                        onValueChange = { name = it },
++                        label = "Connection Name (Optional)",
++                        placeholder = "My LDAP Server",
++                        leadingIcon = {
++                            Icon(
++                                imageVector = Octicons.Mention16,
++                                contentDescription = "Name",
++                                modifier = Modifier.size(12.dp)
++                            )
++                        },
++                        modifier = Modifier.fillMaxWidth(),
++                        singleLine = true
++                    )
++
++                    // Host Field
++                    AppTextField(
++                        value = host,
++                        onValueChange = {
++                            host = it
++                        },
++                        label = "Server Host",
++                        placeholder = "ldap.example.com",
++                        leadingIcon = {
++                            Icon(
++                                imageVector = Octicons.Server16,
++                                contentDescription = "Host",
++                                modifier = Modifier.size(12.dp)
++                            )
++                        },
++                        trailingIcon = {
++                            if (isHostValid && host.isNotEmpty()) {
++                                Icon(
++                                    imageVector = Octicons.CheckCircle16,
++                                    contentDescription = "Valid",
++                                    tint = AppColors.success,
++                                    modifier = Modifier.size(14.dp)
++                                )
++                            }
++                        },
++                        isError = showHostError,
++                        errorMessage = "Server host is required",
++                        isRequired = true,
++                        modifier = Modifier.fillMaxWidth(),
++                        singleLine = true
++                    )
++
++                    // Port Field
++                    AppTextField(
+                         value = port,
+-                        onValueChange = { port = it },
+-                        header = { Text("Port") },
+-                        placeholder = { Text("389") },
++                        onValueChange = {
++                            port = it
++                        },
++                        label = "Port",
++                        placeholder = "389",
+                         leadingIcon = {
+                             Icon(
+-                                imageVector = Icons.Regular.Settings,
+-                                contentDescription = "Port"
++                                imageVector = Octicons.Gear16,
++                                contentDescription = "Port",
++                                modifier = Modifier.size(12.dp)
+                             )
+                         },
+-                        trailing = {
+-                            if (isPortValid) {
++                        trailingIcon = {
++                            if (isPortValid && port.isNotEmpty()) {
+                                 Icon(
+-                                    imageVector = Icons.Regular.CheckmarkCircle,
++                                    imageVector = Octicons.CheckCircle16,
+                                     contentDescription = "Valid",
+-                                    tint = androidx.compose.ui.graphics.Color(0xFF4CAF50)
++                                    tint = AppColors.success,
++                                    modifier = Modifier.size(14.dp)
+                                 )
+                             }
+                         },
+-                        modifier = Modifier.weight(1f),
++                        isError = showPortError,
++                        errorMessage = "Port must be between 1-65535",
++                        isRequired = true,
++                        modifier = Modifier.fillMaxWidth(),
+                         singleLine = true
+                     )
+-                }
+
+-                // Base DN Field
+-                TextField(
+-                    value = baseDN,
+-                    onValueChange = { baseDN = it },
+-                    header = { Text("Base DN") },
+-                    placeholder = { Text("dc=example,dc=com") },
+-                    leadingIcon = {
+-                        Icon(
+-                            imageVector = Icons.Regular.CubeTree,
+-                            contentDescription = "Base DN"
+-                        )
+-                    },
+-                    trailing = {
+-                        if (isBaseDNValid) {
++                    // Base DN Field
++                    AppTextField(
++                        value = baseDN,
++                        onValueChange = {
++                            baseDN = it
++                        },
++                        label = "Base DN",
++                        placeholder = "dc=example,dc=com",
++                        leadingIcon = {
+                             Icon(
+-                                imageVector = Icons.Regular.CheckmarkCircle,
+-                                contentDescription = "Valid",
+-                                tint = androidx.compose.ui.graphics.Color(0xFF4CAF50)
++                                imageVector = Octicons.Workflow16,
++                                contentDescription = "Base DN",
++                                modifier = Modifier.size(12.dp)
+                             )
+-                        }
+-                    },
+-                    modifier = Modifier.fillMaxWidth(),
+-                    singleLine = true
+-                )
++                        },
++                        trailingIcon = {
++                            if (isBaseDNValid && baseDN.isNotEmpty()) {
++                                Icon(
++                                    imageVector = Octicons.CheckCircle16,
++                                    contentDescription = "Valid",
++                                    tint = AppColors.success,
++                                    modifier = Modifier.size(14.dp)
++                                )
++                            }
++                        },
++                        isError = showBaseDNError,
++                        errorMessage = "Base DN is required",
++                        isRequired = true,
++                        modifier = Modifier.fillMaxWidth(),
++                        singleLine = true
++                    )
++
++                    // Bind User Field
++                    AppTextField(
++                        value = bindUser,
++                        onValueChange = {
++                            bindUser = it
++                        },
++                        label = "Bind User",
++                        placeholder = "cn=admin,dc=example,dc=com",
++                        leadingIcon = {
++                            Icon(
++                                imageVector = Octicons.Person16,
++                                contentDescription = "User",
++                                modifier = Modifier.size(12.dp)
++                            )
++                        },
++                        trailingIcon = {
++                            if (isBindUserValid && bindUser.isNotEmpty()) {
++                                Icon(
++                                    imageVector = Octicons.CheckCircle16,
++                                    contentDescription = "Valid",
++                                    tint = AppColors.success,
++                                    modifier = Modifier.size(14.dp)
++                                )
++                            }
++                        },
++                        isError = showBindUserError,
++                        errorMessage = "Bind user is required",
++                        isRequired = true,
++                        modifier = Modifier.fillMaxWidth(),
++                        singleLine = true
++                    )
++
++                    // Bind Password Field
++                    AppTextField(
++                        value = bindPass,
++                        onValueChange = { bindPass = it },
++                        label = "Bind Password",
++                        leadingIcon = {
++                            Icon(
++                                imageVector = Octicons.Lock16,
++                                contentDescription = "Password",
++                                modifier = Modifier.size(12.dp)
++                            )
++                        },
++                        trailingIcon = {
++                            IconButton(
++                                icon = if (showPassword) Octicons.EyeClosed16 else Octicons.Eye16,
++                                contentDescription = if (showPassword) "Hide password" else "Show password",
++                                onClick = { showPassword = !showPassword },
++                                tint = AppColors.textSecondary
++                            )
++                        },
++                        modifier = Modifier.fillMaxWidth(),
++                        singleLine = true,
++                        visualTransformation = if (showPassword) VisualTransformation.None else PasswordVisualTransformation()
++                    )
++                }
+
+                 // SSL/TLS Options
+                 Row(
+                     modifier = Modifier.fillMaxWidth(),
+-                    horizontalArrangement = Arrangement.spacedBy(24.dp),
++                    horizontalArrangement = Arrangement.spacedBy(AppSpacing.lg),
+                     verticalAlignment = Alignment.CenterVertically
+                 ) {
+                     Row(
+                         verticalAlignment = Alignment.CenterVertically,
+-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
++                        horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm)
+                     ) {
+-                        CheckBox(
++                        Checkbox(
+                             checked = useSSL,
+-                            onCheckStateChange = { newState ->
+-                                useSSL = newState == true
++                            onCheckedChange = { newState ->
++                                useSSL = newState
+                                 if (useSSL) useTLS = false
+-                            }
++                            },
++                            colors = CheckboxColors(
++                                content = AppColors.primary,
++                                contentDisabled = AppColors.textDisabled,
++                                contentSelected = AppColors.primary
++                            )
+                         )
+                         Text("Use SSL")
+                     }
+
+                     Row(
+                         verticalAlignment = Alignment.CenterVertically,
+-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
++                        horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm)
+                     ) {
+-                        CheckBox(
++                        Checkbox(
+                             checked = useTLS,
+-                            onCheckStateChange = { newState ->
+-                                useTLS = newState == true
++                            onCheckedChange = { newState ->
++                                useTLS = newState
+                                 if (useTLS) useSSL = false
+-                            }
++                            },
++                            colors = CheckboxColors(
++                                content = AppColors.primary,
++                                contentDisabled = AppColors.textDisabled,
++                                contentSelected = AppColors.primary
++                            )
+                         )
+                         Text("Use TLS")
+                     }
+                 }
+
+-                // Bind User Field
+-                TextField(
+-                    value = bindUser,
+-                    onValueChange = { bindUser = it },
+-                    header = { Text("Bind User") },
+-                    placeholder = { Text("cn=admin,dc=example,dc=com") },
+-                    leadingIcon = {
+-                        Icon(
+-                            imageVector = Icons.Regular.Person,
+-                            contentDescription = "User"
+-                        )
+-                    },
++                Spacer(modifier = Modifier.weight(1f))
++
++                // Action Buttons
++                Row(
+                     modifier = Modifier.fillMaxWidth(),
+-                    singleLine = true,
+-                    trailing = {
+-                        if (isBaseDNValid) {
+-                            Icon(
+-                                imageVector = Icons.Regular.CheckmarkCircle,
+-                                contentDescription = "Valid",
+-                                tint = androidx.compose.ui.graphics.Color(0xFF4CAF50)
+-                            )
++                    horizontalArrangement = Arrangement.End,
++                    verticalAlignment = Alignment.CenterVertically
++                ) {
++                    when (connectionState) {
++                        is ConnectionState.Connected -> {
++                            OutlinedButton(
++                                onClick = { viewModel.disconnect() }
++                            ) {
++                                Icon(
++                                    imageVector = Octicons.Lock16,
++                                    contentDescription = "Disconnect",
++                                    modifier = Modifier.size(AppSizes.iconMedium)
++                                )
++                                Spacer(modifier = Modifier.width(AppSpacing.sm))
++                                Text("Disconnect")
++                            }
+                         }
+-                    },
+-                )
+
+-                // Bind Password Field
+-                TextField(
+-                    value = bindPass,
+-                    onValueChange = { bindPass = it },
+-                    header = { Text("Bind Password") },
+-                    leadingIcon = {
+-                        Icon(
+-                            imageVector = Icons.Regular.LockClosed,
+-                            contentDescription = "Password"
+-                        )
+-                    },
+-                    modifier = Modifier.fillMaxWidth(),
+-                    singleLine = true,
+-                    visualTransformation = PasswordVisualTransformation()
+-                )
+-            }
++                        is ConnectionState.Connecting -> {
++                            Row(
++                                verticalAlignment = Alignment.CenterVertically,
++                                horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm),
++                                modifier = Modifier.padding(AppSpacing.md)
++                            ) {
++                                CircularProgressIndicator(modifier = Modifier.size(AppSizes.iconMedium))
++                                Text("Connecting...")
++                            }
++                        }
+
+-            Spacer(modifier = Modifier.weight(1f))
++                        else -> {
++                            // Save button (outlined style for visual distinction)
++                            OutlinedButton(
++                                onClick = {
++                                    println("=== [ConfigurationScreen] Save button CLICKED ===")
++                                    println("[ConfigurationScreen] isFormValid = $isFormValid")
+
+-            // Action Button
+-            Row(
+-                modifier = Modifier.fillMaxWidth(),
+-                horizontalArrangement = Arrangement.End
+-            ) {
+-                when (connectionState) {
+-                    is ConnectionState.Connected -> {
+-                        Button(
+-                            onClick = { viewModel.disconnect() }
+-                        ) {
+-                            Icon(
+-                                imageVector = Icons.Regular.LockClosed,
+-                                contentDescription = "Disconnect",
+-                                modifier = Modifier.size(18.dp)
+-                            )
+-                            Spacer(modifier = Modifier.width(8.dp))
+-                            Text("Disconnect")
+-                        }
+-                    }
++                                    if (isFormValid) {
++                                        println("[ConfigurationScreen] Form is valid, proceeding with save")
++                                        val portInt = port.toIntOrNull() ?: 389
+
+-                    is ConnectionState.Connecting -> {
+-                        Row(
+-                            verticalAlignment = Alignment.CenterVertically,
+-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+-                            modifier = Modifier.padding(12.dp)
+-                        ) {
+-                            ProgressRing(modifier = Modifier.size(20.dp))
+-                            Text("Connecting...")
+-                        }
+-                    }
++                                        // Use ViewModel to save
++                                        val finalName = viewModel.saveConnection(
++                                            configService = configService,
++                                            selectedConnectionName = selectedConnectionName,
++                                            name = name,
++                                            host = host,
++                                            port = portInt,
++                                            baseDN = baseDN,
++                                            useSsl = useSSL,
++                                            useTls = useTLS,
++                                            bindUser = bindUser,
++                                            bindPass = bindPass
++                                        )
+
+-                    else -> {
+-                        Button(
+-                            onClick = {
+-                                val portInt = port.toIntOrNull() ?: 389
+-                                viewModel.updateConfig(
+-                                    host = host,
+-                                    port = portInt,
+-                                    baseDN = baseDN,
+-                                    useSSL = useSSL,
+-                                    useTLS = useTLS,
+-                                    bindUser = bindUser,
+-                                    bindPass = bindPass
+-                                )
+-                                viewModel.connect()
++                                        // Refresh the configs list and update selected connection name
++                                        configs = viewModel.getConfig().connections
++                                        selectedConnectionName = finalName
++
++                                        println("[ConfigurationScreen] Save completed. New selected name: $finalName")
++                                    } else {
++                                        println("[ConfigurationScreen] Form is INVALID - cannot save")
++                                        println("[ConfigurationScreen]   hostValid=$isHostValid, portValid=$isPortValid, baseDNValid=$isBaseDNValid, bindUserValid=$isBindUserValid")
++                                    }
++                                }
++                            ) {
++                                Text("Save")
++                            }
++
++                            Spacer(modifier = Modifier.width(AppSpacing.sm))
++
++                            // Connect button (primary action)
++                            DefaultButton(
++                                onClick = {
++                                    println("=== [ConfigurationScreen] Connect button CLICKED ===")
++                                    println("[ConfigurationScreen] isFormValid = $isFormValid")
++
++                                    if (isFormValid) {
++                                        println("[ConfigurationScreen] Form is valid, proceeding with connect")
++                                        val portInt = port.toIntOrNull() ?: 389
++
++                                        // Use ViewModel to save and connect
++                                        val finalName = viewModel.saveAndConnect(
++                                            configService = configService,
++                                            selectedConnectionName = selectedConnectionName,
++                                            name = name,
++                                            host = host,
++                                            port = portInt,
++                                            baseDN = baseDN,
++                                            useSsl = useSSL,
++                                            useTls = useTLS,
++                                            bindUser = bindUser,
++                                            bindPass = bindPass
++                                        )
++
++                                        // Refresh the configs list and update selected connection name
++                                        configs = viewModel.getConfig().connections
++                                        selectedConnectionName = finalName
++
++                                        println("[ConfigurationScreen] Connect initiated. New selected name: $finalName")
++                                    } else {
++                                        println("[ConfigurationScreen] Form is INVALID - cannot connect")
++                                        println("[ConfigurationScreen]   hostValid=$isHostValid, portValid=$isPortValid, baseDNValid=$isBaseDNValid, bindUserValid=$isBindUserValid")
++                                    }
++                                }
++                            ) {
++                                Text("Connect")
+                             }
+-                        ) {
+-                            Icon(
+-                                imageVector = Icons.Regular.Play,
+-                                contentDescription = "Connect",
+-                                modifier = Modifier.size(18.dp)
+-                            )
+-                            Spacer(modifier = Modifier.width(8.dp))
+-                            Text("Connect")
+                         }
+                     }
+                 }
+@@ -289,28 +595,3 @@ fun ConfigurationScreen(
+         }
+     }
+ }
+-
+-@Composable
+-private fun ConnectionStatusCard(connectionState: ConnectionState) {
+-    val (statusText, statusIcon) = when (connectionState) {
+-        is ConnectionState.Connected -> "Connected" to Icons.Regular.CheckmarkCircle
+-        is ConnectionState.Connecting -> "Connecting..." to Icons.Regular.CubeSync
+-        is ConnectionState.Disconnected -> "Disconnected" to Icons.Regular.Circle
+-        is ConnectionState.Error -> "Error: ${connectionState.message}" to Icons.Regular.ErrorCircle
+-    }
+-
+-    Row(
+-        modifier = Modifier
+-            .fillMaxWidth()
+-            .padding(16.dp),
+-        verticalAlignment = Alignment.CenterVertically,
+-        horizontalArrangement = Arrangement.spacedBy(12.dp)
+-    ) {
+-        Icon(
+-            imageVector = statusIcon,
+-            contentDescription = "Status",
+-            modifier = Modifier.size(20.dp)
+-        )
+-        Text(text = statusText)
+-    }
+-}
+commit cab7477b38f5c1ea0e8c554b6e7f9aa34e401185 (origin/kotlin)
+Author: Eric Schmar <ericschmar@gmail.com>
+Date:   Tue Dec 9 09:19:57 2025 -0500
+    t
+diff --git a/gui/src/main/kotlin/com/moribito/gui/ui/screens/ConfigurationScreen.kt b/gui/src/main/kotlin/com/moribito/gui/ui/screens/ConfigurationScreen.kt
+new file mode 100644
+index 0000000..289eb9c
+--- /dev/null
++++ b/gui/src/main/kotlin/com/moribito/gui/ui/screens/ConfigurationScreen.kt
+@@ -0,0 +1,316 @@
++package com.moribito.gui.ui.screens
++
++import androidx.compose.foundation.layout.*
++import androidx.compose.foundation.shape.RoundedCornerShape
++import androidx.compose.runtime.*
++import androidx.compose.ui.Alignment
++import androidx.compose.ui.Modifier
++import androidx.compose.ui.text.input.PasswordVisualTransformation
++import androidx.compose.ui.unit.dp
++import com.moribito.config.LdapConfig
++import com.moribito.gui.viewmodel.ConnectionState
++import com.moribito.gui.viewmodel.MainViewModel
++import io.github.composefluent.FluentTheme
++import io.github.composefluent.background.Mica
++import io.github.composefluent.component.*
++import io.github.composefluent.defaultFontFamily
++import io.github.composefluent.icons.Icons
++import io.github.composefluent.icons.regular.CheckmarkCircle
++import io.github.composefluent.icons.regular.Circle
++import io.github.composefluent.icons.regular.CubeSync
++import io.github.composefluent.icons.regular.CubeTree
++import io.github.composefluent.icons.regular.ErrorCircle
++import io.github.composefluent.icons.regular.LockClosed
++import io.github.composefluent.icons.regular.Person
++import io.github.composefluent.icons.regular.Play
++import io.github.composefluent.icons.regular.Server
++import io.github.composefluent.icons.regular.Settings
++import org.jetbrains.skia.FontStyle
++
++@Composable
++fun ConfigurationScreen(
++    viewModel: MainViewModel,
++    ldapConfig: LdapConfig,
++    connectionState: ConnectionState
++) {
++    var host by remember { mutableStateOf(ldapConfig.host) }
++    var port by remember { mutableStateOf(ldapConfig.port.toString()) }
++    var baseDN by remember { mutableStateOf(ldapConfig.baseDN) }
++    var useSSL by remember { mutableStateOf(ldapConfig.useSSL) }
++    var useTLS by remember { mutableStateOf(ldapConfig.useTLS) }
++    var bindUser by remember { mutableStateOf(ldapConfig.bindUser) }
++    var bindPass by remember { mutableStateOf(ldapConfig.bindPass) }
++
++    // Validation states
++    val isHostValid = host.isNotBlank()
++    val isPortValid = port.toIntOrNull() != null
++    val isBaseDNValid = baseDN.isNotBlank()
++
++    Mica(modifier = Modifier.fillMaxSize()) {
++        Column(
++            modifier = Modifier
++                .fillMaxSize()
++                .padding(24.dp),
++            verticalArrangement = Arrangement.spacedBy(24.dp)
++        ) {
++            // Section Title
++            Text(
++                text = "LDAP Configuration",
++                style = FluentTheme.typography.title
++            )
++
++            // Connection Status Card
++            ConnectionStatusCard(connectionState)
++
++            // Configuration Form Card
++            Column(
++                modifier = Modifier
++                    .fillMaxWidth()
++                    .padding(20.dp),
++                verticalArrangement = Arrangement.spacedBy(16.dp)
++            ) {
++                // Host Field
++                TextField(
++                    value = host,
++                    onValueChange = { host = it },
++                    header = { Text("Server Host") },
++                    placeholder = { Text("ldap.example.com") },
++                    leadingIcon = {
++                        Icon(
++                            imageVector = Icons.Regular.Server,
++                            contentDescription = "Host"
++                        )
++                    },
++                    trailing = {
++                        if (isHostValid) {
++                            Icon(
++                                imageVector = Icons.Regular.CheckmarkCircle,
++                                contentDescription = "Valid",
++                                tint = androidx.compose.ui.graphics.Color(0xFF4CAF50)
++                            )
++                        }
++                    },
++                    modifier = Modifier.fillMaxWidth(),
++                    singleLine = true
++                )
++
++                // Port Field
++                Row(
++                    modifier = Modifier.fillMaxWidth(),
++                    horizontalArrangement = Arrangement.spacedBy(16.dp)
++                ) {
++                    TextField(
++                        value = port,
++                        onValueChange = { port = it },
++                        header = { Text("Port") },
++                        placeholder = { Text("389") },
++                        leadingIcon = {
++                            Icon(
++                                imageVector = Icons.Regular.Settings,
++                                contentDescription = "Port"
++                            )
++                        },
++                        trailing = {
++                            if (isPortValid) {
++                                Icon(
++                                    imageVector = Icons.Regular.CheckmarkCircle,
++                                    contentDescription = "Valid",
++                                    tint = androidx.compose.ui.graphics.Color(0xFF4CAF50)
++                                )
++                            }
++                        },
++                        modifier = Modifier.weight(1f),
++                        singleLine = true
++                    )
++                }
++
++                // Base DN Field
++                TextField(
++                    value = baseDN,
++                    onValueChange = { baseDN = it },
++                    header = { Text("Base DN") },
++                    placeholder = { Text("dc=example,dc=com") },
++                    leadingIcon = {
++                        Icon(
++                            imageVector = Icons.Regular.CubeTree,
++                            contentDescription = "Base DN"
++                        )
++                    },
++                    trailing = {
++                        if (isBaseDNValid) {
++                            Icon(
++                                imageVector = Icons.Regular.CheckmarkCircle,
++                                contentDescription = "Valid",
++                                tint = androidx.compose.ui.graphics.Color(0xFF4CAF50)
++                            )
++                        }
++                    },
++                    modifier = Modifier.fillMaxWidth(),
++                    singleLine = true
++                )
++
++                // SSL/TLS Options
++                Row(
++                    modifier = Modifier.fillMaxWidth(),
++                    horizontalArrangement = Arrangement.spacedBy(24.dp),
++                    verticalAlignment = Alignment.CenterVertically
++                ) {
++                    Row(
++                        verticalAlignment = Alignment.CenterVertically,
++                        horizontalArrangement = Arrangement.spacedBy(8.dp)
++                    ) {
++                        CheckBox(
++                            checked = useSSL,
++                            onCheckStateChange = { newState ->
++                                useSSL = newState == true
++                                if (useSSL) useTLS = false
++                            }
++                        )
++                        Text("Use SSL")
++                    }
++
++                    Row(
++                        verticalAlignment = Alignment.CenterVertically,
++                        horizontalArrangement = Arrangement.spacedBy(8.dp)
++                    ) {
++                        CheckBox(
++                            checked = useTLS,
++                            onCheckStateChange = { newState ->
++                                useTLS = newState == true
++                                if (useTLS) useSSL = false
++                            }
++                        )
++                        Text("Use TLS")
++                    }
++                }
++
++                // Bind User Field
++                TextField(
++                    value = bindUser,
++                    onValueChange = { bindUser = it },
++                    header = { Text("Bind User") },
++                    placeholder = { Text("cn=admin,dc=example,dc=com") },
++                    leadingIcon = {
++                        Icon(
++                            imageVector = Icons.Regular.Person,
++                            contentDescription = "User"
++                        )
++                    },
++                    modifier = Modifier.fillMaxWidth(),
++                    singleLine = true,
++                    trailing = {
++                        if (isBaseDNValid) {
++                            Icon(
++                                imageVector = Icons.Regular.CheckmarkCircle,
++                                contentDescription = "Valid",
++                                tint = androidx.compose.ui.graphics.Color(0xFF4CAF50)
++                            )
++                        }
++                    },
++                )
++
++                // Bind Password Field
++                TextField(
++                    value = bindPass,
++                    onValueChange = { bindPass = it },
++                    header = { Text("Bind Password") },
++                    leadingIcon = {
++                        Icon(
++                            imageVector = Icons.Regular.LockClosed,
++                            contentDescription = "Password"
++                        )
++                    },
++                    modifier = Modifier.fillMaxWidth(),
++                    singleLine = true,
++                    visualTransformation = PasswordVisualTransformation()
++                )
++            }
++
++            Spacer(modifier = Modifier.weight(1f))
++
++            // Action Button
++            Row(
++                modifier = Modifier.fillMaxWidth(),
++                horizontalArrangement = Arrangement.End
++            ) {
++                when (connectionState) {
++                    is ConnectionState.Connected -> {
++                        Button(
++                            onClick = { viewModel.disconnect() }
++                        ) {
++                            Icon(
++                                imageVector = Icons.Regular.LockClosed,
++                                contentDescription = "Disconnect",
++                                modifier = Modifier.size(18.dp)
++                            )
++                            Spacer(modifier = Modifier.width(8.dp))
++                            Text("Disconnect")
++                        }
++                    }
++
++                    is ConnectionState.Connecting -> {
++                        Row(
++                            verticalAlignment = Alignment.CenterVertically,
++                            horizontalArrangement = Arrangement.spacedBy(8.dp),
++                            modifier = Modifier.padding(12.dp)
++                        ) {
++                            ProgressRing(modifier = Modifier.size(20.dp))
++                            Text("Connecting...")
++                        }
++                    }
++
++                    else -> {
++                        Button(
++                            onClick = {
++                                val portInt = port.toIntOrNull() ?: 389
++                                viewModel.updateConfig(
++                                    host = host,
++                                    port = portInt,
++                                    baseDN = baseDN,
++                                    useSSL = useSSL,
++                                    useTLS = useTLS,
++                                    bindUser = bindUser,
++                                    bindPass = bindPass
++                                )
++                                viewModel.connect()
++                            }
++                        ) {
++                            Icon(
++                                imageVector = Icons.Regular.Play,
++                                contentDescription = "Connect",
++                                modifier = Modifier.size(18.dp)
++                            )
++                            Spacer(modifier = Modifier.width(8.dp))
++                            Text("Connect")
++                        }
++                    }
++                }
++            }
++        }
++    }
++}
++
++@Composable
++private fun ConnectionStatusCard(connectionState: ConnectionState) {
++    val (statusText, statusIcon) = when (connectionState) {
++        is ConnectionState.Connected -> "Connected" to Icons.Regular.CheckmarkCircle
++        is ConnectionState.Connecting -> "Connecting..." to Icons.Regular.CubeSync
++        is ConnectionState.Disconnected -> "Disconnected" to Icons.Regular.Circle
++        is ConnectionState.Error -> "Error: ${connectionState.message}" to Icons.Regular.ErrorCircle
++    }
++
++    Row(
++        modifier = Modifier
++            .fillMaxWidth()
++            .padding(16.dp),
++        verticalAlignment = Alignment.CenterVertically,
++        horizontalArrangement = Arrangement.spacedBy(12.dp)
++    ) {
++        Icon(
++            imageVector = statusIcon,
++            contentDescription = "Status",
++            modifier = Modifier.size(20.dp)
++        )
++        Text(text = statusText)
++    }
++}

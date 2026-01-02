@@ -1,1 +1,0 @@
-- [x] Setup github actions to build and distribute this project: https://github.com/openMF/mifos-x-actionhub-build-desktop-app-kmp

@@ -1,7 +1,9 @@
 package com.moribito.gui.ui.icons
 
-import org.jetbrains.jewel.ui.icon.PathIconKey
+import com.moribito.gui.generated.resources.Res
+import com.moribito.gui.generated.resources.walking_forward
 
 object AppIcons {
-    val walkingIndicator = PathIconKey("/drawable/walking_forward.gif", AppIcons::class.java)
+    val walkingIndicator = Res.drawable.walking_forward
+    const val walkingIndicatorPath = "drawable/walking_forward.gif"
 }

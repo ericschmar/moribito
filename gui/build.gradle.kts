@@ -43,6 +43,7 @@ dependencies {
     implementation(compose.desktop.currentOs)
     implementation(compose.material3)
     implementation(compose.materialIconsExtended)
+    implementation(compose.components.resources)
 
     // Coroutines
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.8.0")
@@ -67,6 +68,10 @@ kotlin {
 java {
     sourceCompatibility = JavaVersion.VERSION_25
     targetCompatibility = JavaVersion.VERSION_25
+}
+
+compose.resources {
+    publicResClass = true
 }
 
 compose.desktop {

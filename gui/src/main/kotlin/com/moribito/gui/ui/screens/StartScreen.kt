@@ -10,9 +10,14 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import java.awt.Desktop
+import java.net.URI
+import com.moribito.gui.license.LicenseResult
+import com.moribito.gui.license.LicenseVerifier
 import com.moribito.gui.theme.*
 import com.moribito.gui.ui.components.ConnectionCard
 import com.moribito.gui.ui.components.Island
+import com.moribito.gui.ui.components.TextField as AppTextField
 import com.moribito.gui.viewmodel.AppView
 import com.moribito.gui.viewmodel.MainViewModel
 import org.jetbrains.compose.splitpane.ExperimentalSplitPaneApi
@@ -41,6 +46,9 @@ fun StartScreen(
 ) {
     val splitPaneState = rememberSplitPaneState(0.5f) // 50/50 split
     val recentConnections = viewModel.getRecentConnections(3)
+
+    var licenseKey by remember { mutableStateOf("") }
+    var verificationResult by remember { mutableStateOf<LicenseResult?>(null) }
 
     // Custom gradient style for "Moribito" title
     val moribitoGradient = Brush.linearGradient(
@@ -83,6 +91,66 @@ fun StartScreen(
                         Text(
                             text = "An LDAP viewer"
                         )
+
+                        Spacer(modifier = Modifier.height(AppSpacing.xxxl))
+
+                        Column(
+                            modifier = Modifier.width(300.dp),
+                            verticalArrangement = Arrangement.spacedBy(AppSpacing.sm)
+                        ) {
+                            AppTextField(
+                                value = licenseKey,
+                                onValueChange = {
+                                    licenseKey = it
+                                    if (verificationResult != null) verificationResult = null
+                                },
+                                label = "License Key",
+                                placeholder = "Paste your license key here",
+                                isError = verificationResult is LicenseResult.Invalid || verificationResult is LicenseResult.Error,
+                                errorMessage = when (val result = verificationResult) {
+                                    is LicenseResult.Invalid -> "Invalid license key"
+                                    is LicenseResult.Error -> result.msg
+                                    else -> null
+                                }
+                            )
+
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                if (verificationResult is LicenseResult.Success) {
+                                    Text(
+                                        text = "Verified: ${(verificationResult as LicenseResult.Success).userEmail}",
+                                        color = AppColors.success,
+                                        style = AppTypography.labelMedium,
+                                        modifier = Modifier.weight(1f)
+                                    )
+                                } else {
+                                    Spacer(modifier = Modifier.weight(1f))
+                                }
+
+                                OutlinedButton(
+                                    onClick = {
+                                        try {
+                                            Desktop.getDesktop().browse(URI("https://moribito.cc/buy"))
+                                        } catch (e: Exception) {
+                                            // Silently fail if desktop browse is not supported
+                                        }
+                                    }
+                                ) {
+                                    Text("Buy License")
+                                }
+
+                                OutlinedButton(
+                                    onClick = {
+                                        verificationResult = LicenseVerifier.verify(licenseKey)
+                                    }
+                                ) {
+                                    Text("Verify License")
+                                }
+                            }
+                        }
                     }
                 }
             }

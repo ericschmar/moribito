@@ -17,9 +17,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.moribito.gui.theme.AppSizes
 import com.moribito.gui.theme.AppSpacing
 import com.moribito.gui.theme.IntelliJColors
+import com.moribito.gui.ui.components.GifImage
 import com.moribito.gui.ui.icons.AppIcons
 import com.moribito.ldap.LdapSchema
 import compose.icons.Octicons
@@ -30,7 +30,6 @@ import kotlinx.coroutines.delay
 import org.jetbrains.jewel.foundation.theme.JewelTheme
 import org.jetbrains.jewel.ui.component.Icon
 import org.jetbrains.jewel.ui.component.IconButton
-import org.jetbrains.jewel.ui.component.Image
 import org.jetbrains.jewel.ui.component.Text
 import org.jetbrains.jewel.ui.component.Tooltip
 
@@ -118,13 +117,12 @@ fun AttributeViewer(
 
         // Attribute list
         if (isLoading) {
-            Image(
-                iconKey = AppIcons.walkingIndicator,
-                contentDescription = "Inspecting schema indicator",
-                modifier = Modifier
-                    .offset(x = xOffset)
-                    .size(AppSizes.iconExtraLarge)
-            )
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                GifImage(
+                    resourcePath = AppIcons.walkingIndicatorPath,
+                    modifier = Modifier.size(128.dp).offset(x = xOffset)
+                )
+            }
         } else if (schema == null || schema.attributes.isEmpty()) {
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 Text("No attributes found", color = JewelTheme.globalColors.text.disabled)

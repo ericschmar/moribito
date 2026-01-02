@@ -162,7 +162,8 @@ class MainViewModel(private val configService: ConfigurationService) {
         baseDN: String,
         useSsl: Boolean,
         useTls: Boolean,
-        bindCredentials: List<com.moribito.config.BindCredential>? = null
+        bindCredentials: List<com.moribito.config.BindCredential>? = null,
+        credential: com.moribito.config.BindCredential? = null
     ): String {
         logger.info("saveAndConnect called")
 
@@ -179,7 +180,7 @@ class MainViewModel(private val configService: ConfigurationService) {
         )
 
         // Now connect
-        connect()
+        connect(credential)
 
         return finalName
     }

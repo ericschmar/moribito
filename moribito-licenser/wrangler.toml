@@ -1,0 +1,9 @@
+name = "moribito-licenser"
+main = "src/worker.js"
+compatibility_date = "2026-01-01" # Use a recent date
+compatibility_flags = [ "nodejs_compat" ]
+
+[[kv_namespaces]]
+binding = "LICENSE_STORAGE"
+id = "preview_id"
+preview_id = "preview_id"

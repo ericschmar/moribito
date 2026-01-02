@@ -35,7 +35,7 @@ fun MainToolbar(
                 modifier = Modifier.size(28.dp)
             ) {
                 Icon(
-                    key = AllIconsKeys.Nodes.Annotationtype,
+                    key = AllIconsKeys.Gutter.ExtAnnotation,
                     contentDescription = "Inspect Schema",
                     modifier = Modifier.size(14.dp),
                 )

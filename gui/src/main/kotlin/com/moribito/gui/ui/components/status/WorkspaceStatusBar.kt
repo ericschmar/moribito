@@ -2,7 +2,12 @@ package com.moribito.gui.ui.components.status
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -13,9 +18,9 @@ import com.moribito.gui.viewmodel.ConnectionState
 import org.jetbrains.jewel.foundation.theme.JewelTheme
 import com.moribito.gui.ui.icons.AppIcons
 import com.moribito.gui.theme.IntelliJColors
-import org.jetbrains.jewel.ui.component.Image
-import org.jetbrains.jewel.ui.component.Text
+import com.moribito.gui.ui.components.GifImage
 import kotlinx.coroutines.delay
+import org.jetbrains.jewel.ui.component.Text
 
 /**
  * Status bar for the workspace screen with three sections: left (status chip), center, and right.
@@ -31,6 +36,7 @@ fun WorkspaceStatusBar(
     centerContent: @Composable RowScope.() -> Unit = {},
     rightContent: @Composable RowScope.() -> Unit = {}
 ) {
+
     var xOffset by remember { mutableStateOf(0.dp) }
 
     LaunchedEffect(isInspectingSchema) {
@@ -76,12 +82,9 @@ fun WorkspaceStatusBar(
                     verticalArrangement = Arrangement.Center
                 ) {
                     if (isInspectingSchema) {
-                        Image(
-                            iconKey = AppIcons.walkingIndicator,
-                            contentDescription = "Inspecting schema indicator",
-                            modifier = Modifier
-                                .offset(x = xOffset)
-                                .size(AppSizes.iconExtraLarge)
+                        GifImage(
+                            resourcePath = AppIcons.walkingIndicatorPath,
+                            modifier = Modifier.size(AppSizes.iconExtraLarge).offset(x = xOffset)
                         )
                     }
                 }
