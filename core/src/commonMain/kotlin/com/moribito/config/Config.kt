@@ -49,5 +49,6 @@ data class LdapConfig(
 @Serializable
 data class GeneralSettings(
     @SerialName("default_connection_index") val defaultIndex: Int = 0,
-    @SerialName("dark_mode") val darkMode: Boolean = true
+    @SerialName("dark_mode") val darkMode: Boolean = true,
+    @SerialName("license_key") val licenseKey: String? = null
 )

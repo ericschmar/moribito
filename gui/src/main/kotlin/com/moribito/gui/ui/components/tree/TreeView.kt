@@ -86,7 +86,7 @@ fun TreeView(
             onNodeDoubleClick(element.data)
         },
         onSelectionChange = { /* Handle selection if needed */ },
-        // Compact styling to match existing design
+        // Compact styling to match the existing design
         elementMinHeight = 26.dp,
         indentSize = 16.dp,
         elementPadding = PaddingValues(start = 2.dp, end = 5.dp),

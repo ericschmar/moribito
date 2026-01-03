@@ -142,11 +142,11 @@ fun TextField(
                         modifier = Modifier.weight(1f),
                         contentAlignment = Alignment.CenterStart
                     ) {
-                        // Placeholder text - dimmer Gruvbox color
+                        // Placeholder text - dimmer Gruvbox color, smaller size
                         if (value.isEmpty() && placeholder != null) {
                             Text(
                                 text = placeholder,
-                                style = LocalTextStyle.current,
+                                style = LocalTextStyle.current.copy(fontSize = 11.sp),
                                 color = JewelTheme.textFieldStyle.colors.placeholder  // Dimmer version
                             )
                         }

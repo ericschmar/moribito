@@ -1,13 +1,12 @@
 package com.moribito.ldap
 
+import com.moribito.ldap.query.LdapQueryConverter
+import com.moribito.ldap.query.SqlParser
+import com.moribito.logging.Logger
+import kotlinx.coroutines.*
 import org.ldaptive.*
 import org.ldaptive.ssl.SslConfig
-import org.ldaptive.ssl.X509CredentialConfig
-import kotlinx.coroutines.*
 import kotlin.time.Duration.Companion.milliseconds
-import com.moribito.ldap.query.SqlParser
-import com.moribito.ldap.query.LdapQueryConverter
-import com.moribito.logging.Logger
 
 /**
  * Configuration for LDAP client connection and retry behavior.
@@ -331,7 +330,8 @@ class LdapClient(
                 val entries = result.entries.map { it.toEntry() }
 
                 // Extract pagination info from response
-                val responseControl = result.getControl(org.ldaptive.control.PagedResultsControl.OID) as? org.ldaptive.control.PagedResultsControl
+                val responseControl =
+                    result.getControl(org.ldaptive.control.PagedResultsControl.OID) as? org.ldaptive.control.PagedResultsControl
                 val nextCookie = responseControl?.cookie
                 val hasMore = nextCookie != null && nextCookie.isNotEmpty()
 
@@ -422,21 +422,6 @@ class LdapClient(
         )
     }
 
-    /**
-     * Loads children for a tree node.
-     *
-     * @param node The node to load children for
-     * @return The node with loaded children
-     * @throws LdapException if operation fails
-     */
-    suspend fun loadChildren(node: TreeNode): TreeNode {
-        if (node.isLoaded) {
-            return node
-        }
-
-        val children = getChildren(node.dn)
-        return node.withChildren(children)
-    }
 
     /**
      * Loads children for a tree node, including virtual member children if enabled.
@@ -540,7 +525,7 @@ class LdapClient(
         val parser = SqlParser(sql)
         val query = parser.parse()
         val converter = LdapQueryConverter()
-        
+
         return search(
             baseDN = converter.convertFromToDn(query.from, config.baseDN),
             filter = converter.convertToLdapFilter(query.where),
@@ -560,7 +545,7 @@ class LdapClient(
         val parser = SqlParser(sql)
         val query = parser.parse()
         val converter = LdapQueryConverter()
-        
+
         return searchPaged(
             baseDN = converter.convertFromToDn(query.from, config.baseDN),
             filter = converter.convertToLdapFilter(query.where),
@@ -572,8 +557,9 @@ class LdapClient(
     }
 
     /**
-     * Inspects the LDAP server schema.
-     * Falls back to OU attribute discovery if schema inspection is not supported.
+     * Inspects the LDAP server schema and recursively discovers the container tree structure.
+     * Collects attribute types from both the schema definition and actual entries.
+     * Falls back to discovered attributes if schema inspection is not supported.
      */
     suspend fun inspectSchema(): LdapSchema = withRetry {
         withContext(Dispatchers.IO) {
@@ -584,26 +570,140 @@ class LdapClient(
                 val rootDse = search("", "(objectClass=*)", SearchScope.BASE, listOf("subschemaSubentry")).firstOrNull()
                 val subschemaSubentry = rootDse?.getAttributeValue("subschemaSubentry")
 
-                if (subschemaSubentry != null) {
-                    // 2. Query the schema entry
-                    val schemaEntry = search(subschemaSubentry, "(objectClass=*)", SearchScope.BASE, listOf("attributeTypes")).firstOrNull()
+                val schemaAttributes = if (subschemaSubentry != null) {
+                    // 2. Query the schema entry for attribute type definitions
+                    val schemaEntry = search(
+                        subschemaSubentry,
+                        "(objectClass=*)",
+                        SearchScope.BASE,
+                        listOf("attributeTypes")
+                    ).firstOrNull()
                     val attributeTypes = schemaEntry?.getAttributeValues("attributeTypes")
 
                     if (attributeTypes != null && attributeTypes.isNotEmpty()) {
-                        val attributes = attributeTypes.mapNotNull { parseAttributeType(it) }
+                        attributeTypes.mapNotNull { parseAttributeType(it) }
                             .distinctBy { it.name }
-                            .sortedBy { it.name }
-                        return@withContext LdapSchema(attributes, true)
+                    } else {
+                        emptyList()
                     }
+                } else {
+                    emptyList()
                 }
 
-                // Fallback: server doesn't support schema inspection
-                return@withContext LdapSchema(emptyList(), false)
+                // 3. Recursively discover container tree structure and collect attributes
+                val (containers, discoveredAttributes) = try {
+                    discoverContainerTree(config.baseDN)
+                } catch (e: Exception) {
+                    logger.warn("Container discovery failed", e)
+                    Pair(emptyList(), emptyList())
+                }
+
+                // 4. Merge schema attributes with discovered attributes
+                val allAttributes = if (schemaAttributes.isNotEmpty()) {
+                    // Use schema attributes as primary source (they have proper types and descriptions)
+                    val schemaAttrNames = schemaAttributes.map { it.name.lowercase() }.toSet()
+                    val additionalAttrs = discoveredAttributes.filter { 
+                        it.name.lowercase() !in schemaAttrNames 
+                    }
+                    (schemaAttributes + additionalAttrs).sortedBy { it.name }
+                } else {
+                    // Fall back to discovered attributes if schema inspection not supported
+                    discoveredAttributes
+                }
+
+                logger.info("Schema inspection complete: ${allAttributes.size} attributes, ${containers.size} containers")
+                
+                return@withContext LdapSchema(allAttributes, containers, schemaAttributes.isNotEmpty())
             } catch (e: Exception) {
                 logger.warn("Schema inspection failed", e)
-                return@withContext LdapSchema(emptyList(), false)
+                return@withContext LdapSchema(emptyList(), emptyList(), false)
             }
         }
+    }
+
+    /**
+     * Recursively discovers the container tree structure and collects all attributes found.
+     * 
+     * @param baseDN The base DN to start traversal from
+     * @param maxDepth Maximum depth to traverse (prevents infinite recursion)
+     * @param maxContainers Maximum number of containers to discover (prevents timeout)
+     * @return Pair of (container DNs, discovered attributes)
+     */
+    private suspend fun discoverContainerTree(
+        baseDN: String,
+        maxDepth: Int = 20,
+        maxContainers: Int = 1000
+    ): Pair<List<String>, List<LdapAttribute>> {
+        val containers = mutableListOf<String>()
+        val attributeNames = mutableSetOf<String>()
+        val visited = mutableSetOf<String>()
+
+        suspend fun traverse(dn: String, depth: Int) {
+            // Safety checks
+            if (depth > maxDepth) {
+                logger.debug("Max depth $maxDepth reached at $dn")
+                return
+            }
+            if (containers.size >= maxContainers) {
+                logger.debug("Max containers $maxContainers reached")
+                return
+            }
+            if (dn.lowercase() in visited) {
+                return
+            }
+            
+            visited.add(dn.lowercase())
+
+            // Get immediate children with all their attributes
+            val children = try {
+                search(
+                    baseDN = dn,
+                    filter = "(objectClass=*)",
+                    scope = SearchScope.ONE_LEVEL,
+                    attributes = listOf("*") // Get all user attributes
+                )
+            } catch (e: Exception) {
+                logger.debug("Failed to get children of $dn: ${e.message}")
+                return
+            }
+
+            logger.debug("Found ${children.size} children for DN: $dn")
+
+            for (child in children) {
+                // Collect all attribute names from this entry
+                attributeNames.addAll(child.attributes.keys)
+
+                // Check if this is a container by examining the DN prefix
+                val firstComponent = child.dn.split(',').firstOrNull()?.trim()?.lowercase() ?: ""
+                val isContainer = firstComponent.startsWith("ou=") ||   // Organizational Unit
+                                  firstComponent.startsWith("cn=") ||   // Common Name (can be containers)
+                                  firstComponent.startsWith("dc=") ||   // Domain Component
+                                  firstComponent.startsWith("o=") ||    // Organization
+                                  firstComponent.startsWith("l=") ||    // Locality
+                                  firstComponent.startsWith("c=")       // Country
+
+                logger.debug("Entry: ${child.dn}, firstComponent: $firstComponent, isContainer: $isContainer")
+
+                if (isContainer) {
+                    containers.add(child.dn)
+                    traverse(child.dn, depth + 1) // Recurse into container
+                }
+                // Skip non-container entries (persons, computers, etc.)
+            }
+        }
+        
+        // Start traversal from baseDN
+        containers.add(baseDN)
+        traverse(baseDN, 0)
+        
+        logger.info("Discovered ${containers.size} containers and ${attributeNames.size} unique attributes")
+        
+        // Convert attribute names to LdapAttribute objects
+        val discoveredAttributes = attributeNames.sorted().map { name ->
+            LdapAttribute(name, "Unknown", null)
+        }
+        
+        return Pair(containers.sorted(), discoveredAttributes)
     }
 
     /**
@@ -628,7 +728,7 @@ class LdapClient(
                 LdapAttribute(name, "Unknown", null)
             }
 
-            LdapSchema(attributes, false)
+            LdapSchema(attributes, emptyList(), false)
         }
     }
 

@@ -7,6 +7,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.ViewModel
 import com.moribito.gui.theme.AppSpacing
 import com.moribito.gui.theme.IntelliJColors
 import com.moribito.gui.ui.components.Island
@@ -75,6 +76,7 @@ fun WorkspaceScreen(
                                     },
                                     isShowingQueryResults = state.isShowingQueryResults,
                                     onShowDirectory = {
+                                        state.errorMessage = null
                                         viewModel.showDirectoryTree()
                                     }
                                 )
@@ -218,9 +220,12 @@ private fun MainContentPanel(
                             viewModel.formatQuery()
                         },
                         onRun = {
+                            println("Executing query")
                             viewModel.executeQuery()
                         },
-                        isConnected = state.connectionState is ConnectionState.Connected
+                        error = state.errorMessage,
+                        isConnected = state.connectionState is ConnectionState.Connected,
+                        schema = state.schema
                     )
                 }
             }

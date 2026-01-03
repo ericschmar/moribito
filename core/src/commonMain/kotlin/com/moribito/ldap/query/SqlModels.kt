@@ -41,3 +41,14 @@ enum class ComparisonOperator(val symbol: String) {
     LESS_EQUALS("<="),
     LIKE("LIKE")
 }
+
+/**
+ * Context for autocomplete discovery.
+ */
+enum class QueryContext {
+    SQL_SELECT,
+    SQL_FROM,
+    SQL_WHERE,
+    LDAP_FILTER,
+    NONE
+}

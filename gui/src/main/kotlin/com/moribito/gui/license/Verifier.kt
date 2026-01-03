@@ -15,11 +15,14 @@ object LicenseVerifier {
             val encodedData = parts[0]
             val encodedSig = parts[1]
 
-            val dataBytes = Base64.getDecoder().decode(encodedData)
-            val sigBytes = Base64.getDecoder().decode(encodedSig)
+            val dataBytes = Base64.getUrlDecoder().decode(encodedData)
+            val sigBytes = Base64.getUrlDecoder().decode(encodedSig)
+            println("[DEBUG_LOG] Decoded data: ${String(dataBytes)}")
+            println("[DEBUG_LOG] Signature (hex): ${sigBytes.joinToString("") { "%02x".format(it) }}")
 
             // Verify Logic
             val pubKeyBytes = Base64.getDecoder().decode(PUBLIC_KEY_B64)
+            println("[DEBUG_LOG] Public Key (hex): ${pubKeyBytes.takeLast(32).joinToString("") { "%02x".format(it) }}")
             val pubKey = KeyFactory.getInstance("Ed25519")
                 .generatePublic(X509EncodedKeySpec(pubKeyBytes))
 
@@ -34,6 +37,7 @@ object LicenseVerifier {
                 LicenseResult.Invalid
             }
         } catch (e: Exception) {
+            println(e.cause)
             LicenseResult.Error(e.message ?: "Unknown error")
         }
     }

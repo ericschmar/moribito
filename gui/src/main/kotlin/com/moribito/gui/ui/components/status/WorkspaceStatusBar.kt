@@ -19,6 +19,7 @@ import org.jetbrains.jewel.foundation.theme.JewelTheme
 import com.moribito.gui.ui.icons.AppIcons
 import com.moribito.gui.theme.IntelliJColors
 import com.moribito.gui.ui.components.GifImage
+import com.moribito.gui.ui.components.editor.drawing.AnimatedGirl
 import kotlinx.coroutines.delay
 import org.jetbrains.jewel.ui.component.Text
 
@@ -81,12 +82,7 @@ fun WorkspaceStatusBar(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.Center
                 ) {
-                    if (isInspectingSchema) {
-                        GifImage(
-                            resourcePath = AppIcons.walkingIndicatorPath,
-                            modifier = Modifier.size(AppSizes.iconExtraLarge).offset(x = xOffset)
-                        )
-                    }
+                    AnimatedGirl(animate = isInspectingSchema)
                 }
             } else {
                 centerContent()

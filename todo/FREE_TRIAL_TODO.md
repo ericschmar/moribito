@@ -1,0 +1,1 @@
+We need to setup a free trial system for this app. We've already got license validation that runs in a cloudflare worker. What ever we design should track how long the user has had the app downloaded (based on a hardware key i think so they can't delete it and reinstall it).  Then after that time, disable the app (likely the start screen) until they get a license.

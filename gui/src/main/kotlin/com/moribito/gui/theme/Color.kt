@@ -136,6 +136,8 @@ object IntelliJColors {
      */
     val baseBackground = Color(0xFF26282b)
 
+    val baseBackgroundDisabled = Color(0xFF2D3033)
+
     /**
      * Slightly lighter hover state for interactive elements.
      */

@@ -42,23 +42,42 @@ class LdapQueryConverter {
     }
 
     /**
-     * Converts a dot-separated "table" name to a DN.
-     * e.g., "ou.people" -> "ou=people"
-     * This is a heuristic and might need to be more sophisticated.
-     * If the 'from' already looks like a DN (contains =), it returns it as is.
+     * Converts a dot-separated "table" name or DN to a proper base DN.
+     * 
+     * Examples:
+     * - "ou.people" -> "ou=people,<baseDn>"
+     * - "dc=example" (when baseDn is "dc=example,dc=com") -> "dc=example,dc=com"
+     * - "ou=scientists,dc=example,dc=com" -> "ou=scientists,dc=example,dc=com"
+     * - "*" or "root" -> baseDn
      */
     fun convertFromToDn(from: String, baseDn: String): String {
+        // Special cases: * or root means search from baseDN
         if (from == "*" || from.lowercase() == "root") return baseDn
+        
+        // If it contains '=', it's already in DN format
         if (from.contains("=")) {
-            return if (from.endsWith(baseDn)) from else if (baseDn.isEmpty()) from else "$from,$baseDn"
+            // If it already ends with the baseDN, it's a complete DN
+            if (from.endsWith(baseDn)) {
+                return from
+            }
+            
+            // If the baseDN equals the from clause or ends with ",$from",
+            // the user is specifying a component that's already in baseDN
+            if (baseDn == from || baseDn.contains(from)) {
+                return baseDn
+            }
+            
+            // Otherwise, append to baseDN (if baseDN is not empty)
+            return if (baseDn.isEmpty()) from else "$from,$baseDn"
         }
         
+        // Handle dot-separated notation (e.g., "ou.people" or "ou.scientists.dc.example")
         val components = from.split(".")
         val dn = if (components.size >= 2 && components.size % 2 == 0) {
             // Group by 2: ["ou", "people", "dc", "example"] -> "ou=people,dc=example"
             components.chunked(2).joinToString(",") { "${it[0]}=${it[1]}" }
         } else {
-            // Fallback for odd number or single component
+            // Fallback for odd number or single component: assume it's an OU
             components.joinToString(",") { "ou=$it" }
         }
         

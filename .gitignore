@@ -130,3 +130,5 @@ replay_pid*
 # Local configuration
 local.properties
 AGENTS.local.db
+moribito-licenser/public.pem
+moribito-licenser/private.pem

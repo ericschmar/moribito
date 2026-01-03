@@ -6,11 +6,15 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.platform.Typeface
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.moribito.gui.theme.AppMonospace
 import com.moribito.gui.theme.AppSpacing
 import com.moribito.gui.theme.IntelliJColors
 import com.moribito.gui.ui.components.Island
 import com.moribito.gui.ui.components.editor.CodeEditor
+import com.moribito.ldap.LdapSchema
 import compose.icons.Octicons
 import compose.icons.octicons.PaperAirplane16
 import org.jetbrains.jewel.foundation.theme.JewelTheme
@@ -27,6 +31,8 @@ fun QueryPanel(
     onFormat: () -> Unit,
     onRun: () -> Unit,
     isConnected: Boolean,
+    schema: LdapSchema? = null,
+    error: String? = null,
     modifier: Modifier = Modifier
 ) {
     Island(
@@ -39,6 +45,7 @@ fun QueryPanel(
                 text = queryText,
                 onTextChange = onQueryChange,
                 enabled = isConnected,
+                schema = schema,
                 placeholder = "Enter LDAP filter (e.g., (objectClass=*)) or SQL (e.g., SELECT * FROM people WHERE cn='john')",
                 modifier = Modifier
                     .fillMaxSize()
@@ -55,6 +62,14 @@ fun QueryPanel(
                     .padding(AppSpacing.xs),
                 horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs)
             ) {
+                if(error.isNullOrBlank().not()) {
+                    Text(
+                        text = error,
+                        color = JewelTheme.globalColors.text.error,
+                        fontFamily = AppMonospace.small.fontFamily,
+                        modifier = Modifier.padding(AppSpacing.xs)
+                    )
+                }
                 // Format button
                 OutlinedButton(
                     onClick = onFormat,

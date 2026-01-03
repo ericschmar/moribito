@@ -32,6 +32,8 @@ import org.jetbrains.jewel.foundation.theme.JewelTheme
 import org.jetbrains.jewel.ui.component.Text
 import org.jetbrains.jewel.ui.component.HorizontallyScrollableContainer
 import org.jetbrains.jewel.ui.component.Icon
+import org.jetbrains.jewel.ui.component.IconButton
+import org.jetbrains.jewel.ui.icons.AllIconsKeys
 
 /**
  * Tab bar component for managing multiple record tabs.
@@ -148,17 +150,13 @@ private fun TabItem(
             overflow = TextOverflow.Ellipsis
         )
 
-        Box(
+        IconButton(
             modifier = Modifier
-                .size(16.dp)
-                .combinedClickable(
-                    onClick = { onClose() },
-                    onDoubleClick = {} // Prevent double-click from propagating
-                ),
-            contentAlignment = Alignment.Center
+                .size(16.dp),
+            onClick = { onClose() }
         ) {
             Icon(
-                imageVector = Octicons.X16,
+                key = AllIconsKeys.General.Close,
                 contentDescription = "Close tab",
                 modifier = Modifier.size(12.dp),
                 tint = textColor.copy(alpha = 0.8f)

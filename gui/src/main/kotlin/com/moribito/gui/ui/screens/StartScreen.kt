@@ -13,12 +13,13 @@ import androidx.compose.ui.unit.sp
 import java.awt.Desktop
 import java.net.URI
 import com.moribito.gui.license.LicenseResult
-import com.moribito.gui.license.LicenseVerifier
 import com.moribito.gui.theme.*
 import com.moribito.gui.ui.components.ConnectionCard
 import com.moribito.gui.ui.components.Island
 import com.moribito.gui.ui.components.TextField as AppTextField
 import com.moribito.gui.viewmodel.AppView
+import com.moribito.gui.viewmodel.LoadingState
+import com.moribito.gui.viewmodel.LoadingState.Loading
 import com.moribito.gui.viewmodel.MainViewModel
 import org.jetbrains.compose.splitpane.ExperimentalSplitPaneApi
 import org.jetbrains.compose.splitpane.HorizontalSplitPane
@@ -46,9 +47,10 @@ fun StartScreen(
 ) {
     val splitPaneState = rememberSplitPaneState(0.5f) // 50/50 split
     val recentConnections = viewModel.getRecentConnections(3)
+    val appState by viewModel.state.collectAsState()
 
-    var licenseKey by remember { mutableStateOf("") }
-    var verificationResult by remember { mutableStateOf<LicenseResult?>(null) }
+    var licenseKey by remember { mutableStateOf(viewModel.getSavedLicenseKey() ?: "") }
+    val verificationResult = appState.verificationResult
 
     // Custom gradient style for "Moribito" title
     val moribitoGradient = Brush.linearGradient(
@@ -102,39 +104,33 @@ fun StartScreen(
                                 value = licenseKey,
                                 onValueChange = {
                                     licenseKey = it
-                                    if (verificationResult != null) verificationResult = null
                                 },
                                 label = "License Key",
                                 placeholder = "Paste your license key here",
                                 isError = verificationResult is LicenseResult.Invalid || verificationResult is LicenseResult.Error,
-                                errorMessage = when (val result = verificationResult) {
+                                errorMessage = when (verificationResult) {
                                     is LicenseResult.Invalid -> "Invalid license key"
-                                    is LicenseResult.Error -> result.msg
+                                    is LicenseResult.Error -> verificationResult.msg
                                     else -> null
                                 }
                             )
-
+                            if (verificationResult is LicenseResult.Success) {
+                                Text(
+                                    text = "Verified: ${verificationResult.userEmail}",
+                                    color = AppColors.success,
+                                    style = AppTypography.labelMedium,
+                                )
+                            }
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                if (verificationResult is LicenseResult.Success) {
-                                    Text(
-                                        text = "Verified: ${(verificationResult as LicenseResult.Success).userEmail}",
-                                        color = AppColors.success,
-                                        style = AppTypography.labelMedium,
-                                        modifier = Modifier.weight(1f)
-                                    )
-                                } else {
-                                    Spacer(modifier = Modifier.weight(1f))
-                                }
-
                                 OutlinedButton(
                                     onClick = {
                                         try {
-                                            Desktop.getDesktop().browse(URI("https://moribito.cc/buy"))
-                                        } catch (e: Exception) {
+                                            Desktop.getDesktop().browse(URI("https://buy.stripe.com/test_eVq8wOcxabMB2nk5VW3ZK00"))
+                                        } catch (_: Exception) {
                                             // Silently fail if desktop browse is not supported
                                         }
                                     }
@@ -144,7 +140,7 @@ fun StartScreen(
 
                                 OutlinedButton(
                                     onClick = {
-                                        verificationResult = LicenseVerifier.verify(licenseKey)
+                                        viewModel.verifyLicense(licenseKey)
                                     }
                                 ) {
                                     Text("Verify License")
@@ -175,7 +171,8 @@ fun StartScreen(
                         OutlinedButton(
                             onClick = {
                                 viewModel.navigateTo(AppView.Configuration)
-                            }
+                            },
+                            enabled = verificationResult is LicenseResult.Success
                         ) {
                             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                 Icon(
@@ -204,7 +201,8 @@ fun StartScreen(
                             OutlinedButton(
                                 onClick = {
                                     viewModel.navigateTo(AppView.Configuration)
-                                }
+                                },
+                                enabled = verificationResult is LicenseResult.Success
                             ) {
                                 Text("Add Connection")
                             }
@@ -217,16 +215,19 @@ fun StartScreen(
                             verticalArrangement = Arrangement.spacedBy(12.dp)
                         ) {
                             recentConnections.forEachIndexed { index, connection ->
-                                ConnectionCard(
-                                    name = connection.name.ifBlank { connection.host },
-                                    host = connection.host,
-                                    isSelected = (index == viewModel.getCurrentConnectionIndex()),
-                                    onClick = {
-                                        viewModel.setCurrentConnection(index)
-                                        viewModel.connect()
-                                    },
-                                    modifier = Modifier.width(400.dp)
-                                )
+                                key(connection.host + connection.name) {
+                                    ConnectionCard(
+                                        name = connection.name.ifBlank { connection.host },
+                                        host = connection.host,
+                                        onClick = {
+                                            viewModel.setCurrentConnection(index)
+                                            viewModel.connect()
+                                        },
+                                        loading = appState.loadingState is LoadingState.Loading && appState.currentConnectionIndex == index,
+                                        enabled = verificationResult is LicenseResult.Success,
+                                        modifier = Modifier.width(400.dp)
+                                    )
+                                }
                             }
                         }
                     }

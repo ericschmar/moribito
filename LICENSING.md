@@ -61,12 +61,45 @@ httpClient: Stripe.createFetchHttpClient(),
 }
 };
 
-async function generateSignedKey(email, privateKeyHex) {
-const payload = `${email}|2099-12-31`;
-const privKeyBuffer = new Uint8Array(privateKeyHex.match(/.{1,2}/g).map(byte => parseInt(byte, 16)));
-const privateKey = await crypto.subtle.importKey("raw", privKeyBuffer, "Ed25519", false, ["sign"]);
-const sig = await crypto.subtle.sign("Ed25519", privateKey, new TextEncoder().encode(payload));
-return `${btoa(payload)}.${btoa(String.fromCharCode(...new Uint8Array(sig)))}`.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+async function generateSignedKey(email, privateKeyRaw) {
+    const payload = `${email}|2099-12-31`;
+    let privKeyBuffer;
+
+    if (privateKeyRaw.startsWith('MC4CAQAw')) {
+        // Base64 PKCS#8
+        const binaryString = atob(privateKeyRaw);
+        privKeyBuffer = new Uint8Array(binaryString.length);
+        for (let i = 0; i < binaryString.length; i++) {
+            privKeyBuffer[i] = binaryString.charCodeAt(i);
+        }
+    } else if (/^[0-9a-fA-F]{64}$/.test(privateKeyRaw)) {
+        // 64-char Hex (32 bytes raw key)
+        const rawBuffer = new Uint8Array(privateKeyRaw.match(/.{1,2}/g).map(byte => parseInt(byte, 16)));
+        const pkcs8Header = new Uint8Array([0x30, 0x2e, 0x02, 0x01, 0x00, 0x30, 0x05, 0x06, 0x03, 0x2b, 0x65, 0x70, 0x04, 0x22, 0x04, 0x20]);
+        privKeyBuffer = new Uint8Array(pkcs8Header.length + rawBuffer.length);
+        privKeyBuffer.set(pkcs8Header);
+        privKeyBuffer.set(rawBuffer, pkcs8Header.length);
+    } else {
+        throw new Error("Invalid private key format. Expected 64-char hex or Base64 PKCS#8.");
+    }
+
+    const privateKey = await crypto.subtle.importKey("pkcs8", privKeyBuffer, "Ed25519", false, ["sign"]);
+    const sig = await crypto.subtle.sign("Ed25519", privateKey, new TextEncoder().encode(payload));
+
+    const toBase64Url = (strOrBuf) => {
+        let binary = '';
+        if (typeof strOrBuf === 'string') {
+            binary = strOrBuf;
+        } else {
+            const bytes = new Uint8Array(strOrBuf);
+            for (let i = 0; i < bytes.byteLength; i++) {
+                binary += String.fromCharCode(bytes[i]);
+            }
+        }
+        return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+    };
+
+    return `${toBase64Url(payload)}.${toBase64Url(sig)}`;
 }
 3. Kotlin Verification (JVM/Desktop)
    Kotlin
@@ -77,8 +110,8 @@ private const val PUBLIC_KEY_B64 = "YOUR_PUBLIC_KEY_HERE"
     fun verify(licenseKey: String): Boolean {
         return try {
             val parts = licenseKey.split(".")
-            val data = Base64.getDecoder().decode(parts[0])
-            val sig = Base64.getDecoder().decode(parts[1])
+            val data = Base64.getUrlDecoder().decode(parts[0])
+            val sig = Base64.getUrlDecoder().decode(parts[1])
             
             val pubKey = KeyFactory.getInstance("Ed25519")
                 .generatePublic(X509EncodedKeySpec(Base64.getDecoder().decode(PUBLIC_KEY_B64)))

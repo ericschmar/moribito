@@ -1,5 +1,6 @@
 package com.moribito.gui.viewmodel
 
+import com.moribito.gui.license.LicenseResult
 import com.moribito.ldap.Entry
 import com.moribito.ldap.TreeNode
 import com.moribito.ldap.LdapSchema
@@ -66,6 +67,7 @@ sealed interface RecordTab {
 data class AppState(
     val currentView: AppView = AppView.Start,
     val connectionState: ConnectionState = ConnectionState.Disconnected,
+    val currentConnectionIndex: Int = 0,
     val loadingState: LoadingState = LoadingState.Idle,
     val treeRoot: TreeNode? = null,
     val selectedNode: TreeNode? = null,
@@ -73,8 +75,8 @@ data class AppState(
     val queryResults: List<Entry> = emptyList(),
     val queryResultsRoot: TreeNode? = null,
     val isShowingQueryResults: Boolean = false,
-    val queryText: String = "",
-    val errorMessage: String? = null,
+    val queryText: String = "SELECT * FROM dc=example WHERE objectClass=*",
+    var errorMessage: String? = null,
     val successMessage: String? = null,
     val showVirtualMembers: Boolean = false,
     val openTabs: List<RecordTab> = emptyList(),
@@ -96,7 +98,8 @@ data class AppState(
     val logSearchQuery: String = "",
     val logLevelFilter: Set<LogLevel> = setOf(LogLevel.ERROR, LogLevel.WARN, LogLevel.INFO, LogLevel.DEBUG),
     val logAutoScroll: Boolean = true,
-    val logFilePath: String? = null
+    val logFilePath: String? = null,
+    val verificationResult: LicenseResult? = null
 )
 
 /**

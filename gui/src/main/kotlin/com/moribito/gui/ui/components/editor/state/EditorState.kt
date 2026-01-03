@@ -9,6 +9,8 @@ import com.moribito.gui.ui.components.editor.highlighting.LdapTokenType
 import com.moribito.gui.ui.components.editor.highlighting.SqlSyntaxHighlightLayer
 import com.moribito.gui.ui.components.editor.highlighting.SqlTokenType
 import com.moribito.gui.ui.components.editor.highlighting.SyntaxHighlightLayer
+import com.moribito.gui.ui.components.editor.AutocompleteState
+import com.moribito.ldap.LdapSchema
 import org.jetbrains.jewel.foundation.theme.JewelTheme
 
 /**
@@ -32,12 +34,18 @@ import org.jetbrains.jewel.foundation.theme.JewelTheme
 class EditorState(
     initialText: String = "",
     private val ldapColorScheme: Map<LdapTokenType, Color>,
-    private val sqlColorScheme: Map<SqlTokenType, Color>
+    private val sqlColorScheme: Map<SqlTokenType, Color>,
+    val schema: LdapSchema? = null
 ) {
     /**
      * Core text buffer with caret and selection management.
      */
     val textState = TextState(initialText)
+
+    /**
+     * Autocomplete state management.
+     */
+    val autocompleteState = AutocompleteState(schema)
 
     /**
      * Z-ordered highlight layer management (syntax, errors, search, etc.).
@@ -135,7 +143,8 @@ class EditorState(
  */
 @Composable
 fun rememberEditorState(
-    initialText: String = ""
+    initialText: String = "",
+    schema: LdapSchema? = null
 ): EditorState {
     // Create color scheme from Jewel theme
     // Using semantic colors available in Jewel theme
@@ -160,7 +169,7 @@ fun rememberEditorState(
         SqlTokenType.Invalid to JewelTheme.globalColors.text.error
     )
 
-    return remember(initialText) {
-        EditorState(initialText, ldapColorScheme, sqlColorScheme)
+    return remember(initialText, schema) {
+        EditorState(initialText, ldapColorScheme, sqlColorScheme, schema)
     }
 }

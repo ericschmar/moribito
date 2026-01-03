@@ -172,6 +172,7 @@ data class LdapAttribute(
  */
 data class LdapSchema(
     val attributes: List<LdapAttribute>,
+    val containerDns: List<String> = emptyList(),
     val isFromSchemaInspection: Boolean = true
 )
 

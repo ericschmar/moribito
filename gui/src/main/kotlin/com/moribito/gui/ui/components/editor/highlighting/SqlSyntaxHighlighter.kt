@@ -230,7 +230,6 @@ class SqlSyntaxHighlightLayer(
             emptyList()
         } else {
             parseSqlQuery(text).map { token ->
-                println("segments: ${token.type} -- ${colorScheme[token.type]}")
                 LineSegment(
                     startIndex = token.startIndex,
                     endIndex = token.endIndex,

@@ -65,9 +65,9 @@ fun TreeViewActionBar(
             ) {
                 Icon(
                     key = AllIconsKeys.Diff.Remove,
-                    contentDescription = "Show Directory",
+                    contentDescription = "Cancel Search",
                     modifier = Modifier
-                        .size(16.dp)
+                        .size(12.dp)
                 )
             }
             Spacer(modifier = Modifier.width(8.dp))

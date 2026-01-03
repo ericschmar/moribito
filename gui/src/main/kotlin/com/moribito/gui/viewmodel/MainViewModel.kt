@@ -2,6 +2,8 @@ package com.moribito.gui.viewmodel
 
 import com.moribito.config.*
 import com.moribito.config.LdapConfig as ConfigLdapConfig
+import com.moribito.gui.license.LicenseResult
+import com.moribito.gui.license.LicenseVerifier
 import com.moribito.ldap.*
 import com.moribito.logging.Logger
 import com.moribito.logging.LogEntry
@@ -32,6 +34,34 @@ class MainViewModel(private val configService: ConfigurationService) {
     // Track the currently active connection index
     private var currentConnectionIndex: Int = 0
 
+    init {
+        // Verify saved license in the background on startup
+        config.settings.licenseKey?.let { savedLicenseKey ->
+            scope.launch {
+                logger.info("Verifying saved license key on startup")
+                try {
+                    val result = LicenseVerifier.verify(savedLicenseKey)
+                    _state.update { it.copy(
+                        verificationResult = result
+                    )}
+                    when (result) {
+                        is LicenseResult.Success -> {
+                            logger.info("License verified successfully: ${result.userEmail}")
+                        }
+                        is LicenseResult.Invalid -> {
+                            logger.warn("Saved license key is invalid")
+                        }
+                        is LicenseResult.Error -> {
+                            logger.error("Error verifying license: ${result.msg}")
+                        }
+                    }
+                } catch (e: Exception) {
+                    logger.error("Exception during license verification", e)
+                }
+            }
+        }
+    }
+
     // Expose current config
     fun getConfig(): RootConfig = config
 
@@ -49,6 +79,9 @@ class MainViewModel(private val configService: ConfigurationService) {
     fun setCurrentConnection(index: Int) {
         if (index in config.connections.indices) {
             currentConnectionIndex = index
+            _state.update {
+                it.copy(currentConnectionIndex = index)
+            }
         }
     }
 
@@ -149,6 +182,54 @@ class MainViewModel(private val configService: ConfigurationService) {
         configService.save(config)
 
         return finalName
+    }
+
+    /**
+     * Saves the license key to the configuration.
+     */
+    fun saveLicenseKey(licenseKey: String) {
+        logger.info("Saving license key to configuration")
+        config = config.copy(
+            settings = config.settings.copy(licenseKey = licenseKey)
+        )
+        configService.save(config)
+    }
+
+    /**
+     * Gets the saved license key from the configuration.
+     */
+    fun getSavedLicenseKey(): String? {
+        return config.settings.licenseKey
+    }
+
+    /**
+     * Verifies a license key and updates the state with the result.
+     * If verification succeeds, saves the license key to config.
+     */
+    fun verifyLicense(licenseKey: String) {
+        scope.launch {
+            logger.info("Verifying license key")
+            try {
+                val result = LicenseVerifier.verify(licenseKey)
+                _state.update { it.copy(verificationResult = result) }
+                
+                when (result) {
+                    is LicenseResult.Success -> {
+                        logger.info("License verified successfully: ${result.userEmail}")
+                        saveLicenseKey(licenseKey)
+                    }
+                    is LicenseResult.Invalid -> {
+                        logger.warn("License key is invalid")
+                    }
+                    is LicenseResult.Error -> {
+                        logger.error("Error verifying license: ${result.msg}")
+                    }
+                }
+            } catch (e: Exception) {
+                logger.error("Exception during license verification", e)
+                _state.update { it.copy(verificationResult = LicenseResult.Error(e.message ?: "Unknown error")) }
+            }
+        }
     }
 
     /**
@@ -801,7 +882,7 @@ class MainViewModel(private val configService: ConfigurationService) {
                 // Convert results to tree nodes
                 val resultNodes = results.map { it.toTreeNode() }
                 val resultsRoot = TreeNode(
-                    dn = "search:results",
+                    dn = _state.value.treeRoot?.dn ?: "",
                     name = "Query Results (${results.size})",
                     children = resultNodes,
                     isLoaded = true
@@ -819,6 +900,7 @@ class MainViewModel(private val configService: ConfigurationService) {
                 _state.update { it.copy(loadingState = LoadingState.Idle) }
 
             } catch (e: Exception) {
+                logger.error("Query execution failed", e)
                 _state.update { it.copy(
                     loadingState = LoadingState.Failed("Query failed: ${e.message}"),
                     errorMessage = "Query failed: ${e.message}"
