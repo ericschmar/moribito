@@ -1,5 +1,6 @@
 package com.moribito.gui.ui.components.tree
 
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -24,18 +25,21 @@ import org.jetbrains.jewel.foundation.theme.JewelTheme
 import org.jetbrains.jewel.ui.component.Icon
 import org.jetbrains.jewel.ui.component.IconButton
 import org.jetbrains.jewel.ui.component.Text
+import org.jetbrains.jewel.ui.component.Tooltip
 import org.jetbrains.jewel.ui.icons.AllIconsKeys
 
 /**
  * Action bar for the tree view with a settings dropdown menu.
  * Provides options like toggling virtual member children display.
  */
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun TreeViewActionBar(
     showVirtualMembers: Boolean,
     onToggleVirtualMembers: () -> Unit,
     isShowingQueryResults: Boolean = false,
     onShowDirectory: () -> Unit = {},
+    onRefresh: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     var showMenu by remember { mutableStateOf(false) }
@@ -59,18 +63,31 @@ fun TreeViewActionBar(
     ) {
         // Show Directory button (only visible when showing query results)
         if (isShowingQueryResults) {
-            IconButton(
-                onClick = onShowDirectory,
-                modifier = Modifier.size(28.dp)
-            ) {
-                Icon(
-                    key = AllIconsKeys.Diff.Remove,
-                    contentDescription = "Cancel Search",
-                    modifier = Modifier
-                        .size(12.dp)
-                )
+            Tooltip(tooltip = { Text("Reset Query Results") }) {
+                IconButton(
+                    onClick = onShowDirectory,
+                    modifier = Modifier.size(28.dp)
+                ) {
+                    Icon(
+                        key = AllIconsKeys.Diff.Remove,
+                        contentDescription = "Cancel Search",
+                        modifier = Modifier
+                            .size(12.dp)
+                    )
+                }
             }
             Spacer(modifier = Modifier.width(8.dp))
+        }
+
+        Tooltip(tooltip = { Text("Refresh connection") }) {
+            IconButton(
+                onClick = onRefresh
+            ) {
+                Icon(
+                    key = AllIconsKeys.General.Refresh,
+                    contentDescription = "Refresh"
+                )
+            }
         }
 
         Box {

@@ -65,6 +65,13 @@ fun TreeView(
 
     val treeState = rememberTreeState()
 
+    // Auto-expand root when it arrives
+    LaunchedEffect(rootNode?.id) {
+        if (rootNode != null) {
+            treeState.openNodes = treeState.openNodes + rootNode.id
+        }
+    }
+
     // Track expansion changes to trigger lazy loading
     LaunchedEffect(treeState.openNodes) {
         // When a node is expanded, trigger lazy loading

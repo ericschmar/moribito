@@ -352,7 +352,7 @@ class MainViewModel(private val configService: ConfigurationService) {
      * Connects to the LDAP server with current configuration.
      * Optionally specify which credential to use.
      */
-    fun connect(credential: com.moribito.config.BindCredential? = null) {
+    fun connect(credential: BindCredential? = null) {
         logger.info("connect() called")
         
         val currentConn = getCurrentConnection()

@@ -32,6 +32,7 @@ import org.jetbrains.jewel.ui.component.Icon
 import org.jetbrains.jewel.ui.component.IconButton
 import org.jetbrains.jewel.ui.component.Text
 import org.jetbrains.jewel.ui.component.Tooltip
+import org.jetbrains.jewel.ui.icons.AllIconsKeys
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -86,7 +87,7 @@ fun AttributeViewer(
             }
 
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Tooltip(tooltip = { Text("Sort") }) {
+                Tooltip(tooltip = { if (sortAscending) Text("Sort Ascending") else Text("Sort Descending") }) {
                     IconButton(onClick = onToggleSort) {
                         Icon(
                             imageVector = if (sortAscending) Octicons.ArrowUp16 else Octicons.ArrowDown16,
@@ -99,7 +100,7 @@ fun AttributeViewer(
                 Tooltip(tooltip = { Text("Close Window") }) {
                     IconButton(onClick = onClose) {
                         Icon(
-                            imageVector = Octicons.X16,
+                            key = AllIconsKeys.General.Close,
                             contentDescription = "Close",
                             tint = JewelTheme.globalColors.text.normal
                         )

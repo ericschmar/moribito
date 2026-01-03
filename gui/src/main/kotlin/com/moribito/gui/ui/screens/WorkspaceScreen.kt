@@ -5,6 +5,10 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.isMetaPressed
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.ViewModel
@@ -78,6 +82,10 @@ fun WorkspaceScreen(
                                     onShowDirectory = {
                                         state.errorMessage = null
                                         viewModel.showDirectoryTree()
+                                    },
+                                    onRefresh = {
+                                        // don't use reconnect because disconnect() tries to navigate to config
+                                        viewModel.connect()
                                     }
                                 )
                                 TreeView(
@@ -220,12 +228,19 @@ private fun MainContentPanel(
                             viewModel.formatQuery()
                         },
                         onRun = {
-                            println("Executing query")
                             viewModel.executeQuery()
                         },
                         error = state.errorMessage,
                         isConnected = state.connectionState is ConnectionState.Connected,
-                        schema = state.schema
+                        schema = state.schema,
+                        modifier = Modifier.onPreviewKeyEvent {
+                            println(it)
+                            if (it.key == Key.Enter && it.isMetaPressed) {
+                                viewModel.executeQuery()
+                                return@onPreviewKeyEvent true
+                            }
+                            false
+                        }
                     )
                 }
             }

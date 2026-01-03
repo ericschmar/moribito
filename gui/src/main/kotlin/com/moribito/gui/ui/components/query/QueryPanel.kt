@@ -1,29 +1,37 @@
 package com.moribito.gui.ui.components.query
 
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.platform.Typeface
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.isMetaPressed
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.viewmodel.compose.viewModel
 import com.moribito.gui.theme.AppMonospace
 import com.moribito.gui.theme.AppSpacing
 import com.moribito.gui.theme.IntelliJColors
 import com.moribito.gui.ui.components.Island
 import com.moribito.gui.ui.components.editor.CodeEditor
 import com.moribito.ldap.LdapSchema
-import compose.icons.Octicons
-import compose.icons.octicons.PaperAirplane16
+import org.jetbrains.jewel.foundation.modifier.thenIf
 import org.jetbrains.jewel.foundation.theme.JewelTheme
-import org.jetbrains.jewel.ui.component.*
+import org.jetbrains.jewel.ui.component.DefaultButton
+import org.jetbrains.jewel.ui.component.Icon
+import org.jetbrains.jewel.ui.component.IconButton
+import org.jetbrains.jewel.ui.component.Text
+import org.jetbrains.jewel.ui.component.Tooltip
+import org.jetbrains.jewel.ui.icons.AllIconsKeys
 
 /**
  * Query input panel with multi-line LDAP filter input and Format/Run buttons.
  * Features a code editor with syntax highlighting and line numbers.
  */
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun QueryPanel(
     queryText: String,
@@ -62,7 +70,7 @@ fun QueryPanel(
                     .padding(AppSpacing.xs),
                 horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs)
             ) {
-                if(error.isNullOrBlank().not()) {
+                if (error.isNullOrBlank().not()) {
                     Text(
                         text = error,
                         color = JewelTheme.globalColors.text.error,
@@ -70,28 +78,25 @@ fun QueryPanel(
                         modifier = Modifier.padding(AppSpacing.xs)
                     )
                 }
-                // Format button
-                OutlinedButton(
-                    onClick = onFormat,
-                    enabled = false
-                ) {
-                    Text("Format")
-                }
+                /*                // Format button
+                                OutlinedButton(
+                                    onClick = onFormat,
+                                    enabled = false
+                                ) {
+                                    Text("Format")
+                                }*/
 
-                // Run button
-                DefaultButton(
-                    onClick = onRun,
-                    enabled = isConnected && queryText.isNotBlank()
-                ) {
-                    Row(horizontalArrangement = Arrangement.SpaceBetween) {
+                Tooltip(tooltip = { Text("Run") }) {
+                    IconButton(
+                        onClick = onRun,
+                        enabled = isConnected && queryText.isNotBlank(),
+                        modifier = Modifier.size(36.dp)
+                    ) {
                         Icon(
-                            imageVector = Octicons.PaperAirplane16,
+                            key = AllIconsKeys.Actions.RunAll,
                             contentDescription = "Run",
-                            modifier = Modifier.size(14.dp),
-                            tint = JewelTheme.contentColor
+                            modifier = Modifier.size(18.dp),
                         )
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text("Run")
                     }
                 }
             }
