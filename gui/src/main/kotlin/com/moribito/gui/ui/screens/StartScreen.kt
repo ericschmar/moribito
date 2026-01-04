@@ -12,6 +12,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import java.awt.Desktop
 import java.net.URI
+import com.moribito.gui.license.AccessStatus
 import com.moribito.gui.license.LicenseResult
 import com.moribito.gui.theme.*
 import com.moribito.gui.ui.components.ConnectionCard
@@ -50,7 +51,8 @@ fun StartScreen(
     val appState by viewModel.state.collectAsState()
 
     var licenseKey by remember { mutableStateOf(viewModel.getSavedLicenseKey() ?: "") }
-    val verificationResult = appState.verificationResult
+    val accessStatus = appState.accessStatus
+    val hasAccess = accessStatus?.hasAccess() == true
 
     // Custom gradient style for "Moribito" title
     val moribitoGradient = Brush.linearGradient(
@@ -106,21 +108,8 @@ fun StartScreen(
                                     licenseKey = it
                                 },
                                 label = "License Key",
-                                placeholder = "Paste your license key here",
-                                isError = verificationResult is LicenseResult.Invalid || verificationResult is LicenseResult.Error,
-                                errorMessage = when (verificationResult) {
-                                    is LicenseResult.Invalid -> "Invalid license key"
-                                    is LicenseResult.Error -> verificationResult.msg
-                                    else -> null
-                                }
+                                placeholder = "Paste your license key here"
                             )
-                            if (verificationResult is LicenseResult.Success) {
-                                Text(
-                                    text = "Verified: ${verificationResult.userEmail}",
-                                    color = AppColors.success,
-                                    style = AppTypography.labelMedium,
-                                )
-                            }
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm),
@@ -172,7 +161,7 @@ fun StartScreen(
                             onClick = {
                                 viewModel.navigateTo(AppView.Configuration)
                             },
-                            enabled = verificationResult is LicenseResult.Success
+                            enabled = hasAccess
                         ) {
                             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                 Icon(
@@ -202,7 +191,7 @@ fun StartScreen(
                                 onClick = {
                                     viewModel.navigateTo(AppView.Configuration)
                                 },
-                                enabled = verificationResult is LicenseResult.Success
+                                enabled = hasAccess
                             ) {
                                 Text("Add Connection")
                             }
@@ -224,7 +213,7 @@ fun StartScreen(
                                             viewModel.connect()
                                         },
                                         loading = appState.loadingState is LoadingState.Loading && appState.currentConnectionIndex == index,
-                                        enabled = verificationResult is LicenseResult.Success,
+                                        enabled = hasAccess,
                                         modifier = Modifier.width(400.dp)
                                     )
                                 }

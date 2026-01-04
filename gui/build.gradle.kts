@@ -105,3 +105,11 @@ compose.desktop {
 tasks.withType<Test> {
     useJUnitPlatform()
 }
+
+tasks.withType<JavaExec> {
+    val iconPath = file("icons/moribito.icns").absolutePath
+
+    if (org.gradle.internal.os.OperatingSystem.current().isMacOsX) {
+        jvmArgs("-Xdock:icon=$iconPath", "-Xdock:name=Moribito")
+    }
+}

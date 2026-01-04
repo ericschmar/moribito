@@ -1,5 +1,6 @@
 package com.moribito.gui.viewmodel
 
+import com.moribito.gui.license.AccessStatus
 import com.moribito.gui.license.LicenseResult
 import com.moribito.ldap.Entry
 import com.moribito.ldap.TreeNode
@@ -99,7 +100,7 @@ data class AppState(
     val logLevelFilter: Set<LogLevel> = setOf(LogLevel.ERROR, LogLevel.WARN, LogLevel.INFO, LogLevel.DEBUG),
     val logAutoScroll: Boolean = true,
     val logFilePath: String? = null,
-    val verificationResult: LicenseResult? = null
+    val accessStatus: AccessStatus? = null
 )
 
 /**

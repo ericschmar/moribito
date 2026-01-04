@@ -43,7 +43,9 @@ import org.koin.compose.KoinApplication
 import org.koin.core.module.dsl.singleOf
 import org.koin.dsl.module
 import com.moribito.config.ConfigurationService
-import com.moribito.gui.viewmodel.MainViewModel
+import com.moribito.gui.ui.icons.AppIcons
+import com.moribito.gui.viewmodel.*
+import org.jetbrains.compose.resources.painterResource
 import org.koin.compose.koinInject
 
 object NoIndication : IndicationNodeFactory {
@@ -77,6 +79,14 @@ fun main() {
             modules(
                 module {
                     singleOf(::ConfigurationService)
+                    singleOf(::AppStateHolder)
+                    singleOf(::ConfigViewModel)
+                    single { 
+                        val ldapViewModel: LdapViewModel = get()
+                        QueryViewModel(get()) { ldapViewModel.getLdapClient() }
+                    }
+                    singleOf(::LogViewModel)
+                    singleOf(::LdapViewModel)
                     singleOf(::MainViewModel)
                 }
             )
@@ -110,6 +120,7 @@ fun main() {
                         state = windowState,
                         onCloseRequest = { exitApplication() },
                         title = "Moribito",
+                        icon = painterResource(AppIcons.moribitoIcon),
                         content = {
                             val decoratedWindowScope = this
                             TitleBarView()

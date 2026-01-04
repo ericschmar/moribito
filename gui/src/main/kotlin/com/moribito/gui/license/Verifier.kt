@@ -4,6 +4,7 @@ import java.util.Base64
 import java.security.Signature
 import java.security.KeyFactory
 import java.security.spec.X509EncodedKeySpec
+import kotlinx.datetime.*
 
 object LicenseVerifier {
     // Your Ed25519 Public Key (Raw hex or Base64)
@@ -32,7 +33,24 @@ object LicenseVerifier {
 
             if (s.verify(sigBytes)) {
                 val dataString = String(dataBytes) // "email|expiry"
-                LicenseResult.Success(dataString.split("|")[0])
+                val split = dataString.split("|")
+                val email = split[0]
+                val expiryStr = split.getOrNull(1)
+
+                if (expiryStr != null) {
+                    val expiryDate = LocalDate.parse(expiryStr)
+                    val today = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date
+                    val daysUntil = today.daysUntil(expiryDate)
+
+                    when {
+                        daysUntil < 0 -> LicenseResult.Expired(email, expiryStr)
+                        daysUntil <= 14 -> LicenseResult.ExpiringSoon(email, expiryStr, daysUntil)
+                        else -> LicenseResult.Success(email, expiryStr)
+                    }
+                } else {
+                    // No expiry date, treat as lifetime
+                    LicenseResult.Success(email, "Lifetime")
+                }
             } else {
                 LicenseResult.Invalid
             }
@@ -44,7 +62,9 @@ object LicenseVerifier {
 }
 
 sealed class LicenseResult {
-    data class Success(val userEmail: String) : LicenseResult()
+    data class Success(val userEmail: String, val expiresAt: String) : LicenseResult()
+    data class Expired(val userEmail: String, val expiredAt: String) : LicenseResult()
+    data class ExpiringSoon(val userEmail: String, val expiresAt: String, val daysRemaining: Int) : LicenseResult()
     object Invalid : LicenseResult()
     data class Error(val msg: String) : LicenseResult()
 }

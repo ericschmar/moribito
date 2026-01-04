@@ -1,42 +1,24 @@
 package com.moribito.gui.view
 
 import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import java.awt.Desktop
-import java.net.URI
+import com.moribito.gui.ui.components.Identicon
+import com.moribito.gui.ui.components.TrialChip
+import com.moribito.gui.viewmodel.ConnectionState
+import com.moribito.gui.viewmodel.MainViewModel
+import org.jetbrains.jewel.foundation.ExperimentalJewelApi
 import org.jetbrains.jewel.ui.component.Dropdown
-import org.jetbrains.jewel.ui.component.Icon
-import org.jetbrains.jewel.ui.component.IconButton
 import org.jetbrains.jewel.ui.component.Text
-import org.jetbrains.jewel.ui.component.Tooltip
-import org.jetbrains.jewel.ui.painter.hints.Size
 import org.jetbrains.jewel.window.DecoratedWindowScope
 import org.jetbrains.jewel.window.TitleBar
 import org.jetbrains.jewel.window.newFullscreenControls
-
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxHeight
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.width
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import com.moribito.gui.ui.components.Identicon
-import com.moribito.gui.viewmodel.ConnectionState
-import com.moribito.gui.viewmodel.MainViewModel
-import compose.icons.Octicons
-import compose.icons.octicons.ChevronDown16
-import org.jetbrains.jewel.foundation.ExperimentalJewelApi
-import org.jetbrains.jewel.intui.standalone.styling.fullWidth
 import org.koin.compose.koinInject
 
 @OptIn(ExperimentalFoundationApi::class, ExperimentalJewelApi::class)
@@ -45,6 +27,7 @@ import org.koin.compose.koinInject
 internal fun DecoratedWindowScope.TitleBarView() {
     val viewModel: MainViewModel = koinInject()
     val state by viewModel.state.collectAsState()
+    val accessStatus = state.accessStatus
 
     TitleBar(Modifier.newFullscreenControls()) {
         Row(Modifier.align(Alignment.Start)) {
@@ -104,8 +87,8 @@ internal fun DecoratedWindowScope.TitleBarView() {
             Text(title, modifier = Modifier.align(Alignment.CenterHorizontally))
         }
 
-        Row(Modifier.align(Alignment.End)) {
-            // end
+        Row(Modifier.align(Alignment.End).padding(end = 12.dp)) {
+            TrialChip(state.accessStatus)
         }
     }
 }

@@ -5,9 +5,9 @@ import kotlinx.serialization.SerialName
 
 @Serializable
 data class RootConfig(
+    val settings: GeneralSettings = GeneralSettings(),
     // This allows [[connections]] in TOML
-    val connections: List<LdapConfig> = emptyList(),
-    val settings: GeneralSettings = GeneralSettings()
+    val connections: List<LdapConfig> = emptyList()
 )
 
 @Serializable
@@ -50,5 +50,26 @@ data class LdapConfig(
 data class GeneralSettings(
     @SerialName("default_connection_index") val defaultIndex: Int = 0,
     @SerialName("dark_mode") val darkMode: Boolean = true,
-    @SerialName("license_key") val licenseKey: String? = null
-)
+    @SerialName("license_key") val licenseKey: String? = null,
+    @SerialName("trial_started_at") val trialStartedAt: String? = null,
+    @SerialName("trial_hardware_key") val trialHardwareKey: String? = null,
+    @SerialName("trial_consumed") val trialConsumed: Boolean = false,
+    @SerialName("trial_validation_hash") val trialValidationHash: String? = null,
+    @SerialName("debug_ignore_license") val debugIgnoreLicense: Boolean = false
+) {
+    fun isTrialDataValid(): Boolean {
+        if (trialStartedAt == null || trialHardwareKey == null || trialValidationHash == null) {
+            return false
+        }
+        val salt = "moribito-trial-salt-2026"
+        val input = trialStartedAt + trialHardwareKey + salt
+        val hash = try {
+            val digest = java.security.MessageDigest.getInstance("SHA-256")
+            val bytes = digest.digest(input.toByteArray())
+            bytes.joinToString("") { "%02x".format(it) }
+        } catch (e: Exception) {
+            null
+        }
+        return hash == trialValidationHash
+    }
+}

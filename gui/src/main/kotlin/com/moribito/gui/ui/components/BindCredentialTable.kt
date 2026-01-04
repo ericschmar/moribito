@@ -24,6 +24,7 @@ import com.moribito.gui.theme.AppColors
 import com.moribito.gui.theme.AppSpacing
 import com.moribito.gui.theme.AppTypography
 import com.moribito.gui.theme.IntelliJColors
+import org.jetbrains.jewel.foundation.theme.JewelTheme
 import org.jetbrains.jewel.ui.component.Checkbox
 import org.jetbrains.jewel.ui.component.Icon
 import org.jetbrains.jewel.ui.component.IconButton
@@ -300,7 +301,7 @@ private fun BindCredentialRow(
                 Icon(
                     key = AllIconsKeys.Actions.Execute,
                     contentDescription = "Connect",
-                    tint = AppColors.success
+                    tint = Color(0xFF6AAB73)
                 )
             }
         }

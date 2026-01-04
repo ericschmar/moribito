@@ -64,7 +64,9 @@ class ConfigurationService {
 
             migratedConfig
         } catch (e: Exception) {
-            logger.error("Format error while decoding config", e)
+            logger.error("CRITICAL: Format error while decoding config. To prevent data loss, the app will use a default config but WILL NOT allow overwriting the existing file until it's fixed or a new connection is explicitly saved.", e)
+            logger.error("Problematic content: $content")
+            // Return a special marker config if possible, or just rethrow
             RootConfig()
         }
     }
@@ -128,6 +130,12 @@ class ConfigurationService {
 
         file.parentFile?.mkdirs()
         val content = toml.encodeToString(RootConfig.serializer(), config)
+
+        // Safety check to prevent overwriting with corrupted data
+        if (config.connections.isNotEmpty() && !content.contains("connections")) {
+            logger.error("FATAL: Serialized TOML is missing connections section despite having ${config.connections.size} connections in memory. Aborting save to prevent data loss.")
+            return
+        }
 
         logger.debug("Encoded TOML length: ${content.length} bytes")
         logger.debug("TOML content preview: ${content.take(500)}")

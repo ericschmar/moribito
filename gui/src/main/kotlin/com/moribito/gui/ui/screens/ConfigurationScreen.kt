@@ -2,78 +2,40 @@ package com.moribito.gui.ui.screens
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.hoverable
-import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.interaction.collectIsHoveredAsState
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.input.pointer.PointerEventType
 import androidx.compose.ui.input.pointer.PointerIcon
+import androidx.compose.ui.input.pointer.onPointerEvent
 import androidx.compose.ui.input.pointer.pointerHoverIcon
-import androidx.compose.ui.text.input.PasswordVisualTransformation
-import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.moribito.config.ConfigurationService
 import com.moribito.config.RootConfig
-import com.moribito.config.BindCredential
 import com.moribito.gui.theme.*
 import com.moribito.gui.ui.components.ActionBar
 import com.moribito.gui.ui.components.BindCredentialTable
 import com.moribito.gui.ui.components.ConfigTreeNode
 import com.moribito.gui.viewmodel.ConnectionState
 import com.moribito.gui.viewmodel.MainViewModel
-import compose.icons.Octicons
-import compose.icons.octicons.*
 import org.jetbrains.compose.splitpane.ExperimentalSplitPaneApi
 import org.jetbrains.compose.splitpane.HorizontalSplitPane
 import org.jetbrains.compose.splitpane.rememberSplitPaneState
-import org.jetbrains.jewel.foundation.ExperimentalJewelApi
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.ui.draw.drawBehind
-import androidx.compose.ui.geometry.CornerRadius
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.ExperimentalComposeUiApi
-import androidx.compose.ui.input.pointer.PointerEventType
-import androidx.compose.ui.input.pointer.onPointerEvent
 import org.jetbrains.jewel.foundation.theme.JewelTheme
 import org.jetbrains.jewel.ui.component.*
 import org.jetbrains.jewel.ui.icons.AllIconsKeys
 import org.koin.compose.koinInject
 import com.moribito.gui.ui.components.TextField as AppTextField
 
-@Composable
-private fun IconButton(
-    icon: ImageVector,
-    contentDescription: String,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-    tint: Color? = null
-) {
-    val interactionSource = remember { MutableInteractionSource() }
-    val isHovered by interactionSource.collectIsHoveredAsState()
-
-    val iconColor = tint ?: JewelTheme.contentColor
-
-    Box(
-        modifier = modifier
-            .size(24.dp)
-            .hoverable(interactionSource)
-            .clickable(onClick = onClick),
-        contentAlignment = Alignment.Center
-    ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = contentDescription,
-            tint = if (isHovered) iconColor.copy(alpha = 0.7f) else iconColor,
-            modifier = Modifier.size(16.dp)
-        )
-    }
-}
 
 @OptIn(ExperimentalLayoutApi::class, ExperimentalSplitPaneApi::class, ExperimentalComposeUiApi::class)
 @Composable
@@ -104,7 +66,7 @@ fun ConfigurationScreen(
     var showPassword by remember { mutableStateOf(false) }
 
     val state = rememberSplitPaneState(0.3f)
-    var configs by remember { mutableStateOf(configService.load().connections) }
+    var configs by remember(ldapConfig) { mutableStateOf(ldapConfig.connections) }
     var selectedConnectionName by remember { mutableStateOf(currentConn.name) }
     var selectedNode by remember { mutableStateOf<ConfigTreeNode?>(ConfigTreeNode.ConnectionNode(currentConn)) }
 
@@ -274,29 +236,27 @@ fun ConfigurationScreen(
                     rightContent = {
                         Row(horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs)) {
                             IconButton(
-                                icon = Octicons.Dash16,
-                                contentDescription = "Delete",
                                 onClick = {
                                     if (configs.size > 1) {
                                         viewModel.deleteConnection(selectedConnectionName)
                                         configs = viewModel.getConfig().connections
                                         // Select the first connection after deletion
                                         selectedConnectionName = configs.firstOrNull()?.name ?: ""
-                                        configService.save(viewModel.getConfig())
                                     }
                                 }
-                            )
+                            ) {
+                                Icon(key = AllIconsKeys.General.Delete, contentDescription = "Delete")
+                            }
 
                             IconButton(
-                                icon = Octicons.Plus16,
-                                contentDescription = "Add",
                                 onClick = {
                                     val newConn = viewModel.addConnection()
                                     configs = viewModel.getConfig().connections
                                     selectedConnectionName = newConn.name
-                                    configService.save(viewModel.getConfig())
                                 }
-                            )
+                            ) {
+                                Icon(key = AllIconsKeys.General.Add, contentDescription = "Add")
+                            }
                         }
                     }
                 )
@@ -318,257 +278,185 @@ fun ConfigurationScreen(
                     modifier = Modifier.padding(bottom = AppSpacing.lg)
                 )
 
-                if (selectedNode is ConfigTreeNode.BindDnNode) {
-                    // Bind DN Form (scrollable)
-                    VerticallyScrollableContainer(
-                        modifier = Modifier.weight(1f).fillMaxWidth()
+
+                // Connection Form (scrollable)
+                VerticallyScrollableContainer(
+                    modifier = Modifier.weight(1f).fillMaxWidth()
+                ) {
+                    Column(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalArrangement = Arrangement.spacedBy(AppSpacing.lg)
                     ) {
-                        Column(
+                        AppTextField(
+                            value = name,
+                            onValueChange = { name = it },
+                            label = "Connection Name (Optional)",
+                            placeholder = "My LDAP Server",
+                            leadingIcon = {
+                                Icon(
+                                    key = AllIconsKeys.General.User,
+                                    contentDescription = "Name",
+                                    modifier = Modifier.size(12.dp),
+                                    tint = JewelTheme.contentColor
+                                )
+                            },
                             modifier = Modifier.fillMaxWidth(),
-                            verticalArrangement = Arrangement.spacedBy(AppSpacing.lg)
+                            singleLine = true
+                        )
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(AppSpacing.md)
                         ) {
                             AppTextField(
-                                value = bindLabel,
-                                onValueChange = { bindLabel = it },
-                                label = "Credential Label",
-                                placeholder = "Default",
-                                modifier = Modifier.fillMaxWidth(),
-                                singleLine = true
-                            )
-
-                            AppTextField(
-                                value = bindUser,
-                                onValueChange = { bindUser = it },
-                                label = "Bind User",
-                                placeholder = "cn=admin,dc=example,dc=com",
+                                value = host,
+                                onValueChange = { host = it },
+                                label = "Server Host",
+                                placeholder = "ldap.example.com",
                                 leadingIcon = {
                                     Icon(
-                                        imageVector = Octicons.Person16,
-                                        contentDescription = "User",
+                                        key = AllIconsKeys.Webreferences.Server,
+                                        contentDescription = "Host",
                                         modifier = Modifier.size(12.dp),
                                         tint = JewelTheme.contentColor
                                     )
                                 },
-                                modifier = Modifier.fillMaxWidth(),
+                                modifier = Modifier.weight(0.7f),
+                                isError = showHostError,
+                                errorMessage = "Required",
                                 singleLine = true
                             )
 
                             AppTextField(
-                                value = bindPass,
-                                onValueChange = { bindPass = it },
-                                label = "Bind Password",
-                                leadingIcon = {
-                                    Icon(
-                                        imageVector = Octicons.Lock16,
-                                        contentDescription = "Password",
-                                        modifier = Modifier.size(12.dp),
-                                        tint = JewelTheme.contentColor
-                                    )
-                                },
-                                trailingIcon = {
-                                    IconButton(
-                                        icon = if (showPassword) Octicons.EyeClosed16 else Octicons.Eye16,
-                                        contentDescription = if (showPassword) "Hide password" else "Show password",
-                                        onClick = { showPassword = !showPassword }
-                                    )
-                                },
-                                modifier = Modifier.fillMaxWidth(),
-                                singleLine = true,
-                                visualTransformation = if (showPassword) VisualTransformation.None else PasswordVisualTransformation()
+                                value = port,
+                                onValueChange = { port = it },
+                                label = "Port",
+                                placeholder = "389",
+                                modifier = Modifier.weight(0.3f),
+                                isError = showPortError,
+                                errorMessage = "Invalid",
+                                singleLine = true
                             )
+                        }
+
+                        AppTextField(
+                            value = baseDN,
+                            onValueChange = { baseDN = it },
+                            label = "Base DN",
+                            placeholder = "dc=example,dc=com",
+                            leadingIcon = {
+                                Icon(
+                                    key = AllIconsKeys.Toolwindows.ToolWindowStructure,
+                                    contentDescription = "Base DN",
+                                    modifier = Modifier.size(12.dp),
+                                    tint = JewelTheme.contentColor
+                                )
+                            },
+                            modifier = Modifier.fillMaxWidth(),
+                            isError = showBaseDNError,
+                            errorMessage = "Required",
+                            singleLine = true
+                        )
+
+                        // SSL/TLS Options
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(AppSpacing.lg),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm)
+                            ) {
+                                Checkbox(
+                                    checked = useSSL,
+                                    onCheckedChange = { newState ->
+                                        useSSL = newState
+                                        if (useSSL) useTLS = false
+                                    }
+                                )
+                                Text("Use SSL")
+                            }
 
                             Row(
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm)
                             ) {
                                 Checkbox(
-                                    checked = isBindDefault,
-                                    onCheckedChange = { isBindDefault = it }
+                                    checked = useTLS,
+                                    onCheckedChange = { newState ->
+                                        useTLS = newState
+                                        if (useTLS) useSSL = false
+                                    }
                                 )
-                                Text("Set as default credential")
+                                Text("Use TLS")
                             }
                         }
-                    }
-                } else {
-                    // Connection Form (scrollable)
-                    VerticallyScrollableContainer(
-                        modifier = Modifier.weight(1f).fillMaxWidth()
-                    ) {
-                        Column(
-                            modifier = Modifier.fillMaxWidth(),
-                            verticalArrangement = Arrangement.spacedBy(AppSpacing.lg)
-                        ) {
-                            AppTextField(
-                                value = name,
-                                onValueChange = { name = it },
-                                label = "Connection Name (Optional)",
-                                placeholder = "My LDAP Server",
-                                leadingIcon = {
-                                    Icon(
-                                        key = AllIconsKeys.General.User,
-                                        contentDescription = "Name",
-                                        modifier = Modifier.size(12.dp),
-                                        tint = JewelTheme.contentColor
-                                    )
+
+                        // Bind Credentials Table
+                        Text(
+                            text = "Bind Credentials",
+                            style = AppTypography.labelLarge,
+                            color = AppColors.neutral140
+                        )
+
+                        currentSelectedConnection?.let { conn ->
+                            BindCredentialTable(
+                                credentials = conn.effectiveBindCredentials,
+                                selectedCredential = (selectedNode as? ConfigTreeNode.BindDnNode)?.credential,
+                                onCredentialSelected = { cred ->
+                                    selectedNode = ConfigTreeNode.BindDnNode(conn, cred)
                                 },
-                                modifier = Modifier.fillMaxWidth(),
-                                singleLine = true
-                            )
-
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(AppSpacing.md)
-                            ) {
-                                AppTextField(
-                                    value = host,
-                                    onValueChange = { host = it },
-                                    label = "Server Host",
-                                    placeholder = "ldap.example.com",
-                                    leadingIcon = {
-                                        Icon(
-                                            key = AllIconsKeys.Webreferences.Server,
-                                            contentDescription = "Host",
-                                            modifier = Modifier.size(12.dp),
-                                            tint = JewelTheme.contentColor
-                                        )
-                                    },
-                                    modifier = Modifier.weight(0.7f),
-                                    isError = showHostError,
-                                    errorMessage = "Required",
-                                    singleLine = true
-                                )
-
-                                AppTextField(
-                                    value = port,
-                                    onValueChange = { port = it },
-                                    label = "Port",
-                                    placeholder = "389",
-                                    modifier = Modifier.weight(0.3f),
-                                    isError = showPortError,
-                                    errorMessage = "Invalid",
-                                    singleLine = true
-                                )
-                            }
-
-                            AppTextField(
-                                value = baseDN,
-                                onValueChange = { baseDN = it },
-                                label = "Base DN",
-                                placeholder = "dc=example,dc=com",
-                                leadingIcon = {
-                                    Icon(
-                                        key = AllIconsKeys.Toolwindows.ToolWindowStructure,
-                                        contentDescription = "Base DN",
-                                        modifier = Modifier.size(12.dp),
-                                        tint = JewelTheme.contentColor
-                                    )
+                                onAddCredential = {
+                                    val newCred = viewModel.addBindCredential(conn.name)
+                                    configs = viewModel.getConfig().connections
+                                    newCred // Return the new credential so table can edit it inline
                                 },
-                                modifier = Modifier.fillMaxWidth(),
-                                isError = showBaseDNError,
-                                errorMessage = "Required",
-                                singleLine = true
-                            )
-
-                            // SSL/TLS Options
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(AppSpacing.lg),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm)
-                                ) {
-                                    Checkbox(
-                                        checked = useSSL,
-                                        onCheckedChange = { newState ->
-                                            useSSL = newState
-                                            if (useSSL) useTLS = false
-                                        }
-                                    )
-                                    Text("Use SSL")
-                                }
-
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm)
-                                ) {
-                                    Checkbox(
-                                        checked = useTLS,
-                                        onCheckedChange = { newState ->
-                                            useTLS = newState
-                                            if (useTLS) useSSL = false
-                                        }
-                                    )
-                                    Text("Use TLS")
-                                }
-                            }
-
-                            // Bind Credentials Table
-                            Text(
-                                text = "Bind Credentials",
-                                style = AppTypography.labelLarge,
-                                color = AppColors.neutral140
-                            )
-
-                            currentSelectedConnection?.let { conn ->
-                                BindCredentialTable(
-                                    credentials = conn.effectiveBindCredentials,
-                                    selectedCredential = (selectedNode as? ConfigTreeNode.BindDnNode)?.credential,
-                                    onCredentialSelected = { cred ->
-                                        selectedNode = ConfigTreeNode.BindDnNode(conn, cred)
-                                    },
-                                    onAddCredential = {
-                                        val newCred = viewModel.addBindCredential(conn.name)
-                                        configs = viewModel.getConfig().connections
-                                        newCred // Return the new credential so table can edit it inline
-                                    },
-                                    onDeleteCredential = { cred ->
-                                        viewModel.deleteBindCredential(conn.name, cred.id)
-                                        configs = viewModel.getConfig().connections
-                                        selectedNode =
-                                            ConfigTreeNode.ConnectionNode(viewModel.getConfig().connections.find { it.name == conn.name }
-                                                ?: conn)
-                                    },
-                                    onUpdateCredential = { cred ->
-                                        viewModel.updateBindCredential(conn.name, cred)
-                                        configs = viewModel.getConfig().connections
-                                    },
-                                    onConnect = { cred ->
-                                        // Save everything before connecting to ensure changes are picked up
-                                        var targetCredential = cred
-                                        if (selectedNode is ConfigTreeNode.BindDnNode) {
-                                            val node = selectedNode as ConfigTreeNode.BindDnNode
-                                            val updatedCred = node.credential.copy(
-                                                label = bindLabel,
-                                                bindUser = bindUser,
-                                                bindPass = bindPass,
-                                                isDefault = isBindDefault
-                                            )
-                                            viewModel.updateBindCredential(node.parentConfig.name, updatedCred)
-                                            if (cred.id == updatedCred.id) {
-                                                targetCredential = updatedCred
-                                            }
-                                        }
-
-                                        // Also save connection fields
-                                        val portInt = port.toIntOrNull() ?: 389
-                                        viewModel.saveConnection(
-                                            selectedConnectionName = selectedConnectionName,
-                                            name = name,
-                                            host = host,
-                                            port = portInt,
-                                            baseDN = baseDN,
-                                            useSsl = useSSL,
-                                            useTls = useTLS
+                                onDeleteCredential = { cred ->
+                                    viewModel.deleteBindCredential(conn.name, cred.id)
+                                    configs = viewModel.getConfig().connections
+                                    selectedNode =
+                                        ConfigTreeNode.ConnectionNode(viewModel.getConfig().connections.find { it.name == conn.name }
+                                            ?: conn)
+                                },
+                                onUpdateCredential = { cred ->
+                                    viewModel.updateBindCredential(conn.name, cred)
+                                    configs = viewModel.getConfig().connections
+                                },
+                                onConnect = { cred ->
+                                    // Save everything before connecting to ensure changes are picked up
+                                    var targetCredential = cred
+                                    if (selectedNode is ConfigTreeNode.BindDnNode) {
+                                        val node = selectedNode as ConfigTreeNode.BindDnNode
+                                        val updatedCred = node.credential.copy(
+                                            label = bindLabel,
+                                            bindUser = bindUser,
+                                            bindPass = bindPass,
+                                            isDefault = isBindDefault
                                         )
+                                        viewModel.updateBindCredential(node.parentConfig.name, updatedCred)
+                                        if (cred.id == updatedCred.id) {
+                                            targetCredential = updatedCred
+                                        }
+                                    }
 
-                                        configs = viewModel.getConfig().connections
-                                        viewModel.connect(targetCredential)
-                                    },
-                                    modifier = Modifier.height(320.dp)
-                                )
-                            }
+                                    // Also save connection fields
+                                    val portInt = port.toIntOrNull() ?: 389
+                                    viewModel.saveConnection(
+                                        selectedConnectionName = selectedConnectionName,
+                                        name = name,
+                                        host = host,
+                                        port = portInt,
+                                        baseDN = baseDN,
+                                        useSsl = useSSL,
+                                        useTls = useTLS
+                                    )
+
+                                    configs = viewModel.getConfig().connections
+                                    viewModel.connect(targetCredential)
+                                },
+                                modifier = Modifier.height(320.dp)
+                            )
                         }
                     }
                 }
@@ -583,11 +471,11 @@ fun ConfigurationScreen(
                 ) {
                     when (connectionState) {
                         is ConnectionState.Connected -> {
-                            OutlinedButton(
+                            IconButton(
                                 onClick = { viewModel.disconnect() }
                             ) {
                                 Icon(
-                                    imageVector = Octicons.Lock16,
+                                    key = AllIconsKeys.General.Close,
                                     contentDescription = "Disconnect",
                                     modifier = Modifier.size(AppSizes.iconMedium)
                                 )
@@ -632,7 +520,7 @@ fun ConfigurationScreen(
                                             useSsl = useSSL,
                                             useTls = useTLS
                                         )
-                                        
+
                                         configs = viewModel.getConfig().connections
                                         selectedConnectionName = finalName
                                         // Update selected node to reflect changes
