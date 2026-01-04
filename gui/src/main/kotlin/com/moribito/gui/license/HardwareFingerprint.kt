@@ -10,35 +10,10 @@ object HardwareFingerprint {
     fun getFingerprint(): String {
         val identifiers = mutableListOf<String>()
 
-        // 1. MAC Address
-        try {
-            val networks = NetworkInterface.getNetworkInterfaces()
-            val macs = mutableListOf<String>()
-            while (networks.hasMoreElements()) {
-                val network = networks.nextElement()
-                val mac = network.hardwareAddress
-                if (mac != null) {
-                    macs.add(mac.joinToString("") { "%02x".format(it) })
-                }
-            }
-            if (macs.isNotEmpty()) {
-                identifiers.add("macs:${macs.sorted().joinToString(",")}")
-            }
-        } catch (e: Exception) {
-            // Ignore
-        }
-
-        // 2. System Username
+        // 1. System Username
         identifiers.add("user:${System.getProperty("user.name")}")
 
-        // 3. Hostname
-        try {
-            identifiers.add("host:${InetAddress.getLocalHost().hostName}")
-        } catch (e: Exception) {
-            // Ignore
-        }
-
-        // 4. OS Specific IDs
+        // 2. OS Specific IDs
         getOsSpecificId()?.let { identifiers.add("os_id:$it") }
 
         val combined = identifiers.joinToString("|")

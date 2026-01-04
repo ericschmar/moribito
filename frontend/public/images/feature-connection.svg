@@ -1,0 +1,32 @@
+<svg width="400" height="300" viewBox="0 0 400 300" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background -->
+  <rect width="400" height="300" fill="rgb(241, 239, 235)"/>
+
+  <!-- Lock body -->
+  <rect x="150" y="130" width="100" height="80" rx="8" fill="rgb(16, 122, 77)" opacity="0.9"/>
+
+  <!-- Lock shackle -->
+  <path d="M 170 130 L 170 90 Q 170 60, 200 60 Q 230 60, 230 90 L 230 130"
+        fill="none" stroke="rgb(16, 122, 77)" stroke-width="12" stroke-linecap="round"/>
+
+  <!-- Keyhole -->
+  <circle cx="200" cy="165" r="12" fill="rgb(241, 239, 235)"/>
+  <rect x="194" y="165" width="12" height="25" fill="rgb(241, 239, 235)"/>
+
+  <!-- Connection dots -->
+  <circle cx="100" cy="100" r="8" fill="rgb(6, 40, 27)"/>
+  <circle cx="300" cy="100" r="8" fill="rgb(6, 40, 27)"/>
+  <circle cx="100" cy="170" r="8" fill="rgb(6, 40, 27)"/>
+  <circle cx="300" cy="170" r="8" fill="rgb(6, 40, 27)"/>
+
+  <!-- Connection lines -->
+  <line x1="108" y1="100" x2="142" y2="100" stroke="rgb(6, 40, 27)" stroke-width="2" opacity="0.6"/>
+  <line x1="258" y1="100" x2="292" y2="100" stroke="rgb(6, 40, 27)" stroke-width="2" opacity="0.6"/>
+  <line x1="108" y1="170" x2="142" y2="170" stroke="rgb(6, 40, 27)" stroke-width="2" opacity="0.6"/>
+  <line x1="258" y1="170" x2="292" y2="170" stroke="rgb(6, 40, 27)" stroke-width="2" opacity="0.6"/>
+
+  <!-- Label -->
+  <text x="200" y="260" text-anchor="middle" font-size="18" font-weight="600" fill="rgb(42, 42, 42)">
+    Secure Connections
+  </text>
+</svg>

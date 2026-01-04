@@ -88,7 +88,7 @@ internal fun DecoratedWindowScope.TitleBarView() {
         }
 
         Row(Modifier.align(Alignment.End).padding(end = 12.dp)) {
-            TrialChip(state.accessStatus)
+            TrialChip(state.accessStatus, onClick = {viewModel.activateTrial()})
         }
     }
 }

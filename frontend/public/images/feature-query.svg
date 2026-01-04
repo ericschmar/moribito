@@ -1,0 +1,22 @@
+<svg width="400" height="300" viewBox="0 0 400 300" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background -->
+  <rect width="400" height="300" fill="rgb(241, 239, 235)"/>
+
+  <!-- Search Icon -->
+  <circle cx="170" cy="120" r="50" fill="none" stroke="rgb(16, 122, 77)" stroke-width="6"/>
+  <line x1="207" y1="157" x2="250" y2="200" stroke="rgb(16, 122, 77)" stroke-width="6" stroke-linecap="round"/>
+
+  <!-- Code/Query Lines -->
+  <rect x="80" y="60" width="80" height="8" rx="4" fill="rgb(16, 122, 77)" opacity="0.4"/>
+  <rect x="80" y="80" width="120" height="8" rx="4" fill="rgb(16, 122, 77)" opacity="0.4"/>
+  <rect x="80" y="100" width="60" height="8" rx="4" fill="rgb(16, 122, 77)" opacity="0.4"/>
+
+  <!-- Filter symbol -->
+  <path d="M 270 80 L 310 80 L 290 110 Z" fill="rgb(6, 40, 27)" opacity="0.7"/>
+  <rect x="285" y="110" width="10" height="30" fill="rgb(6, 40, 27)" opacity="0.7"/>
+
+  <!-- Label -->
+  <text x="200" y="260" text-anchor="middle" font-size="18" font-weight="600" fill="rgb(42, 42, 42)">
+    Advanced Query Builder
+  </text>
+</svg>

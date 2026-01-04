@@ -1,0 +1,32 @@
+<svg width="400" height="300" viewBox="0 0 400 300" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background -->
+  <rect width="400" height="300" fill="rgb(241, 239, 235)"/>
+
+  <!-- Tree structure -->
+  <circle cx="200" cy="50" r="20" fill="rgb(16, 122, 77)"/>
+  <text x="200" y="56" text-anchor="middle" font-size="12" font-weight="600" fill="white">Root</text>
+
+  <!-- Branches -->
+  <line x1="200" y1="70" x2="120" y2="110" stroke="rgb(16, 122, 77)" stroke-width="2"/>
+  <line x1="200" y1="70" x2="280" y2="110" stroke="rgb(16, 122, 77)" stroke-width="2"/>
+
+  <!-- Second level -->
+  <circle cx="120" cy="130" r="18" fill="rgb(16, 122, 77)" opacity="0.9"/>
+  <circle cx="280" cy="130" r="18" fill="rgb(16, 122, 77)" opacity="0.9"/>
+
+  <!-- Third level -->
+  <line x1="120" y1="148" x2="80" y2="180" stroke="rgb(16, 122, 77)" stroke-width="1.5"/>
+  <line x1="120" y1="148" x2="160" y2="180" stroke="rgb(16, 122, 77)" stroke-width="1.5"/>
+  <line x1="280" y1="148" x2="240" y2="180" stroke="rgb(16, 122, 77)" stroke-width="1.5"/>
+  <line x1="280" y1="148" x2="320" y2="180" stroke="rgb(16, 122, 77)" stroke-width="1.5"/>
+
+  <circle cx="80" cy="195" r="15" fill="rgb(6, 40, 27)"/>
+  <circle cx="160" cy="195" r="15" fill="rgb(6, 40, 27)"/>
+  <circle cx="240" cy="195" r="15" fill="rgb(6, 40, 27)"/>
+  <circle cx="320" cy="195" r="15" fill="rgb(6, 40, 27)"/>
+
+  <!-- Label -->
+  <text x="200" y="260" text-anchor="middle" font-size="18" font-weight="600" fill="rgb(42, 42, 42)">
+    Directory Tree Navigation
+  </text>
+</svg>

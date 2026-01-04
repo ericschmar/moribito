@@ -1,0 +1,356 @@
+@import "tailwindcss";
+
+/* Custom Font Faces */
+@font-face {
+    font-family: "Tasa Orbiter";
+    src:
+        url("/fonts/TasaOrbiter-Regular.woff2") format("woff2"),
+        url("/fonts/TasaOrbiter-Regular.woff") format("woff");
+    font-weight: 400;
+    font-style: normal;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: "Tasa Orbiter";
+    src:
+        url("/fonts/TasaOrbiter-SemiBold.woff2") format("woff2"),
+        url("/fonts/TasaOrbiter-SemiBold.woff") format("woff");
+    font-weight: 600;
+    font-style: normal;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: "Geist Mono";
+    src:
+        url("/fonts/GeistMono-Regular.woff2") format("woff2"),
+        url("/fonts/GeistMono-Regular.woff") format("woff");
+    font-weight: 400;
+    font-style: normal;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: "Geist Mono";
+    src:
+        url("/fonts/GeistMono-SemiBold.woff2") format("woff2"),
+        url("/fonts/GeistMono-SemiBold.woff") format("woff");
+    font-weight: 600;
+    font-style: normal;
+    font-display: swap;
+}
+
+:root {
+    /* Legacy variables for existing components */
+    --background-rgb: 214, 219, 220;
+    --foreground-rgb: 0, 0, 0;
+
+    /* Moribito Design System - Color Tokens */
+    --color-bg-primary: rgb(241, 239, 235);
+    --color-bg-elevated: rgba(255, 255, 255, 0.035);
+    --color-text-primary: rgb(255, 255, 255);
+    --color-text-secondary: rgb(42, 42, 42);
+    --color-text-muted: rgb(106, 106, 106);
+    --color-border-default: rgba(255, 255, 255, 0.05);
+    --color-border-light: #e5e5e5;
+    --color-interactive-primary: rgb(6, 40, 27);
+    --color-interactive-green: rgb(16, 122, 77);
+    --color-accent-orange: rgb(242, 78, 30);
+
+    --font-title: "Tasa Orbiter", sans-serif; /* For titles */
+    --font-body: "Geist Mono", monospace; /* For everything else */
+
+    /* Spacing (using Tailwind's built-in scale, documented here for reference) */
+    --spacing-micro: 8px;
+    --spacing-small: 12px;
+    --spacing-medium: 16px;
+    --spacing-large: 32px;
+    --spacing-xlarge: 160px;
+
+    /* Shadows */
+    --shadow-outline:
+        rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px,
+        rgba(0, 0, 0, 0.05) 0px 1px 2px 0px;
+    --shadow-card: rgba(0, 0, 0, 0.06) 0px 2px 12px 0px;
+
+    /* Transitions */
+    --transition-duration: 0.15s;
+    --transition-easing: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@media (prefers-color-scheme: dark) {
+    :root {
+        --background-rgb: 0, 0, 0;
+        --foreground-rgb: 255, 255, 255;
+    }
+}
+
+/* Smooth scroll behavior for landing page */
+html {
+    scroll-behavior: smooth;
+}
+
+/* Offset for sections with fixed topbar */
+section[id] {
+    scroll-margin-top: 48px;
+}
+
+body {
+    background: rgb(241 239 235 / var(--tw-bg-opacity, 1));
+    color: rgb(var(--foreground-rgb));
+    font-family: var(--font-body); /* Geist Mono for everything by default */
+}
+
+/* Custom utility class for design system transitions */
+.transition-custom {
+    transition-duration: var(--transition-duration);
+    transition-timing-function: var(--transition-easing);
+    transition-property:
+        color, background-color, border-color, text-decoration-color, fill,
+        stroke;
+}
+
+/* Title font utility class */
+.font-title {
+    font-family: var(--font-title); /* Tasa Orbiter for titles */
+}
+
+.border-border {
+    --tw-border-opacity: 1;
+    border-color: rgb(204 204 204 / var(--tw-border-opacity, 1));
+}
+
+h1 {
+    font-family: var(--font-tasa-orbiter), sans-serif;
+    font-weight: 600;
+    line-height: 1;
+    letter-spacing: -0.04em;
+}
+
+@media (min-width: 640px) {
+    h1 {
+        font-size: 3.75rem;
+        line-height: 1;
+    }
+}
+
+@media (min-width: 768px) {
+    h1 {
+        font-size: 3.75rem;
+        line-height: 1;
+    }
+}
+
+@media (min-width: 1024px) {
+    h1 {
+        font-size: 4.5rem;
+        line-height: 1;
+    }
+}
+
+.bg-greptile-green {
+    --tw-bg-opacity: 1;
+    background-color: rgb(16 122 77 / var(--tw-bg-opacity, 1));
+}
+
+.bg-greptile-yellow {
+    --tw-bg-opacity: 1;
+    background-color: rgb(204 145 0 / var(--tw-bg-opacity, 1));
+}
+
+.bg-greptile-orange {
+    --tw-bg-opacity: 1;
+    background-color: rgb(242 78 30 / var(--tw-bg-opacity, 1));
+}
+
+.bg-greptile-pink {
+    --tw-bg-opacity: 1;
+    background-color: rgb(247 131 163 / var(--tw-bg-opacity, 1));
+}
+
+.bg-background {
+    --tw-bg-opacity: 1;
+    background-color: rgb(241 239 235 / var(--tw-bg-opacity, 1));
+}
+
+.text-tertiary {
+    --tw-text-opacity: 1;
+    color: rgb(106 106 106 / var(--tw-text-opacity, 1));
+}
+
+.text-primary {
+    --tw-text-opacity: 1;
+    color: rgb(42 42 42 / var(--tw-text-opacity, 1));
+}
+
+.text-secondary {
+    --tw-text-opacity: 1;
+    color: rgb(74 74 74 / var(--tw-text-opacity, 1));
+}
+
+.text-greptile-green {
+    --tw-bg-opacity: 1;
+    color: rgb(16 122 77 / var(--tw-bg-opacity, 1));
+}
+
+.text-greptile-yellow {
+    --tw-bg-opacity: 1;
+    color: rgb(204 145 0 / var(--tw-bg-opacity, 1));
+}
+
+.text-greptile-orange {
+    --tw-bg-opacity: 1;
+    color: rgb(242 78 30 / var(--tw-bg-opacity, 1));
+}
+
+.text-greptile-pink {
+    --tw-bg-opacity: 1;
+    color: rgb(247 131 163 / var(--tw-bg-opacity, 1));
+}
+
+.text-sm {
+    font-size: 0.875rem;
+    line-height: 1.25rem;
+}
+
+.text-label {
+    font-family: var(--font-mono), monospace;
+    font-size: 0.875rem;
+    line-height: 1.25rem;
+}
+@media (min-width: 640px) {
+    .text-label {
+        font-size: 0.875rem;
+        line-height: 1.25rem;
+    }
+}
+
+.badge-small {
+    font-family: var(--font-mono), monospace;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    font-size: 0.875rem;
+    line-height: 1.25rem;
+}
+
+.bg-card-bg\/50 {
+    background-color: #f9f7f380;
+}
+
+.grid-cols-1 {
+    grid-template-columns: repeat(1, minmax(0, 1fr));
+}
+
+@media (min-width: 1024px) {
+    .lg\:grid-cols-2 {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+@media (min-width: 768px) {
+    .md\:grid-cols-2 {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+.-translate-x-1\/2 {
+    --tw-translate-x: -50%;
+    transform: translate(var(--tw-translate-x), var(--tw-translate-y))
+        rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y))
+        scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y));
+}
+.-translate-y-1\/2 {
+    --tw-translate-y: -50%;
+    transform: translate(var(--tw-translate-x), var(--tw-translate-y))
+        rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y))
+        scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y));
+}
+
+@keyframes grid-pulse {
+    0%,
+    100% {
+        --grid-color: #10b9810d;
+    }
+    50% {
+        --grid-color: #10b9811f;
+    }
+}
+
+.grid-animated-container {
+    background-size: 24px 24px;
+    background-image:
+        linear-gradient(
+            to right,
+            var(--grid-color, #10b98114) 1px,
+            transparent 1px
+        ),
+        linear-gradient(
+            to bottom,
+            var(--grid-color, #10b98114) 1px,
+            transparent 1px
+        );
+    animation: 4s ease-in-out infinite grid-pulse;
+    position: absolute;
+    inset: 0;
+}
+
+.grid-animated-container:before {
+    content: "";
+    background-image:
+        linear-gradient(90deg, #10b98126 1px, #0000 1px),
+        linear-gradient(#10b98126 1px, #0000 1px);
+    background-size: 24px 24px;
+    animation: 6s linear infinite wave-shift;
+    animation-duration: 6s;
+    animation-timing-function: linear;
+    animation-delay: 0s;
+    animation-iteration-count: infinite;
+    animation-direction: normal;
+    animation-fill-mode: none;
+    animation-play-state: running;
+    animation-name: wave-shift;
+    animation-timeline: auto;
+    animation-range-start: normal;
+    animation-range-end: normal;
+    position: absolute;
+    inset: 0;
+    -webkit-mask: linear-gradient(
+            45deg,
+            #0000 0%,
+            #000 10% 20%,
+            #0000 30% 40%,
+            #000 50% 60%,
+            #0000 70% 80%,
+            #000 90% 100%
+        )
+        0 0 / 200% 200%;
+    mask: linear-gradient(
+            45deg,
+            #0000 0%,
+            #000 10% 20%,
+            #0000 30% 40%,
+            #000 50% 60%,
+            #0000 70% 80%,
+            #000 90% 100%
+        )
+        0 0 / 200% 200%;
+}
+
+.section-wrapper {
+    padding: 2rem 1rem;
+}
+@media (min-width: 640px) {
+    .section-wrapper {
+        padding: 3rem 1.5rem;
+    }
+}
+@media (min-width: 768px) {
+    .section-wrapper {
+        padding: 4rem 2rem;
+    }
+}
+@media (min-width: 1024px) {
+    .section-wrapper {
+        padding: 5rem 3rem;
+    }
+}

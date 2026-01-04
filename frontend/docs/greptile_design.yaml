@@ -1,0 +1,698 @@
+# Design System
+
+metadata:
+  extraction-date: 2026-01-04
+  url: "https://www.greptile.com/"
+  viewport: "1710x978"
+  detected-pattern: "Perfect Fifth (1.5)"
+  confidence: high
+
+css-architecture:
+  type: traditional
+  confidence: 63%
+  indicators:
+    - "Found 5 hashed class names"
+    - "Found 6 utility class names"
+    - "Found 4 BEM-style class names"
+    - "Found many semantic class names"
+    - "Found 3 external stylesheets"
+  recommendation: "Can use CSS rules and class names for component identification. getComputedStyle() is still recommended for accuracy."
+
+layout:
+  structure: dashboard
+  regions:
+    topbar:
+      role: banner
+      position: top
+      width: 1704px
+      height: 48px
+      contains: [branding, navigation]
+    main:
+      role: main
+      position: center
+      width: 1646px
+      height: 8931px
+      contains: [form, cards, grid-layout]
+    footer:
+      role: contentinfo
+      position: bottom
+      width: 1646px
+      height: 452px
+  measurements:
+    topbar-height: 48px
+    section-gap: 36px
+    row-height: 34px
+  grid-pattern: "557px"
+
+colors:
+  semantic-tokens:
+    backgrounds:
+      bg-primary: "rgb(241, 239, 235)"
+      bg-elevated: "rgba(255, 255, 255, 0.035)"
+    text:
+      text-primary: "rgb(255, 255, 255)"
+    borders:
+      border-default: "rgba(255, 255, 255, 0.05)"
+    interactive:
+      primary: "rgb(6, 40, 27)"
+      interactive-1: "rgb(16, 122, 77)"
+      interactive-2: "rgb(242, 78, 30)"
+
+  raw-with-context:
+    - value: "rgb(255, 255, 255)"
+      usage-count: 200
+      used-for: [text]
+      semantic-token: text-primary
+      css-variable: --tw-ring-offset-color
+    - value: "rgb(229, 229, 229)"
+      usage-count: 140
+      semantic-token: surface-light
+    - value: "rgba(255, 255, 255, 0.05)"
+      usage-count: 60
+      used-for: [borders, backgrounds, dividers]
+      semantic-token: border-default
+    - value: "rgb(241, 239, 235)"
+      usage-count: 1
+      used-for: [backgrounds]
+      semantic-token: bg-primary
+    - value: "rgba(255, 255, 255, 0.086)"
+      usage-count: 1
+      used-for: [backgrounds]
+      semantic-token: bg-elevated
+    - value: "rgba(255, 255, 255, 0.035)"
+      usage-count: 1
+      used-for: [backgrounds]
+      semantic-token: bg-elevated
+
+  component-specific-colors:
+    buttons:
+      - variant: primary
+        count: 7
+        colors:
+          text: "rgb(255, 255, 255)"
+          icon-fill: "rgb(74, 74, 74)"
+          hover-background: "rgba(16, 122, 77, 0.2)"
+          hover-border: "rgba(16, 122, 77, 0.5)"
+        measurements:
+          height: 56px
+          min-width: 557px
+          padding: "16px 0px"
+          font-size: "36px"
+          font-weight: "600"
+      - variant: primary
+        count: 2
+        colors:
+          text: "rgb(42, 42, 42)"
+          icon-fill: "rgb(42, 42, 42)"
+        measurements:
+          height: 20px
+          min-width: 111px
+          padding: "0px"
+          font-size: "14px"
+          font-weight: "400"
+      - variant: outline
+        count: 7
+        colors:
+          background: "rgb(6, 40, 27)"
+          text: "rgb(255, 255, 255)"
+          hover-background: "rgba(16, 122, 77, 0.2)"
+          hover-border: "rgba(16, 122, 77, 0.5)"
+        measurements:
+          height: 36px
+          min-width: 96px
+          padding: "8px 16px"
+          font-size: "14px"
+          font-weight: "400"
+      - variant: outline
+        count: 5
+        colors:
+          background: "rgb(16, 122, 77)"
+          text: "rgb(255, 255, 255)"
+          hover-background: "rgba(16, 122, 77, 0.2)"
+          hover-border: "rgba(16, 122, 77, 0.5)"
+        measurements:
+          height: 36px
+          min-width: 114px
+          padding: "8px 16px"
+          font-size: "14px"
+          font-weight: "400"
+    icons:
+      - count: 48
+        fill: "rgb(42, 42, 42)"
+
+  css-variables:
+    # Color variables
+    grid-color: "rgba(16, 185, 129, 0.08)"
+    tw-ring-color: "#3b82f680"
+    tw-ring-offset-color: "#fff"
+
+    # Spacing variables
+    tw-border-spacing-x: "0"
+    tw-border-spacing-y: "0"
+
+    # Typography variables
+    font-handwriting: ""Nanum Pen Script","Nanum Pen Script Fallback""
+    font-inter: ""Inter","Inter Fallback""
+    font-tasa-orbiter: ""tasaOrbiter","tasaOrbiter Fallback""
+    font-mono: ""geistMono","geistMono Fallback""
+
+typography:
+  detected-scale: [18, 24, 36, 48, 96]
+  base-size: 18
+  scale-ratio: 1.5
+  ratio-name: "Perfect Fifth (1.5)"
+  confidence: high
+
+  fonts:
+    - "Inter"
+    - "geistMono"
+    - "tasaOrbiter"
+
+  headings:
+    h1:
+      size: 96px
+      weight: 600
+      line-height: 96px
+      usage: "H1 headings"
+      count: 1
+      example: "The AI Code Reviewer"
+    h2:
+      size: 48px
+      weight: 600
+      line-height: 48px
+      usage: "H2 headings"
+      count: 11
+      example: "Your second pair of eyes."
+    h3:
+      size: 36px
+      weight: 600
+      line-height: 40px
+      usage: "H3 headings"
+      count: 17
+      example: "Get context-aware comments on your PRs"
+    h5:
+      size: 24px
+      weight: 600
+      line-height: 32px
+      usage: "H5 headings"
+      count: 6
+      example: "Write a rule or point to markdown file"
+    h6:
+      size: 18px
+      weight: 600
+      line-height: 28px
+      usage: "H6 headings"
+      count: 3
+      example: "Product"
+
+  line-height-patterns:
+    - value: 96px
+      ratio: 1
+      usage: "Tight (headings)"
+      count: 1
+    - value: 48px
+      ratio: 1
+      usage: "Tight (headings)"
+      count: 1
+    - value: 40px
+      ratio: 1.11
+      usage: "Tight (headings)"
+      count: 1
+    - value: 32px
+      ratio: 1.33
+      usage: "Body text"
+      count: 1
+    - value: 28px
+      ratio: 1.56
+      usage: "Normal (body)"
+      count: 1
+
+  font-weights:
+    - value: 400
+      name: regular
+      usage-count: 964
+      used-in: [body-text, text, navigation, button, card]
+    - value: 500
+      name: medium
+      usage-count: 4
+      used-in: [text]
+    - value: 600
+      name: semibold
+      usage-count: 1
+      used-in: [text]
+
+  font-weight-variables:
+    --font-weight-regular: 400
+    --font-weight-medium: 500
+    --font-weight-semibold: 600
+
+spacing:
+  base-unit: 4px
+  pattern: "Custom progression"
+  scale: [8px, 12px, 16px, 32px]
+  outliers: [160px, 199px]  # Large spacing values (page layout)
+
+  usage:
+    8px: 22  # Micro spacing (component internals)
+    16px: 16  # Small spacing (component padding, tight layouts)
+    12px: 10  # Small spacing (component padding, tight layouts)
+    160px: 2  # Extra large spacing (page layout, hero sections)
+    199px: 2  # Extra large spacing (page layout, hero sections)
+    32px: 1  # Medium spacing (component margins, content separation)
+
+shadows:
+  pattern: "Custom shadow system (2 levels)"
+  levels:
+    - name: border/outline
+      elevation: 0
+      blur: 0px
+      offset: [0, 0]
+      usage-count: 14
+      value: "rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0.05) 0px 1px 2px 0px"
+      used-by:
+        - button-outline (14)
+    - name: moderate
+      elevation: 2
+      blur: 12px
+      offset: [0, 2]
+      usage-count: 6
+      value: "rgba(0, 0, 0, 0.06) 0px 2px 12px 0px"
+      used-by:
+        - card (6)
+
+z-index:
+  range: [10, 50]
+  layers:
+    dropdown: [10, 50]  # Dropdowns, popovers (10-100)
+
+animations:
+  durations:
+    - value: 0.15s
+      usage-count: 80
+  easings:
+    - value: "cubic-bezier"
+      usage-count: 80
+  transitions:
+    - property: color
+      duration: 0.15s
+      easing: "cubic-bezier"
+      usage-count: 13
+    - property: background-color
+      duration: 0.15s
+      easing: "cubic-bezier"
+      usage-count: 13
+    - property: border-color
+      duration: 0.15s
+      easing: "cubic-bezier"
+      usage-count: 13
+    - property: text-decoration-color
+      duration: 0.15s
+      easing: "cubic-bezier"
+      usage-count: 13
+    - property: fill
+      duration: 0.15s
+      easing: "cubic-bezier"
+      usage-count: 13
+    - property: stroke
+      duration: 0.15s
+      easing: "cubic-bezier"
+      usage-count: 13
+    - property: transform
+      duration: 0.15s
+      easing: "cubic-bezier"
+      usage-count: 2
+
+interaction-patterns:
+  timing:
+    default-duration: 0.5s
+    common-durations: [0.5s, 0.7s]
+    default-easing: cubic-bezier(0.4, 0, 0.2, 1)
+    common-easings:
+      - "cubic-bezier(0.4, 0, 0.2, 1)"
+      - "cubic-bezier(0, 0, 0.2, 1)"
+
+  component-states:
+    button:
+      count: 24
+      default:
+        backgroundColor: "rgba(0, 0, 0, 0)"
+        color: "rgb(106, 106, 106)"
+        opacity: "1"
+        transition: "all"
+      focus:
+        boxShadow: "rgba(0, 0, 0, 0.4) 0px 0px 0px 2px"
+    card:
+      count: 23
+      default:
+        backgroundColor: "rgba(249, 247, 243, 0.5)"
+        color: "rgb(255, 255, 255)"
+        opacity: "1"
+        transition: "all"
+      hover:
+        backgroundColor: "detected-via-DOM"
+        transition: "all"
+
+icons:
+  common-sizes:
+    - size: 16x16
+      count: 37
+    - size: 12x12
+      count: 21
+    - size: 20x20
+      count: 12
+    - size: 1350x1080
+      count: 7
+    - size: 11x11
+      count: 6
+    - size: 14x14
+      count: 2
+    - size: 40x20
+      count: 2
+    - size: 24x24
+      count: 1
+  svg-patterns:
+    - size: 16x16
+      viewBox: "0 0 256 256"
+      count: 37
+    - size: 12x12
+      viewBox: "0 0 256 256"
+      count: 21
+    - size: 20x20
+      viewBox: "0 0 256 256"
+      count: 12
+    - size: 1350x1080
+      viewBox: "0 0 1350 1080"
+      count: 7
+    - size: 11x11
+      viewBox: "0 0 256 256"
+      count: 6
+  totals:
+    svg-icons: 90
+    icon-fonts: 0
+
+components:
+  topbars:
+    - variant: topbar
+      count: 1
+      description: application toolbar
+      styles:
+        height: 48px
+        position: relative
+  navigation-menus:
+    - variant: navigation-menu
+      count: 1
+      description: Horizontal navigation menu with 26 items
+      styles:
+        display: block
+        padding: 0px
+  buttons:
+    - variant: outline-small
+      description: elevated
+      count: 8
+      styles:
+        background: "rgb(6, 40, 27)"
+        color: "rgb(255, 255, 255)"
+        padding: "8px 16px"
+        font-size: 14px
+      states:
+        hover:
+          transitionDuration: "0.15s"
+          transitionEasing: "cubic-bezier(0.4, 0, 0.2, 1)"
+          hasTransition: "true"
+        disabled:
+          utilityClasses: "disabled:pointer-events-none,disabled:opacity-50"
+    - variant: outline-large
+      description: elevated
+      count: 4
+      styles:
+        background: "rgb(16, 122, 77)"
+        color: "rgb(255, 255, 255)"
+        padding: "8px 16px"
+        font-size: 14px
+      states:
+        hover:
+          transitionDuration: "0.15s"
+          transitionEasing: "cubic-bezier(0.4, 0, 0.2, 1)"
+          hasTransition: "true"
+        disabled:
+          utilityClasses: "disabled:pointer-events-none,disabled:opacity-50"
+
+  cards:
+    - variant: media
+      description: compact size
+      count: 10
+      styles:
+        padding: 4px 0px
+      states:
+        hover:
+          hasTransition: "true"
+          transition: "all"
+    - variant: accent-padded-elevated
+      description: elevated
+      count: 9
+      styles:
+        background: "rgb(6, 40, 27)"
+        padding: 8px 16px
+        box-shadow: "rgba(0, 0, 0, 0)"
+      states:
+        hover:
+          transitionDuration: "0.15s"
+          transitionEasing: "cubic-bezier(0.4, 0, 0.2, 1)"
+          hasTransition: "true"
+    - variant: overlay-padded
+      description: large size
+      count: 8
+      styles:
+        background: "rgba(249, 247, 243, 0.5)"
+        padding: 32px
+      states:
+        hover:
+          hasTransition: "true"
+          transition: "all"
+
+  inputs:
+    - type: email
+      variant: email
+      description: with border, compact size
+      count: 3
+      styles:
+        background: "rgb(241, 239, 235)"
+        border: "1px solid rgb(204, 204, 204)"
+        padding: 0px 12px
+        height: 36px
+      states:
+        focus:
+          utilityClasses: "focus:outline-none,focus:ring-1,focus:ring-border"
+        disabled:
+          utilityClasses: "disabled:cursor-not-allowed,disabled:opacity-50"
+
+  navigation:
+    - variant: primary
+      description: filled button with solid background, compact size
+      count: 10
+      styles:
+        color: "rgb(42, 42, 42)"
+        font-size: 14px
+        font-weight: 400
+        padding: 0px 0px 0px 16px
+      states:
+        hover:
+          hasTransition: "true"
+          transition: "all"
+          utilityClasses: "hover:text-secondary"
+    - variant: default
+      description: default variant
+      count: 6
+      styles:
+        color: "rgb(255, 255, 255)"
+        font-size: 16px
+        font-weight: 400
+        padding: 16px
+      states:
+        hover:
+          transitionDuration: "0.15s"
+          transitionEasing: "cubic-bezier(0.4, 0, 0.2, 1)"
+          hasTransition: "true"
+          utilityClasses: "hover:bg-muted"
+    - variant: default
+      description: compact size
+      count: 5
+      styles:
+        color: "rgb(255, 255, 255)"
+        font-size: 16px
+        font-weight: 400
+        padding: 0px
+      states:
+        hover:
+          hasTransition: "true"
+          transition: "all"
+
+  dropdowns:
+    - count: 20
+      styles:
+        background: "rgba(0, 0, 0, 0)"
+        border: "0px solid rgb(229, 229, 229)"
+        border-radius: 0px
+        box-shadow: "none"
+        min-width: auto
+    - count: 6
+      styles:
+        background: "rgba(16, 122, 77, 0.9)"
+        border: "0px solid rgb(229, 229, 229)"
+        border-radius: 0px
+        box-shadow: "none"
+        min-width: auto
+
+  tables:
+
+  badges:
+    - variant: error
+      description: compact size
+      count: 14
+      styles:
+        background: "rgb(242, 78, 30)"
+        color: "rgb(255, 255, 255)"
+        padding: 1px 3px
+        font-size: 9px
+    - variant: primary
+      description: filled button with solid background, compact size
+      count: 8
+      styles:
+        color: "rgb(42, 42, 42)"
+        font-size: 14px
+    - variant: error
+      description: compact size
+      count: 6
+      styles:
+        background: "rgb(204, 145, 0)"
+        color: "rgb(255, 255, 255)"
+        padding: 1px 3px
+        font-size: 9px
+    - variant: default
+      description: compact size
+      count: 4
+      styles:
+        color: "rgb(106, 106, 106)"
+        font-size: 14px
+    - variant: error
+      description: compact size
+      count: 4
+      styles:
+        background: "rgb(247, 131, 163)"
+        color: "rgb(255, 255, 255)"
+        padding: 1px 3px
+        font-size: 9px
+
+  dividers:
+    - count: 11
+      styles:
+        border-top: "1px solid rgb(204, 204, 204)"
+        height: 1px
+        margin: 0px
+
+gradients:
+  - type: linear
+    count: 1
+    value: "linear-gradient(to right, rgb(16, 122, 77), rgb(5, 150, 105))"
+
+flexbox-patterns:
+  - flex-direction: row
+    justify-content: normal
+    align-items: center
+    gap: 8px
+    flex-wrap: nowrap
+    usage-count: 18
+  - flex-direction: row
+    justify-content: normal
+    align-items: center
+    gap: normal
+    flex-wrap: nowrap
+    usage-count: 4
+  - flex-direction: row
+    justify-content: center
+    align-items: center
+    gap: 8px
+    flex-wrap: nowrap
+    usage-count: 3
+  - flex-direction: row
+    justify-content: center
+    align-items: center
+    gap: normal
+    flex-wrap: nowrap
+    usage-count: 2
+  - flex-direction: row
+    justify-content: normal
+    align-items: center
+    gap: 6px
+    flex-wrap: nowrap
+    usage-count: 2
+  - flex-direction: column
+    justify-content: normal
+    align-items: normal
+    gap: normal
+    flex-wrap: nowrap
+    usage-count: 1
+  - flex-direction: row
+    justify-content: space-between
+    align-items: center
+    gap: normal
+    flex-wrap: nowrap
+    usage-count: 1
+  - flex-direction: row
+    justify-content: normal
+    align-items: normal
+    gap: normal
+    flex-wrap: nowrap
+    usage-count: 1
+
+component-composition:
+  # Common nesting patterns found in the UI
+  - pattern: button-with-icon
+    count: 22
+    description: "button, [role="button"] containing svg, [class*="icon"]"
+  - pattern: card-with-image
+    count: 10
+    description: "[class*="card"], article containing img"
+
+specialized-components:
+  skeletons:
+    - variant: animated
+      count: 3
+      styles:
+        background: "rgb(241, 239, 235)"
+        height: 36px
+        border-radius: 0px
+        animation: "none 0s ease 0s 1 normal none running"
+
+responsive:
+  breakpoints:
+    - width: 480px
+      name: "custom"
+      type: min-width
+      usage-count: 1
+    - width: 600px
+      name: "custom"
+      type: max-width
+      usage-count: 1
+    - width: 640px
+      name: "sm (Tailwind)"
+      type: min-width
+      usage-count: 20
+    - width: 768px
+      name: "md (Tailwind/Bootstrap)"
+      type: min-width
+      usage-count: 18
+    - width: 1024px
+      name: "lg (Tailwind)"
+      type: min-width
+      usage-count: 16
+    - width: 1280px
+      name: "xl (Tailwind)"
+      type: min-width
+      usage-count: 5
+    - width: 1536px
+      name: "2xl (Tailwind)"
+      type: min-width
+      usage-count: 3
+  total-media-queries: 66
+

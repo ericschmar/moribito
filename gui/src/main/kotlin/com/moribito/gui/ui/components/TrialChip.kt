@@ -2,6 +2,7 @@ package com.moribito.gui.ui.components
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -23,6 +24,7 @@ import org.jetbrains.jewel.ui.component.Text
 @Composable
 fun TrialChip(
     state: AccessStatus?,
+    onClick: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     // Using semantic IntelliJ colors
@@ -46,6 +48,7 @@ fun TrialChip(
                 color = IntelliJColors.baseBackground,
                 shape = RoundedCornerShape(4.dp),
             )
+            .clickable(true, onClick = onClick)
             .border(1.dp, dotColor, RoundedCornerShape(4.dp))
             .padding(horizontal = 8.dp, vertical = 4.dp),
         verticalAlignment = Alignment.CenterVertically,
