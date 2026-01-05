@@ -86,13 +86,13 @@ fun Entry.toTreeNode(): TreeNode {
  * Represents a node in the LDAP directory tree.
  */
 data class TreeNode(
-    val id: String = java.util.UUID.randomUUID().toString(),
     val dn: String,
     val name: String,
     val children: List<TreeNode>? = null,
     val isLoaded: Boolean = false,
     val isVirtualMember: Boolean = false
 ) {
+    val id: String get() = dn  // Use DN as the unique identifier
     /**
      * Creates a copy of this node with loaded children.
      */

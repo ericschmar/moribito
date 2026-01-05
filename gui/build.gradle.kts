@@ -53,6 +53,7 @@ dependencies {
     implementation("com.akuleshov7:ktoml-file:0.7.1")
 
     implementation("br.com.devsrsouza.compose.icons:octicons:1.1.1")
+    implementation("io.github.serpro69:kotlin-faker:1.16.0")
 
     // Testing
     testImplementation(kotlin("test"))

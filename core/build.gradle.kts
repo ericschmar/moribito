@@ -28,6 +28,9 @@ kotlin {
 
                 implementation("com.akuleshov7:ktoml-core:0.7.1")
                 implementation("com.akuleshov7:ktoml-file:0.7.1")
+
+                // Faker
+                implementation("io.github.serpro69:kotlin-faker:1.16.0")
             }
         }
 

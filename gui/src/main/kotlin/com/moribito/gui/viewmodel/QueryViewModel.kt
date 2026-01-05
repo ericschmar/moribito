@@ -10,7 +10,7 @@ import kotlinx.coroutines.flow.update
  */
 class QueryViewModel(
     private val stateHolder: AppStateHolder,
-    private val ldapClientProvider: () -> LdapClient?
+    private val clientProvider: () -> ILdapClient?
 ) {
     private val logger = Logger.get("QueryViewModel")
     private val scope = CoroutineScope(Dispatchers.Default + SupervisorJob())
@@ -79,7 +79,8 @@ class QueryViewModel(
      * Executes the current query.
      */
     fun executeQuery() {
-        val client = ldapClientProvider() ?: return
+        val client = clientProvider() ?: return
+
         val filter = stateHolder.value.queryText
 
         if (filter.isBlank()) {

@@ -40,7 +40,7 @@ data class LdapConfig(
 class LdapClient(
     private val config: LdapConfig,
     private val credential: com.moribito.config.BindCredential? = null
-) : AutoCloseable {
+) : ILdapClient {
     private var connectionFactory: DefaultConnectionFactory? = null
     private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
     private val logger = Logger.get("LdapClient")
@@ -50,7 +50,7 @@ class LdapClient(
      *
      * @throws LdapException if connection fails
      */
-    suspend fun connect() = withContext(Dispatchers.IO) {
+    override suspend fun connect() = withContext(Dispatchers.IO) {
         try {
             val connectionConfig = ConnectionConfig.builder()
                 .url("ldap${if (config.useSSL) "s" else ""}://${config.host}:${config.port}")
@@ -217,11 +217,11 @@ class LdapClient(
      * @return List of matching entries
      * @throws LdapException if search fails
      */
-    suspend fun search(
+    override suspend fun search(
         baseDN: String,
         filter: String,
         scope: SearchScope,
-        attributes: List<String> = emptyList()
+        attributes: List<String>
     ): List<Entry> = withRetry {
         withContext(Dispatchers.IO) {
             val factory = connectionFactory ?: throw LdapException("Not connected to LDAP server")
@@ -287,13 +287,13 @@ class LdapClient(
      * @return A SearchPage containing the results and pagination info
      * @throws LdapException if search fails
      */
-    suspend fun searchPaged(
+    override suspend fun searchPaged(
         baseDN: String,
         filter: String,
         scope: SearchScope,
-        attributes: List<String> = emptyList(),
-        pageSize: Int = 50,
-        cookie: ByteArray? = null
+        attributes: List<String>,
+        pageSize: Int,
+        cookie: ByteArray?
     ): SearchPage = withRetry {
         withContext(Dispatchers.IO) {
             val factory = connectionFactory ?: throw LdapException("Not connected to LDAP server")
@@ -362,7 +362,7 @@ class LdapClient(
      * @return List of child tree nodes
      * @throws LdapException if operation fails
      */
-    suspend fun getChildren(dn: String = ""): List<TreeNode> {
+    override suspend fun getChildren(dn: String): List<TreeNode> {
         val searchDN = if (dn.isEmpty()) config.baseDN else dn
 
         logger.debug("Getting children of DN=$searchDN")
@@ -393,7 +393,7 @@ class LdapClient(
      * @return The entry with all attributes
      * @throws LdapException if entry not found or operation fails
      */
-    suspend fun getEntry(dn: String): Entry {
+    override suspend fun getEntry(dn: String): Entry {
         val entries = search(
             baseDN = dn,
             filter = "(objectClass=*)",
@@ -413,7 +413,7 @@ class LdapClient(
      *
      * @return The root tree node (not loaded)
      */
-    suspend fun buildTree(): TreeNode {
+    override suspend fun buildTree(): TreeNode {
         return TreeNode(
             dn = config.baseDN,
             name = extractName(config.baseDN, ""),
@@ -431,7 +431,7 @@ class LdapClient(
      * @return The node with loaded children (hierarchical + virtual members if enabled)
      * @throws LdapException if operation fails
      */
-    suspend fun loadChildrenWithMembers(node: TreeNode, includeVirtualMembers: Boolean): TreeNode {
+    override suspend fun loadChildrenWithMembers(node: TreeNode, includeVirtualMembers: Boolean): TreeNode {
         if (node.isLoaded) {
             return node
         }
@@ -484,7 +484,7 @@ class LdapClient(
      * @return List of matching entries
      * @throws LdapException if search fails
      */
-    suspend fun customSearch(filter: String): List<Entry> {
+    override suspend fun customSearch(filter: String): List<Entry> {
         return search(
             baseDN = config.baseDN,
             filter = filter,
@@ -502,10 +502,10 @@ class LdapClient(
      * @return A SearchPage containing the results and pagination info
      * @throws LdapException if search fails
      */
-    suspend fun customSearchPaged(
+    override suspend fun customSearchPaged(
         filter: String,
-        pageSize: Int = 50,
-        cookie: ByteArray? = null
+        pageSize: Int,
+        cookie: ByteArray?
     ): SearchPage {
         return searchPaged(
             baseDN = config.baseDN,
@@ -521,7 +521,7 @@ class LdapClient(
      * Executes a SQL-like query.
      * Example: SELECT * FROM ou.people WHERE name = "john"
      */
-    suspend fun executeSqlQuery(sql: String): List<Entry> {
+    override suspend fun executeSqlQuery(sql: String): List<Entry> {
         val parser = SqlParser(sql)
         val query = parser.parse()
         val converter = LdapQueryConverter()
@@ -537,10 +537,10 @@ class LdapClient(
     /**
      * Executes a SQL-like query with pagination.
      */
-    suspend fun executeSqlQueryPaged(
+    override suspend fun executeSqlQueryPaged(
         sql: String,
-        pageSize: Int = 50,
-        cookie: ByteArray? = null
+        pageSize: Int,
+        cookie: ByteArray?
     ): SearchPage {
         val parser = SqlParser(sql)
         val query = parser.parse()
@@ -561,7 +561,7 @@ class LdapClient(
      * Collects attribute types from both the schema definition and actual entries.
      * Falls back to discovered attributes if schema inspection is not supported.
      */
-    suspend fun inspectSchema(): LdapSchema = withRetry {
+    override suspend fun inspectSchema(): LdapSchema = withRetry {
         withContext(Dispatchers.IO) {
             val factory = connectionFactory ?: throw LdapException("Not connected to LDAP server")
 
@@ -709,7 +709,7 @@ class LdapClient(
     /**
      * Queries an OU (or any entry) for the attributes present in it and its immediate children.
      */
-    suspend fun getAttributesInOu(ouDn: String): LdapSchema = withRetry {
+    override suspend fun getAttributesInOu(ouDn: String): LdapSchema = withRetry {
         withContext(Dispatchers.IO) {
             // 1. Get attributes of the OU itself
             val selfEntry = try {
@@ -785,7 +785,7 @@ class LdapClient(
     /**
      * Checks if the client is currently connected.
      */
-    fun isConnected(): Boolean {
+    override fun isConnected(): Boolean {
         return connectionFactory != null
     }
 

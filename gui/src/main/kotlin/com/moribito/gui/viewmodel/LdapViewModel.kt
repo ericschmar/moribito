@@ -16,12 +16,12 @@ class LdapViewModel(
 ) {
     private val logger = Logger.get("LdapViewModel")
     private val scope = CoroutineScope(Dispatchers.Default + SupervisorJob())
-    private var ldapClient: LdapClient? = null
+    private var client: ILdapClient? = null
 
     /**
      * Returns the current LDAP client.
      */
-    fun getLdapClient(): LdapClient? = ldapClient
+    fun getClient(): ILdapClient? = client
 
     /**
      * Connects to the LDAP server with current configuration.
@@ -70,21 +70,32 @@ class LdapViewModel(
                     maxDelayMs = 5000
                 )
 
-                val client = LdapClient(ldapConfig, selectedCredential)
-                client.connect()
-                ldapClient = client
+                // Use mock client if host is "mock"
+                val ldapClient = if (currentConn.host.equals("mock", ignoreCase = true)) {
+                    MockLdapClient(ldapConfig, selectedCredential)
+                } else {
+                    LdapClient(ldapConfig, selectedCredential)
+                }
 
-                val root = client.buildTree()
+                ldapClient.connect()
+                client = ldapClient
+
+                val root = ldapClient.buildTree()
 
                 stateHolder.update { it.copy(
                     connectionState = ConnectionState.Connected,
-                    loadingState = LoadingState.Success("Connected successfully"),
+                    loadingState = LoadingState.Success(if (currentConn.host.equals("mock", ignoreCase = true)) "Connected to Mock LDAP" else "Connected successfully"),
                     treeRoot = root,
                     currentView = AppView.Workspace,
                     currentCredential = selectedCredential
                 )}
 
-                inspectSchema()
+                // Inspect schema
+                val schema = ldapClient.inspectSchema()
+                stateHolder.update { it.copy(
+                    schema = schema,
+                    attributeViewerSchema = schema
+                ) }
 
                 delay(3000)
                 stateHolder.update { it.copy(loadingState = LoadingState.Idle) }
@@ -105,8 +116,9 @@ class LdapViewModel(
      * Disconnects from the LDAP server.
      */
     fun disconnect() {
-        ldapClient?.close()
-        ldapClient = null
+        client?.close()
+        client = null
+        
         closeAllTabs()
         stateHolder.update { it.copy(
             connectionState = ConnectionState.Disconnected,
@@ -168,7 +180,13 @@ class LdapViewModel(
      * Loads children for a tree node.
      */
     fun loadNodeChildren(node: TreeNode) {
-        val client = ldapClient ?: return
+        logger.info("loadNodeChildren called for node: ${node.dn}, isLoaded: ${node.isLoaded}")
+        println("LdapViewModel: loadNodeChildren - node.id=${node.id}, node.dn=${node.dn}")
+
+        val ldapClient = client ?: run {
+            logger.warn("loadNodeChildren: client is null, returning")
+            return
+        }
 
         scope.launch {
             try {
@@ -177,17 +195,28 @@ class LdapViewModel(
                 )}
 
                 val showVirtualMembers = stateHolder.value.showVirtualMembers
-                val updatedNode = client.loadChildrenWithMembers(node, showVirtualMembers)
-                
+                val updatedNode = ldapClient.loadChildrenWithMembers(node, showVirtualMembers)
+
+                println("LdapViewModel: Loaded children for ${node.dn}, got ${updatedNode.children?.size ?: 0} children, isLoaded=${updatedNode.isLoaded}")
+                println("LdapViewModel: updatedNode.id=${updatedNode.id}, original node.id=${node.id} - IDs match: ${updatedNode.id == node.id}")
+
                 stateHolder.update { state ->
+                    val newTreeRoot = if (state.isShowingQueryResults) {
+                        updateNodeInTree(state.queryResultsRoot, updatedNode)
+                    } else {
+                        updateNodeInTree(state.treeRoot, updatedNode)
+                    }
+
+                    println("LdapViewModel: Updated tree root, new root has children: ${newTreeRoot?.children != null}")
+
                     if (state.isShowingQueryResults) {
                         state.copy(
-                            queryResultsRoot = updateNodeInTree(state.queryResultsRoot, updatedNode),
+                            queryResultsRoot = newTreeRoot,
                             loadingState = LoadingState.Idle
                         )
                     } else {
                         state.copy(
-                            treeRoot = updateNodeInTree(state.treeRoot, updatedNode),
+                            treeRoot = newTreeRoot,
                             loadingState = LoadingState.Idle
                         )
                     }
@@ -207,8 +236,8 @@ class LdapViewModel(
      */
     fun selectNode(node: TreeNode) {
         openTab(node)
-        
-        val client = ldapClient ?: return
+
+        val ldapClient = client ?: return
 
         scope.launch {
             try {
@@ -217,7 +246,7 @@ class LdapViewModel(
                     loadingState = LoadingState.Loading("Loading entry details...")
                 )}
 
-                val entry = client.getEntry(node.dn)
+                val entry = ldapClient.getEntry(node.dn)
 
                 stateHolder.update { it.copy(
                     selectedEntry = entry,
@@ -266,8 +295,9 @@ class LdapViewModel(
                     )
                 }
 
-                val client = ldapClient ?: return@launch
-                val entry = client.getEntry(dn)
+                val ldapClient = client ?: return@launch
+
+                val entry = ldapClient.getEntry(dn)
 
                 stateHolder.update { state ->
                     val updatedTabs = state.openTabs.map { tab ->
@@ -330,8 +360,9 @@ class LdapViewModel(
                     )
                 }
 
-                val client = ldapClient ?: return@launch
-                val entry = client.getEntry(dn)
+                val ldapClient = client ?: return@launch
+
+                val entry = ldapClient.getEntry(dn)
 
                 stateHolder.update { state ->
                     val updatedTabs = state.openTabs.map { tab ->
@@ -410,7 +441,7 @@ class LdapViewModel(
     }
 
     fun inspectSchema() {
-        val client = ldapClient ?: return
+        val ldapClient = client ?: return
 
         scope.launch {
             try {
@@ -427,7 +458,7 @@ class LdapViewModel(
                     schemaInspectionStatus = "Querying Root DSE..."
                 )}
 
-                val schema = client.inspectSchema()
+                val schema = ldapClient.inspectSchema()
 
                 stateHolder.update { it.copy(
                     schemaInspectionProgress = 0.8f,
@@ -461,12 +492,13 @@ class LdapViewModel(
     }
 
     fun loadOuAttributes(ouDn: String) {
-        val client = ldapClient ?: return
+        val ldapClient = client ?: return
 
         scope.launch {
             try {
                 stateHolder.update { it.copy(isAttributeViewerLoading = true) }
-                val schema = client.getAttributesInOu(ouDn)
+                val schema = ldapClient.getAttributesInOu(ouDn)
+                
                 stateHolder.update { it.copy(
                     attributeViewerSchema = schema,
                     isAttributeViewerLoading = false
@@ -503,7 +535,7 @@ class LdapViewModel(
     }
 
     fun toggleShowVirtualMembers() {
-        val client = ldapClient ?: return
+        val ldapClient = client ?: return
 
         scope.launch {
             try {
@@ -519,7 +551,8 @@ class LdapViewModel(
 
                 val root = stateHolder.value.treeRoot
                 if (root != null) {
-                    val updatedRoot = client.loadChildrenWithMembers(root, newShowValue)
+                    val updatedRoot = ldapClient.loadChildrenWithMembers(root, newShowValue)
+                    
                     stateHolder.update { it.copy(
                         treeRoot = updatedRoot,
                         loadingState = LoadingState.Success()
@@ -546,7 +579,13 @@ class LdapViewModel(
 
     private fun updateNodeInTree(root: TreeNode?, updatedNode: TreeNode): TreeNode? {
         if (root == null) return null
-        if (root.id == updatedNode.id) return updatedNode
+
+        println("updateNodeInTree: Checking root.id=${root.id} vs updatedNode.id=${updatedNode.id}, root.dn=${root.dn}")
+
+        if (root.id == updatedNode.id) {
+            println("updateNodeInTree: Found matching node! id=${updatedNode.id}, dn=${updatedNode.dn}, children=${updatedNode.children?.size}")
+            return updatedNode
+        }
 
         val updatedChildren = root.children?.map { child ->
             updateNodeInTree(child, updatedNode) ?: child
@@ -557,6 +596,6 @@ class LdapViewModel(
 
     fun cleanup() {
         scope.cancel()
-        ldapClient?.close()
+        client?.close()
     }
 }

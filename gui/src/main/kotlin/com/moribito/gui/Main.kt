@@ -81,9 +81,12 @@ fun main() {
                     singleOf(::ConfigurationService)
                     singleOf(::AppStateHolder)
                     singleOf(::ConfigViewModel)
-                    single { 
+                    single {
                         val ldapViewModel: LdapViewModel = get()
-                        QueryViewModel(get()) { ldapViewModel.getLdapClient() }
+                        QueryViewModel(
+                            stateHolder = get(),
+                            clientProvider = { ldapViewModel.getClient() }
+                        )
                     }
                     singleOf(::LogViewModel)
                     singleOf(::LdapViewModel)
