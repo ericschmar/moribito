@@ -3,6 +3,9 @@ package com.moribito.gui.ui.screens
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.key.Key
@@ -51,6 +54,11 @@ fun WorkspaceScreen(
     state: AppState,
     modifier: Modifier = Modifier
 ) {
+    LaunchedEffect(Unit) {
+        val currentConn = viewModel.getCurrentConnection()
+        viewModel.setSearchFromDN(currentConn.baseDN)
+    }
+
     Row(modifier = modifier.fillMaxSize()) {
         Column(
             modifier = Modifier
@@ -86,6 +94,10 @@ fun WorkspaceScreen(
                                     onRefresh = {
                                         // don't use reconnect because disconnect() tries to navigate to config
                                         viewModel.connect()
+                                    },
+                                    searchFromDN = state.searchFromDN,
+                                    onSearchFromDNChange = { dn ->
+                                        viewModel.reloadTreeFromDN(dn)
                                     }
                                 )
                                 TreeView(

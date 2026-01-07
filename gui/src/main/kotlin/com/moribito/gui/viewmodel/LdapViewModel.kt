@@ -87,7 +87,8 @@ class LdapViewModel(
                     loadingState = LoadingState.Success(if (currentConn.host.equals("mock", ignoreCase = true)) "Connected to Mock LDAP" else "Connected successfully"),
                     treeRoot = root,
                     currentView = AppView.Workspace,
-                    currentCredential = selectedCredential
+                    currentCredential = selectedCredential,
+                    errorMessage = null
                 )}
 
                 // Inspect schema
@@ -181,7 +182,10 @@ class LdapViewModel(
      */
     fun loadNodeChildren(node: TreeNode) {
         logger.info("loadNodeChildren called for node: ${node.dn}, isLoaded: ${node.isLoaded}")
-        println("LdapViewModel: loadNodeChildren - node.id=${node.id}, node.dn=${node.dn}")
+        
+        if (node.isLoaded && node.nextPageCookie == null) {
+            return
+        }
 
         val ldapClient = client ?: run {
             logger.warn("loadNodeChildren: client is null, returning")
@@ -190,15 +194,43 @@ class LdapViewModel(
 
         scope.launch {
             try {
-                stateHolder.update { it.copy(
-                    loadingState = LoadingState.Loading("Loading children...")
-                )}
+                // Set loading state on the node
+                stateHolder.update { state ->
+                    val updatedNode = node.copy(isLoading = true)
+                    val newTreeRoot = if (state.isShowingQueryResults) {
+                        updateNodeInTree(state.queryResultsRoot, updatedNode)
+                    } else {
+                        updateNodeInTree(state.treeRoot, updatedNode)
+                    }
+                    if (state.isShowingQueryResults) {
+                        state.copy(queryResultsRoot = newTreeRoot)
+                    } else {
+                        state.copy(treeRoot = newTreeRoot)
+                    }
+                }
 
                 val showVirtualMembers = stateHolder.value.showVirtualMembers
-                val updatedNode = ldapClient.loadChildrenWithMembers(node, showVirtualMembers)
+                var updatedNode = ldapClient.loadChildrenPaged(
+                    node = node,
+                    includeVirtualMembers = showVirtualMembers,
+                    pageSize = 50,
+                    cookie = node.nextPageCookie
+                )
 
-                println("LdapViewModel: Loaded children for ${node.dn}, got ${updatedNode.children?.size ?: 0} children, isLoaded=${updatedNode.isLoaded}")
-                println("LdapViewModel: updatedNode.id=${updatedNode.id}, original node.id=${node.id} - IDs match: ${updatedNode.id == node.id}")
+                // Add "Load more" node if there's a cookie
+                if (updatedNode.nextPageCookie != null) {
+                    val loadMoreNode = TreeNode(
+                        dn = "${updatedNode.dn}_load_more",
+                        name = "Load more children...",
+                        isLoadMoreNode = true,
+                        parentDn = updatedNode.dn
+                    )
+                    updatedNode = updatedNode.copy(
+                        children = (updatedNode.children ?: emptyList()) + loadMoreNode
+                    )
+                }
+
+                updatedNode = updatedNode.copy(isLoading = false)
 
                 stateHolder.update { state ->
                     val newTreeRoot = if (state.isShowingQueryResults) {
@@ -206,8 +238,6 @@ class LdapViewModel(
                     } else {
                         updateNodeInTree(state.treeRoot, updatedNode)
                     }
-
-                    println("LdapViewModel: Updated tree root, new root has children: ${newTreeRoot?.children != null}")
 
                     if (state.isShowingQueryResults) {
                         state.copy(
@@ -223,18 +253,54 @@ class LdapViewModel(
                 }
             } catch (e: Exception) {
                 logger.error("Error loading children for ${node.dn}", e)
-                stateHolder.update { it.copy(
-                    loadingState = LoadingState.Failed("Failed to load children: ${e.message}"),
-                    errorMessage = "Failed to load children: ${e.message}"
-                )}
+                
+                // Reset loading state on error
+                stateHolder.update { state ->
+                    val updatedNode = node.copy(isLoading = false)
+                    val newTreeRoot = if (state.isShowingQueryResults) {
+                        updateNodeInTree(state.queryResultsRoot, updatedNode)
+                    } else {
+                        updateNodeInTree(state.treeRoot, updatedNode)
+                    }
+                    
+                    val newState = if (state.isShowingQueryResults) {
+                        state.copy(queryResultsRoot = newTreeRoot)
+                    } else {
+                        state.copy(treeRoot = newTreeRoot)
+                    }
+                    
+                    newState.copy(
+                        loadingState = LoadingState.Failed("Failed to load children: ${e.message}"),
+                        errorMessage = "Failed to load children: ${e.message}"
+                    )
+                }
             }
         }
+    }
+
+    /**
+     * Loads more children for a parent node.
+     */
+    fun loadMoreChildren(parentNode: TreeNode) {
+        loadNodeChildren(parentNode)
     }
 
     /**
      * Selects a node and loads its entry details.
      */
     fun selectNode(node: TreeNode) {
+        if (node.isLoadMoreNode) {
+            val parentDn = node.parentDn ?: return
+            stateHolder.value.let { state ->
+                val root = if (state.isShowingQueryResults) state.queryResultsRoot else state.treeRoot
+                val parentNode = findNodeByDn(root, parentDn)
+                if (parentNode != null) {
+                    loadMoreChildren(parentNode)
+                }
+            }
+            return
+        }
+
         openTab(node)
 
         val ldapClient = client ?: return
@@ -552,7 +618,7 @@ class LdapViewModel(
                 val root = stateHolder.value.treeRoot
                 if (root != null) {
                     val updatedRoot = ldapClient.loadChildrenWithMembers(root, newShowValue)
-                    
+
                     stateHolder.update { it.copy(
                         treeRoot = updatedRoot,
                         loadingState = LoadingState.Success()
@@ -565,6 +631,61 @@ class LdapViewModel(
                 logger.error("Failed to toggle virtual members", e)
                 stateHolder.update { it.copy(
                     loadingState = LoadingState.Failed("Failed to update tree view: ${e.message}")
+                )}
+            }
+        }
+    }
+
+    /**
+     * Reloads the tree view starting from a custom DN.
+     * This is a temporary override that doesn't affect the configured base DN.
+     */
+    fun reloadTreeFromDN(customDN: String) {
+        val ldapClient = client ?: return
+
+        if (customDN.isBlank()) {
+            // If empty, reload from the configured base DN
+            scope.launch {
+                try {
+                    val root = ldapClient.buildTree()
+                    stateHolder.update { it.copy(
+                        treeRoot = root,
+                        loadingState = LoadingState.Idle,
+                        searchFromDN = ""
+                    )}
+                } catch (e: Exception) {
+                    logger.error("Failed to reload tree", e)
+                    stateHolder.update { it.copy(
+                        loadingState = LoadingState.Failed("Failed to reload tree: ${e.message}"),
+                        errorMessage = "Failed to reload tree: ${e.message}"
+                    )}
+                }
+            }
+            return
+        }
+
+        scope.launch {
+            try {
+                stateHolder.update { it.copy(
+                    loadingState = LoadingState.Loading("Loading tree from $customDN...")
+                )}
+
+                // Build tree from custom DN
+                val customRoot = ldapClient.buildTreeFromDN(customDN)
+
+                stateHolder.update { it.copy(
+                    treeRoot = customRoot,
+                    loadingState = LoadingState.Idle,
+                    searchFromDN = customDN
+                )}
+
+                delay(1500)
+                stateHolder.update { it.copy(loadingState = LoadingState.Idle) }
+            } catch (e: Exception) {
+                logger.error("Failed to reload tree from $customDN", e)
+                stateHolder.update { it.copy(
+                    loadingState = LoadingState.Failed("Failed to load from DN: ${e.message}"),
+                    errorMessage = "Failed to load from DN: ${e.message}"
                 )}
             }
         }
@@ -592,6 +713,20 @@ class LdapViewModel(
         }
 
         return root.copy(children = updatedChildren)
+    }
+
+    /**
+     * Recursively finds a node by its DN.
+     */
+    private fun findNodeByDn(root: TreeNode?, dn: String): TreeNode? {
+        if (root == null) return null
+        if (root.dn == dn) return root
+
+        root.children?.forEach { child ->
+            findNodeByDn(child, dn)?.let { return it }
+        }
+
+        return null
     }
 
     fun cleanup() {

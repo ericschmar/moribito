@@ -310,7 +310,7 @@ fun ConfigurationScreen(
                         ) {
                             AppTextField(
                                 value = host,
-                                onValueChange = { host = it },
+                                onValueChange = { host = it.trim() },
                                 label = "Server Host",
                                 placeholder = "ldap.example.com",
                                 leadingIcon = {
@@ -329,7 +329,7 @@ fun ConfigurationScreen(
 
                             AppTextField(
                                 value = port,
-                                onValueChange = { port = it },
+                                onValueChange = { port = it.trim() },
                                 label = "Port",
                                 placeholder = "389",
                                 modifier = Modifier.weight(0.3f),
@@ -341,7 +341,7 @@ fun ConfigurationScreen(
 
                         AppTextField(
                             value = baseDN,
-                            onValueChange = { baseDN = it },
+                            onValueChange = { baseDN = it.trim() },
                             label = "Base DN",
                             placeholder = "dc=example,dc=com",
                             leadingIcon = {

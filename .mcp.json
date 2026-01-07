@@ -8,13 +8,6 @@
       "command": "npx",
       "args": ["-y", "@modelcontextprotocol/server-sequential-thinking"]
     },
-    "kagi": {
-      "command": "npx",
-      "args": ["-y", "@shustermandmitry/mcp-server-kagi"],
-      "env": {
-        "KAGI_API_KEY": "F05D914D-6936-43F1-9814-C0F93F39ECFD"
-      }
-    },
     "fetch": {
       "command": "uvx",
       "args": ["mcp-server-fetch"]
@@ -22,6 +15,10 @@
     "ide": {
       "command": "uvx",
       "args": ["mcp-ide"]
+    },
+    "mantic": {
+      "command": "bunx",
+      "args": ["-y", "mantic.sh@latest", "server"]
     }
   }
 }

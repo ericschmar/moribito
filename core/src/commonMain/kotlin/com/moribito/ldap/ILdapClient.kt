@@ -44,6 +44,15 @@ interface ILdapClient : AutoCloseable {
     suspend fun getChildren(dn: String = ""): List<TreeNode>
 
     /**
+     * Gets immediate children of a DN with pagination.
+     */
+    suspend fun getChildrenPaged(
+        dn: String = "",
+        pageSize: Int = 50,
+        cookie: ByteArray? = null
+    ): SearchPage
+
+    /**
      * Retrieves a specific LDAP entry with all its attributes.
      */
     suspend fun getEntry(dn: String): Entry
@@ -54,9 +63,24 @@ interface ILdapClient : AutoCloseable {
     suspend fun buildTree(): TreeNode
 
     /**
+     * Builds a tree starting from a custom DN (temporary override, doesn't change base configuration).
+     */
+    suspend fun buildTreeFromDN(startDN: String): TreeNode
+
+    /**
      * Loads children for a tree node, including virtual member children if enabled.
      */
     suspend fun loadChildrenWithMembers(node: TreeNode, includeVirtualMembers: Boolean): TreeNode
+
+    /**
+     * Loads a page of children for a tree node.
+     */
+    suspend fun loadChildrenPaged(
+        node: TreeNode,
+        includeVirtualMembers: Boolean,
+        pageSize: Int = 50,
+        cookie: ByteArray? = null
+    ): TreeNode
 
     /**
      * Performs a custom LDAP search with user-provided filter.

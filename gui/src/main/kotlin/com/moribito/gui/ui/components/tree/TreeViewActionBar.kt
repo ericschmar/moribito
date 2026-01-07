@@ -15,6 +15,7 @@ import androidx.compose.ui.window.PopupProperties
 import com.moribito.gui.theme.AppSizes
 import com.moribito.gui.theme.AppSpacing
 import com.moribito.gui.theme.IntelliJColors
+import com.moribito.gui.ui.components.TextField
 import compose.icons.AllIcons
 import compose.icons.Octicons
 import compose.icons.octicons.Check16
@@ -30,7 +31,7 @@ import org.jetbrains.jewel.ui.icons.AllIconsKeys
 
 /**
  * Action bar for the tree view with a settings dropdown menu.
- * Provides options like toggling virtual member children display.
+ * Provides options like toggling virtual member children display and setting a custom search DN.
  */
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -40,9 +41,12 @@ fun TreeViewActionBar(
     isShowingQueryResults: Boolean = false,
     onShowDirectory: () -> Unit = {},
     onRefresh: () -> Unit = {},
+    searchFromDN: String = "",
+    onSearchFromDNChange: (String) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     var showMenu by remember { mutableStateOf(false) }
+    var dnInput by remember(searchFromDN) { mutableStateOf(searchFromDN) }
 
     Row(
         modifier = modifier
@@ -58,9 +62,24 @@ fun TreeViewActionBar(
                 )
             )
             .padding(horizontal = AppSpacing.xs, vertical = 4.dp),
-        horizontalArrangement = Arrangement.End,
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
+        // DN search field - left side
+        TextField(
+            value = dnInput,
+            onValueChange = { newValue ->
+                dnInput = newValue
+                onSearchFromDNChange(newValue)
+            },
+            placeholder = "Search from DN...",
+            modifier = Modifier
+                .weight(1f)
+                .height(28.dp),
+            singleLine = true
+        )
+
+        Spacer(modifier = Modifier.width(4.dp))
         // Show Directory button (only visible when showing query results)
         if (isShowingQueryResults) {
             Tooltip(tooltip = { Text("Reset Query Results") }) {

@@ -3,10 +3,12 @@ package com.moribito.gui.ui.components.tree
 import com.moribito.ldap.TreeNode
 import org.jetbrains.jewel.foundation.lazy.tree.buildTree as jewelBuildTree
 import org.jetbrains.jewel.foundation.lazy.tree.Tree
+import org.jetbrains.jewel.foundation.lazy.tree.TreeGeneratorScope
 
 /**
  * Builds a Jewel Tree from a TreeNode structure.
  * Handles intelligent grouping (cn, ou, others) and virtual member filtering.
+ * Uses composite keys (parentDn#nodeDn) to ensure uniqueness across the tree.
  */
 fun buildLdapTree(
     rootNode: TreeNode?,
@@ -15,7 +17,8 @@ fun buildLdapTree(
 ): Tree<TreeNode> {
     return jewelBuildTree {
         rootNode?.let { root ->
-            addTreeNode(root, virtualMemberDNs, showVirtualMembers)
+            // Root node has no parent, so use its DN as the ID
+            addTreeNode(root, parentDn = null, virtualMemberDNs, showVirtualMembers)
         }
     }
 }
@@ -23,21 +26,27 @@ fun buildLdapTree(
 /**
  * Recursively adds a TreeNode and its children to the Jewel tree structure.
  * Applies intelligent grouping and virtual member filtering.
+ * Uses composite keys (parentDn#nodeDn) to ensure node uniqueness across the entire tree,
+ * preventing duplicate key errors when the same DN appears in different contexts.
  */
-private fun org.jetbrains.jewel.foundation.lazy.tree.TreeGeneratorScope<TreeNode>.addTreeNode(
+private fun TreeGeneratorScope<TreeNode>.addTreeNode(
     node: TreeNode,
+    parentDn: String?,
     virtualMemberDNs: Set<String>,
     showVirtualMembers: Boolean
 ) {
+    // Generate composite ID: root nodes use just their DN, child nodes use parentDn#nodeDn
+    val compositeId = if (parentDn != null) "$parentDn#${node.dn}" else node.dn
+
     // Check if node can have children first (important for lazy loading)
     if (!node.hasChildren()) {
         // Leaf node
-        addLeaf(node, id = node.id)
+        addLeaf(node, id = compositeId)
     } else {
         // Parent node - may or may not have loaded children yet
         val children = node.children
 
-        addNode(node, id = node.id) {
+        addNode(node, id = compositeId) {
             // Only add children if they've been loaded
             if (children != null && children.isNotEmpty()) {
                 // Filter children based on virtual members setting
@@ -73,7 +82,8 @@ private fun org.jetbrains.jewel.foundation.lazy.tree.TreeGeneratorScope<TreeNode
                 val orderedChildren = cnEntries + ouEntries + others
 
                 orderedChildren.forEach { child ->
-                    addTreeNode(child, virtualMemberDNs, showVirtualMembers)
+                    // Pass current node's DN as parent for composite ID generation
+                    addTreeNode(child, parentDn = node.dn, virtualMemberDNs, showVirtualMembers)
                 }
             }
             // If children is null or empty, the node will show as expandable but with no children yet

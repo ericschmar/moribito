@@ -96,14 +96,14 @@ class LdapClient(
             throw e
         } catch (e: org.ldaptive.LdapException) {
             throw LdapException(
-                message = "Failed to connect to LDAP server: ${e.message}",
+                message = "Failed to connect to LDAP server ldap${if (config.useSSL) "s" else ""}://${config.host}:${config.port}: ${e.message}",
                 cause = e,
                 resultCode = e.resultCode?.value(),
                 isRetryable = isRetryableError(e)
             )
         } catch (e: Exception) {
             throw LdapException(
-                message = "Failed to connect to LDAP server: ${e.message}",
+                message = "Failed to connect to LDAP server ldap${if (config.useSSL) "s" else ""}://${config.host}:${config.port}: ${e.message}",
                 cause = e,
                 isRetryable = false
             )
@@ -387,6 +387,30 @@ class LdapClient(
     }
 
     /**
+     * Gets immediate children of a DN with pagination.
+     *
+     * @param dn The parent DN (uses baseDN if empty)
+     * @param pageSize Number of results per page
+     * @param cookie Paging cookie from previous request
+     * @return SearchPage containing entries and next cookie
+     * @throws LdapException if operation fails
+     */
+    override suspend fun getChildrenPaged(dn: String, pageSize: Int, cookie: ByteArray?): SearchPage {
+        val searchDN = if (dn.isEmpty()) config.baseDN else dn
+
+        logger.debug("Getting paged children of DN=$searchDN, pageSize=$pageSize")
+
+        return searchPaged(
+            baseDN = searchDN,
+            filter = "(objectClass=*)",
+            scope = SearchScope.ONE_LEVEL,
+            attributes = listOf("dn"),
+            pageSize = pageSize,
+            cookie = cookie
+        )
+    }
+
+    /**
      * Retrieves a specific LDAP entry with all its attributes.
      *
      * @param dn The distinguished name of the entry
@@ -422,25 +446,50 @@ class LdapClient(
         )
     }
 
+    override suspend fun buildTreeFromDN(startDN: String): TreeNode {
+        return TreeNode(
+            dn = startDN,
+            name = extractName(startDN, ""),
+            children = null,
+            isLoaded = false
+        )
+    }
+
+    override suspend fun loadChildrenWithMembers(node: TreeNode, includeVirtualMembers: Boolean): TreeNode {
+        return loadChildrenPaged(node, includeVirtualMembers, pageSize = 1000) // Default to large page for backward compatibility
+    }
 
     /**
-     * Loads children for a tree node, including virtual member children if enabled.
+     * Loads a page of children for a tree node, including virtual member children if enabled.
      *
      * @param node The node to load children for
      * @param includeVirtualMembers Whether to include group members as virtual children
-     * @return The node with loaded children (hierarchical + virtual members if enabled)
+     * @param pageSize Number of results per page
+     * @param cookie Paging cookie from previous request
+     * @return The node with loaded page of children
      * @throws LdapException if operation fails
      */
-    override suspend fun loadChildrenWithMembers(node: TreeNode, includeVirtualMembers: Boolean): TreeNode {
-        if (node.isLoaded) {
-            return node
-        }
-
+    override suspend fun loadChildrenPaged(
+        node: TreeNode,
+        includeVirtualMembers: Boolean,
+        pageSize: Int,
+        cookie: ByteArray?
+    ): TreeNode {
         // Get hierarchical children
-        val hierarchicalChildren = getChildren(node.dn).toMutableList()
+        val searchPage = getChildrenPaged(node.dn, pageSize, cookie)
+        val hierarchicalChildren = searchPage.entries.map { entry ->
+            TreeNode(
+                dn = entry.dn,
+                name = extractName(entry.dn, node.dn),
+                children = null,
+                isLoaded = false
+            )
+        }.toMutableList()
 
-        // If virtual members are enabled, add member references as virtual children
-        if (includeVirtualMembers) {
+        // If virtual members are enabled and we're on the first page, add member references
+        // Note: For now, we only load virtual members on the first page to keep it simple,
+        // or we could implement paging for them too if needed.
+        if (includeVirtualMembers && cookie == null) {
             try {
                 val entry = getEntry(node.dn)
                 val memberDNs = mutableListOf<String>()
@@ -469,12 +518,16 @@ class LdapClient(
                     }
                 }
             } catch (e: Exception) {
-                // If we can't get members, just return hierarchical children
+                // If we can't get members, just continue with hierarchical children
                 logger.warn("Could not load members for ${node.dn}: ${e.message}")
             }
         }
 
-        return node.withChildren(hierarchicalChildren)
+        return node.copy(
+            children = (node.children?.filter { !it.isLoadMoreNode } ?: emptyList()) + hierarchicalChildren,
+            isLoaded = true,
+            nextPageCookie = searchPage.cookie
+        )
     }
 
     /**

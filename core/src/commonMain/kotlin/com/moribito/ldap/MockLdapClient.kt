@@ -199,6 +199,30 @@ class MockLdapClient(
         }
     }
 
+    override suspend fun getChildrenPaged(dn: String, pageSize: Int, cookie: ByteArray?): SearchPage {
+        delay(50) // Simulate latency
+        val searchDN = if (dn.isEmpty()) config.baseDN else dn
+        val childrenDns = childrenMap[searchDN] ?: emptyList()
+        
+        val offset = if (cookie != null && cookie.isNotEmpty()) {
+            String(cookie).toIntOrNull() ?: 0
+        } else 0
+        
+        val pagedDns = childrenDns.drop(offset).take(pageSize)
+        val hasMore = offset + pagedDns.size < childrenDns.size
+        val nextCookie = if (hasMore) (offset + pagedDns.size).toString().toByteArray() else null
+        
+        val entries = pagedDns.mapNotNull { entries[it] }
+        
+        return SearchPage(
+            entries = entries,
+            hasMore = hasMore,
+            cookie = nextCookie,
+            pageSize = pageSize,
+            totalCount = childrenDns.size
+        )
+    }
+
     override suspend fun getEntry(dn: String): Entry {
         delay(50) // Simulate latency
         return entries[dn] ?: throw LdapException("Entry not found: $dn", resultCode = LdapException.RESULT_NO_SUCH_OBJECT)
@@ -214,9 +238,41 @@ class MockLdapClient(
         )
     }
 
+    override suspend fun buildTreeFromDN(startDN: String): TreeNode {
+        delay(50) // Simulate latency
+        return TreeNode(
+            dn = startDN,
+            name = startDN.split(",").first(),
+            children = null,
+            isLoaded = false
+        )
+    }
+
     override suspend fun loadChildrenWithMembers(node: TreeNode, includeVirtualMembers: Boolean): TreeNode {
-        val children = getChildren(node.dn)
-        return node.withChildren(children)
+        return loadChildrenPaged(node, includeVirtualMembers, pageSize = 50)
+    }
+
+    override suspend fun loadChildrenPaged(
+        node: TreeNode,
+        includeVirtualMembers: Boolean,
+        pageSize: Int,
+        cookie: ByteArray?
+    ): TreeNode {
+        val searchPage = getChildrenPaged(node.dn, pageSize, cookie)
+        val hierarchicalChildren = searchPage.entries.map { entry ->
+            TreeNode(
+                dn = entry.dn,
+                name = entry.dn.split(",").first(),
+                children = null,
+                isLoaded = false
+            )
+        }
+
+        return node.copy(
+            children = (node.children?.filter { !it.isLoadMoreNode } ?: emptyList()) + hierarchicalChildren,
+            isLoaded = true,
+            nextPageCookie = searchPage.cookie
+        )
     }
     
     override suspend fun customSearch(filter: String): List<Entry> {

@@ -81,9 +81,10 @@ class QueryViewModel(
     fun executeQuery() {
         val client = clientProvider() ?: return
 
-        val filter = stateHolder.value.queryText
+        val queryText = stateHolder.value.queryText
+        val searchFromDN = stateHolder.value.searchFromDN
 
-        if (filter.isBlank()) {
+        if (queryText.isBlank()) {
             stateHolder.update { it.copy(errorMessage = "Query filter cannot be empty") }
             return
         }
@@ -94,15 +95,31 @@ class QueryViewModel(
                     loadingState = LoadingState.Loading("Executing query...")
                 )}
 
-                val results = if (filter.trim().uppercase().startsWith("SELECT")) {
-                    client.executeSqlQuery(filter)
+                val results = if (queryText.trim().uppercase().startsWith("SELECT")) {
+                    // For SQL-like queries, modify FROM clause if searchFromDN is set
+                    val queryToExecute = if (searchFromDN.isNotBlank()) {
+                        modifyQueryFromClause(queryText, searchFromDN)
+                    } else {
+                        queryText
+                    }
+                    client.executeSqlQuery(queryToExecute)
                 } else {
-                    client.customSearch(filter)
+                    // For direct filter searches, search from custom DN if set
+                    if (searchFromDN.isNotBlank()) {
+                        client.search(
+                            baseDN = searchFromDN,
+                            filter = queryText,
+                            scope = SearchScope.SUBTREE,
+                            attributes = listOf("*")
+                        )
+                    } else {
+                        client.customSearch(queryText)
+                    }
                 }
-                
+
                 // Log query results
-                logger.info("Query completed: filter=$filter, found ${results.size} results")
-                
+                logger.info("Query completed: filter=$queryText, found ${results.size} results")
+
                 // Convert results to tree nodes
                 val resultNodes = results.map { it.toTreeNode() }
                 val resultsRoot = TreeNode(
@@ -130,6 +147,16 @@ class QueryViewModel(
                     errorMessage = "Query failed: ${e.message}"
                 )}
             }
+        }
+    }
+
+    /**
+     * Modifies a SQL query's FROM clause to use a custom DN.
+     */
+    private fun modifyQueryFromClause(query: String, newFromDN: String): String {
+        val regex = Regex("FROM\\s+([^\\s]+)", RegexOption.IGNORE_CASE)
+        return regex.replace(query) { matchResult ->
+            "FROM $newFromDN"
         }
     }
 

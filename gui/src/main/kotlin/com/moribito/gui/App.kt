@@ -55,6 +55,7 @@ fun FrameWindowScope.App(windowState: WindowState) {
         }
         Menu("Tools") {
             Item("Schema Viewer", enabled = state.connectionState == ConnectionState.Connected, onClick = { viewModel.toggleAttributeViewer(true)})
+            Item("Directory Graph", enabled = state.connectionState == ConnectionState.Connected, onClick = { viewModel.openDirectoryGraph()})
         }
     }
 

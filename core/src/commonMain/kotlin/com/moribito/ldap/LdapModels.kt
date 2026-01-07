@@ -90,7 +90,11 @@ data class TreeNode(
     val name: String,
     val children: List<TreeNode>? = null,
     val isLoaded: Boolean = false,
-    val isVirtualMember: Boolean = false
+    val isVirtualMember: Boolean = false,
+    val nextPageCookie: ByteArray? = null,
+    val isLoading: Boolean = false,
+    val isLoadMoreNode: Boolean = false,
+    val parentDn: String? = null
 ) {
     val id: String get() = dn  // Use DN as the unique identifier
     /**
@@ -117,6 +121,8 @@ data class TreeNode(
      * - c= (countries)
      */
     fun hasChildren(): Boolean {
+        if (isLoadMoreNode) return false
+        
         return if (isLoaded) {
             children != null && children.isNotEmpty()
         } else {

@@ -129,6 +129,12 @@ class TreeNodeTest {
 
         assertFalse(node.hasChildren())
     }
+
+    @Test
+    fun `hasChildren returns false for load more node`() {
+        val node = TreeNode("dc=example,dc=com_load_more", "Load more", isLoadMoreNode = true)
+        assertFalse(node.hasChildren())
+    }
 }
 
 class SearchScopeTest {

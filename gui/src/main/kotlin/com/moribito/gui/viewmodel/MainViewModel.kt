@@ -70,6 +70,7 @@ class MainViewModel(
     fun openConfigurationWindow() = ldapViewModel.openConfigurationWindow()
     fun closeConfigurationWindow() = ldapViewModel.closeConfigurationWindow()
     fun toggleShowVirtualMembers() = ldapViewModel.toggleShowVirtualMembers()
+    fun reloadTreeFromDN(customDN: String) = ldapViewModel.reloadTreeFromDN(customDN)
 
     // Query delegations
     fun updateQueryText(text: String) = queryViewModel.updateQueryText(text)
@@ -101,5 +102,9 @@ class MainViewModel(
 
     fun clearSuccess() {
         stateHolder.update { it.copy(successMessage = null) }
+    }
+
+    fun setSearchFromDN(dn: String) {
+        stateHolder.update { it.copy(searchFromDN = dn) }
     }
 }

@@ -7,7 +7,7 @@ const Hero: Component = () => {
     <section class="h-full w-full">
       <div class="relative min-h-[80vh] w-full pt-12 sm:pt-16 overflow-hidden">
         <div class="absolute left-4 sm:left-8 top-12 sm:top-16 flex flex-col items-start">
-          <h1 class="text-greptile-green">An LDAP</h1>
+          <h1 class="text-greptile-green">Your LDAP</h1>
           <h1 class="text-greptile-green">Viewer</h1>
         </div>
 

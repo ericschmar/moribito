@@ -27,6 +27,7 @@ import org.jetbrains.jewel.foundation.lazy.tree.Tree
 import org.jetbrains.jewel.foundation.lazy.tree.TreeElementState
 import org.jetbrains.jewel.foundation.lazy.tree.rememberTreeState
 import org.jetbrains.jewel.foundation.theme.JewelTheme
+import org.jetbrains.jewel.ui.component.CircularProgressIndicator
 import org.jetbrains.jewel.ui.component.Icon
 import org.jetbrains.jewel.ui.component.Text
 import org.jetbrains.jewel.ui.icons.AllIconsKeys
@@ -212,19 +213,33 @@ private fun SelectableLazyItemScope.TreeNodeContent(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(4.dp)
         ) {
-            // Folder/file icon (12dp)
-            Icon(
-                key = if (node.hasChildren()) AllIconsKeys.Nodes.Folder else AllIconsKeys.General.User,
-                contentDescription = null,
-                modifier = Modifier.size(12.dp),
-                tint = if (node.hasChildren()) AppColors.blue100 else AppColors.neutral60
-            )
+            if (node.isLoadMoreNode) {
+                Icon(
+                    key = AllIconsKeys.Actions.Download,
+                    contentDescription = null,
+                    modifier = Modifier.size(12.dp),
+                    tint = AppColors.blue100
+                )
+            } else {
+                // Folder/file icon (12dp)
+                Icon(
+                    key = if (node.hasChildren()) AllIconsKeys.Nodes.Folder else AllIconsKeys.General.User,
+                    contentDescription = null,
+                    modifier = Modifier.size(12.dp),
+                    tint = if (node.hasChildren()) AppColors.blue100 else AppColors.neutral60
+                )
+            }
 
             // Node name
             Text(
                 text = node.name,
                 color = textColor,
+                modifier = Modifier.weight(1f, fill = false)
             )
+
+            if (node.isLoading) {
+                CircularProgressIndicator(modifier = Modifier.size(12.dp))
+            }
         }
     }
 }

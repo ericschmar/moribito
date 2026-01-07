@@ -1,1 +1,0 @@
-We already have paged searching implemented but we need to make sure to use it. This includes actually calling the function as well as detecting the ldap controls, and if there are more, including en entry in the tree for "load more children...". While we're at it, we can add a small inline loading indicator for the node of the tree we're searching.

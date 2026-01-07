@@ -77,6 +77,7 @@ data class AppState(
     val queryResultsRoot: TreeNode? = null,
     val isShowingQueryResults: Boolean = false,
     val queryText: String = "SELECT * FROM dc=example WHERE objectClass=*",
+    val searchFromDN: String = "",
     var errorMessage: String? = null,
     val successMessage: String? = null,
     val showVirtualMembers: Boolean = false,
