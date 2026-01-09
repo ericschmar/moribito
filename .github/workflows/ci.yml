@@ -17,6 +17,12 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
+      - name: Set up Java 25 (JBR)
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'jbr'
+          java-version: '25'
+
       - name: Build Desktop App
         uses: openMF/mifos-x-actionhub-build-desktop-app-kmp@v1.0.1
         with:
