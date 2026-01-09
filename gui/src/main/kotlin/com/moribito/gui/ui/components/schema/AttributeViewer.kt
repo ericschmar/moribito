@@ -20,6 +20,7 @@ import androidx.compose.ui.unit.sp
 import com.moribito.gui.theme.AppSpacing
 import com.moribito.gui.theme.IntelliJColors
 import com.moribito.gui.ui.components.GifImage
+import com.moribito.gui.ui.components.TextField
 import com.moribito.gui.ui.icons.AppIcons
 import com.moribito.ldap.LdapSchema
 import compose.icons.Octicons
@@ -46,6 +47,7 @@ fun AttributeViewer(
 ) {
 
     var xOffset by remember { mutableStateOf(0.dp) }
+    var filterText by remember { mutableStateOf("") }
 
     LaunchedEffect(isLoading) {
         if (isLoading) {
@@ -109,6 +111,15 @@ fun AttributeViewer(
             }
         }
 
+        TextField(
+            value = filterText,
+            onValueChange = { filterText = it },
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = AppSpacing.sm, vertical = AppSpacing.xs),
+            placeholder = "Filter attributes..."
+        )
+
         Spacer(
             modifier = Modifier
                 .fillMaxWidth()
@@ -129,10 +140,15 @@ fun AttributeViewer(
                 Text("No attributes found", color = JewelTheme.globalColors.text.disabled)
             }
         } else {
+            val filteredAttributes = schema.attributes.filter {
+                it.name.contains(filterText, ignoreCase = true) ||
+                        it.type.contains(filterText, ignoreCase = true)
+            }
+
             val sortedAttributes = if (sortAscending) {
-                schema.attributes.sortedBy { it.name }
+                filteredAttributes.sortedBy { it.name }
             } else {
-                schema.attributes.sortedByDescending { it.name }
+                filteredAttributes.sortedByDescending { it.name }
             }
 
             LazyColumn(modifier = Modifier.fillMaxSize()) {

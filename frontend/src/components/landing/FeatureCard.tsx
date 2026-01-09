@@ -17,10 +17,10 @@ const LOCATION_PADDING = [
 ];
 
 const ICON_COLORS = [
-  "greptile-green",
-  "greptile-orange",
-  "greptile-pink",
-  "greptile-yellow",
+  "moribito-cherry",
+  "moribito-orange",
+  "moribito-pink",
+  "moribito-yellow",
 ];
 
 const FeatureCard: Component<FeatureCardProps> = (props) => {
@@ -50,16 +50,6 @@ const FeatureCard: Component<FeatureCardProps> = (props) => {
             </p>
             <h3 class="text-primary">{props.title}</h3>
             <p class="text-tertiary text-label">{props.subtitle}</p>
-          </div>
-          <div class="w-full flex-1 flex items-end justify-center relative min-h-0">
-            <div autoplay="" class="w-full h-full object-contain">
-              <img
-                src="images/moribito.png"
-                width="1350"
-                height="1080"
-                style="width: 100%; height: 100%; transform: translate3d(0px, 0px, 0px); content-visibility: visible;"
-              />
-            </div>
           </div>
         </div>
       </div>

@@ -12,7 +12,12 @@ const Topbar: Component = () => {
           <div class="flex h-14 items-center justify-between mx-4 sm:mx-12 md:mx-12 lg:mx-32 xl:mx-40">
             {/* Logo */}
             <div class="flex items-center">
-              <div class="w-[120px] h-[40px] border border-[rgb(42,42,42)] flex items-center justify-center text-sm font-semibold text-[rgb(42,42,42)]">
+              <div class="w-[120px] h-[40px] flex items-center justify-center text-sm font-semibold text-[rgb(42,42,42)]">
+                <img
+                  src="/images/moribito_trans.png"
+                  alt="Moribito Logo"
+                  class="w-8 h-8 mr-2"
+                />
                 Moribito
               </div>
             </div>

@@ -1,24 +1,16 @@
 {
   "mcpServers": {
-    "memory": {
-      "command": "memory",
-      "args": ["server"]
-    },
-    "sequential-thinking": {
-      "command": "npx",
-      "args": ["-y", "@modelcontextprotocol/server-sequential-thinking"]
-    },
-    "fetch": {
-      "command": "uvx",
-      "args": ["mcp-server-fetch"]
-    },
-    "ide": {
-      "command": "uvx",
-      "args": ["mcp-ide"]
-    },
     "mantic": {
       "command": "bunx",
       "args": ["-y", "mantic.sh@latest", "server"]
+    },
+    "memory-keeper": {
+      "command": "bunx",
+      "args": ["mcp-memory-keeper"]
+    },
+    "sequential-thinking": {
+      "command": "bunx",
+      "args": ["-y", "@modelcontextprotocol/server-sequential-thinking"]
     }
   }
 }

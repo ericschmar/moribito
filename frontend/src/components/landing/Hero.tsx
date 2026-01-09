@@ -7,8 +7,8 @@ const Hero: Component = () => {
     <section class="h-full w-full">
       <div class="relative min-h-[80vh] w-full pt-12 sm:pt-16 overflow-hidden">
         <div class="absolute left-4 sm:left-8 top-12 sm:top-16 flex flex-col items-start">
-          <h1 class="text-greptile-green">Your LDAP</h1>
-          <h1 class="text-greptile-green">Viewer</h1>
+          <h1 class="text-moribito-cherry">Your LDAP</h1>
+          <h1 class="text-moribito-cherry">Viewer</h1>
         </div>
 
         <div class="absolute right-0 bottom-0 h-[500px] w-[500px] sm:h-[600px] sm:w-[600px] xl:h-[750px] xl:w-[750px] overflow-visible">
@@ -29,8 +29,8 @@ const Hero: Component = () => {
         </div>
 
         <div class="absolute bottom-8 left-4 sm:left-8 flex flex-col items-start text-left">
-          <p class="font-mono text-greptile-green">EXPLORE AND MANAGE</p>
-          <p class="font-mono text-greptile-green">YOUR LDAP DATA WITH EASE</p>
+          <p class="font-mono text-moribito-cherry">EXPLORE AND MANAGE</p>
+          <p class="font-mono text-moribito-cherry">YOUR LDAP DATA WITH EASE</p>
           <div class="mt-6 flex w-full max-w-[280px] flex-col items-start">
             <Button variant="primary-small" trailingIcon={<ArrowRight />}>
               Try for Free

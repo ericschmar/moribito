@@ -23,7 +23,7 @@ const PricingSection: Component = () => {
         <section class="overflow-hidden bg-transparent w-full border-b border-border py-3.75 px-4">
           <div class="flex flex-col sm:flex-row sm:items-end justify-between relative gap-4 sm:gap-6 max-w-7xl mx-auto">
             <div class="flex-1">
-              <h1 class="hero-secondary text-greptile-green">
+              <h1 class="hero-secondary text-moribito-cherry">
                 MORIBITO PRICING
               </h1>
               <div class="mt-4 sm:mt-4">

@@ -149,24 +149,49 @@ h1 {
     }
 }
 
-.bg-greptile-green {
-    --tw-bg-opacity: 1;
-    background-color: rgb(16 122 77 / var(--tw-bg-opacity, 1));
+:root {
+    --cherry: rgb(108, 24, 33);
+    --yellow: rgb(248, 205, 101);
+    --orange: rgb(246, 129, 60);
+    --pink: rgb(136, 49, 50);
+    --pink-light: rgb(156, 69, 70);
+    --pink-dark: rgb(116, 29, 30);
+    --pink-medium: rgb(146, 59, 60);
 }
 
-.bg-greptile-yellow {
+.bg-moribito-cherry {
     --tw-bg-opacity: 1;
-    background-color: rgb(204 145 0 / var(--tw-bg-opacity, 1));
+    background-color: var(--cherry);
 }
 
-.bg-greptile-orange {
+.bg-moribito-yellow {
     --tw-bg-opacity: 1;
-    background-color: rgb(242 78 30 / var(--tw-bg-opacity, 1));
+    background-color: var(--yellow);
 }
 
-.bg-greptile-pink {
+.bg-moribito-orange {
     --tw-bg-opacity: 1;
-    background-color: rgb(247 131 163 / var(--tw-bg-opacity, 1));
+    background-color: var(--orange);
+}
+
+.bg-moribito-pink {
+    --tw-bg-opacity: 1;
+    background-color: var(--pink);
+}
+
+.bg-moribito-pink-light {
+    --tw-bg-opacity: 1;
+    background-color: var(--pink-light);
+}
+
+.bg-moribito-pink-dark {
+    --tw-bg-opacity: 1;
+    background-color: var(--pink-dark);
+}
+
+.bg-moribito-pink-medium {
+    --tw-bg-opacity: 1;
+    background-color: var(--pink-medium);
 }
 
 .bg-background {
@@ -189,24 +214,24 @@ h1 {
     color: rgb(74 74 74 / var(--tw-text-opacity, 1));
 }
 
-.text-greptile-green {
+.text-moribito-cherry {
     --tw-bg-opacity: 1;
-    color: rgb(16 122 77 / var(--tw-bg-opacity, 1));
+    color: var(--cherry);
 }
 
-.text-greptile-yellow {
+.text-moribito-yellow {
     --tw-bg-opacity: 1;
-    color: rgb(204 145 0 / var(--tw-bg-opacity, 1));
+    color: var(--yellow);
 }
 
-.text-greptile-orange {
+.text-moribito-orange {
     --tw-bg-opacity: 1;
-    color: rgb(242 78 30 / var(--tw-bg-opacity, 1));
+    color: var(--orange);
 }
 
-.text-greptile-pink {
+.text-moribito-pink {
     --tw-bg-opacity: 1;
-    color: rgb(247 131 163 / var(--tw-bg-opacity, 1));
+    color: var(--pink);
 }
 
 .text-sm {
@@ -353,4 +378,8 @@ h1 {
     .section-wrapper {
         padding: 5rem 3rem;
     }
+}
+
+.carousel-transition {
+    transition: transform 0.5s ease-in-out;
 }

@@ -6,10 +6,10 @@ const COLS = 59;
 const TOTAL_CELLS = ROWS * COLS;
 
 const COLORS = [
-  "bg-greptile-yellow",
-  "bg-greptile-green",
-  "bg-greptile-pink",
-  "bg-greptile-orange",
+  "bg-moribito-yellow",
+  "bg-moribito-cherry",
+  "bg-moribito-pink",
+  "bg-moribito-orange",
 ];
 
 const GridAnimation: Component = () => {

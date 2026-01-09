@@ -1,6 +1,8 @@
+import Carousel from "~/components/landing/Carousel";
 import Topbar from "~/components/landing/Topbar";
+import Banner from "~/components/landing/Banner";
 import Hero from "~/components/landing/Hero";
-import FeaturesSection from "~/components/landing/FeaturesSection";
+import InteractiveFeatureSection from "~/components/landing/InteractiveFeatureSection";
 import PricingSection from "~/components/landing/PricingSection";
 import DocumentationSection from "~/components/landing/DocumentationSection";
 import GridAnimation from "~/components/ui/GridAnimation";
@@ -19,6 +21,7 @@ export default function Home() {
           style="position: absolute; height: 100%; width: 100%; inset: 0px; color: transparent;"
         />
       </div>
+      <Banner />
       <Topbar />
       <div class="mx-auto w-full max-w-[1920px] px-0 sm:px-6 lg:px-8">
         <main class="flex-1">
@@ -28,7 +31,9 @@ export default function Home() {
                 <main class="flex w-full flex-col">
                   <Hero />
                   <div class="border-t border-border" />
-                  <FeaturesSection />
+                  <InteractiveFeatureSection />
+                  <div class="border-t border-border" />
+                  <Carousel />
                   <div class="border-t border-border" />
                   <PricingSection />
                   <div class="border-t border-border" />

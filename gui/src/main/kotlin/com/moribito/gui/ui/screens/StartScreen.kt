@@ -93,7 +93,7 @@ fun StartScreen(
                             style = moribitoStyle
                         )
                         Text(
-                            text = "An LDAP viewer"
+                            text = "Your LDAP viewer"
                         )
 
                         Spacer(modifier = Modifier.height(AppSpacing.xxxl))

@@ -9,15 +9,15 @@ const FeaturesSection: Component = () => {
       title: "Browse Directory Trees",
       subtitle:
         "Explore your LDAP directory structure with an intuitive tree view. Navigate through organizational units, containers, and objects effortlessly.",
-      imageSrc: "/images/feature-tree.svg",
+      imageSrc: "/images/tree.png",
       imageAlt: "Browse Directory Trees",
     },
     {
       category: "SEARCH",
       title: "Advanced Query Builder",
       subtitle:
-        "Build complex LDAP queries with ease. Support for filters, search scopes, and attribute selection with syntax highlighting.",
-      imageSrc: "/images/feature-query.svg",
+        "Build complex LDAP queries with ease. The only viewer on the market with a SQL-like query builder.",
+      imageSrc: "/images/sql_query.png",
       imageAlt: "Advanced Query Builder",
     },
     {
@@ -25,7 +25,7 @@ const FeaturesSection: Component = () => {
       title: "Schema Inspection",
       subtitle:
         "Discover and explore your LDAP schema. View object classes, attribute types, and syntaxes with detailed documentation.",
-      imageSrc: "/images/feature-schema.svg",
+      imageSrc: "/images/attributes.png",
       imageAlt: "Schema Inspection",
     },
     {
@@ -33,7 +33,7 @@ const FeaturesSection: Component = () => {
       title: "Connection Management",
       subtitle:
         "Manage multiple LDAP connections with secure credential storage. Support for LDAPS, STARTTLS, and various bind mechanisms.",
-      imageSrc: "/images/feature-connection.svg",
+      imageSrc: "/images/connections.png",
       imageAlt: "Connection Management",
     },
   ];
