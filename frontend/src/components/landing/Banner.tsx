@@ -71,7 +71,7 @@ const Banner = () => {
             const index = i();
             return (
               <div
-                class={`border-[0.5px] border-[#e5e5e5] opacity-15 transition-all duration-300 ${
+                class={`border-[0.5px] border-[rgba(255,255,255,0.06)] opacity-15 transition-all duration-300 ${
                   activeCells[index]
                     ? `${activeCells[index]} opacity-50`
                     : "bg-transparent"

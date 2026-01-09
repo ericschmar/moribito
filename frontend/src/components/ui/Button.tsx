@@ -18,9 +18,9 @@ const buttonVariants = {
   "primary-small":
     "h-5 min-w-[111px] px-0 py-0 text-sm font-normal bg-moribito-cherry",
   "outline-small":
-    "h-9 px-4 py-2 text-sm font-normal bg-[rgb(6,40,27)] text-white rounded-none shadow-[rgba(0,0,0,0)_0px_0px_0px_0px,rgba(0,0,0,0)_0px_0px_0px_0px,rgba(0,0,0,0.05)_0px_1px_2px_0px]",
+    "h-9 px-4 py-2 text-sm font-normal bg-[rgb(220,220,220)] text-[rgb(24,24,26)] rounded-none shadow-[rgba(0,0,0,0)_0px_0px_0px_0px,rgba(0,0,0,0)_0px_0px_0px_0px,rgba(0,0,0,0.05)_0px_1px_2px_0px]",
   "outline-large":
-    "h-9 px-4 py-2 text-sm font-normal bg-[rgb(16,122,77)] text-white rounded-none shadow-[rgba(0,0,0,0)_0px_0px_0px_0px,rgba(0,0,0,0)_0px_0px_0px_0px,rgba(0,0,0,0.05)_0px_1px_2px_0px]",
+    "h-9 px-4 py-2 text-sm font-normal bg-[rgb(26,142,97)] text-white rounded-none shadow-[rgba(0,0,0,0)_0px_0px_0px_0px,rgba(0,0,0,0)_0px_0px_0px_0px,rgba(0,0,0,0.05)_0px_1px_2px_0px]",
 };
 
 const buttonHoverVariants = {

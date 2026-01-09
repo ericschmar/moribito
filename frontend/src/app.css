@@ -47,16 +47,16 @@
     --foreground-rgb: 0, 0, 0;
 
     /* Moribito Design System - Color Tokens */
-    --color-bg-primary: rgb(241, 239, 235);
-    --color-bg-elevated: rgba(255, 255, 255, 0.035);
-    --color-text-primary: rgb(255, 255, 255);
-    --color-text-secondary: rgb(42, 42, 42);
-    --color-text-muted: rgb(106, 106, 106);
-    --color-border-default: rgba(255, 255, 255, 0.05);
-    --color-border-light: #e5e5e5;
-    --color-interactive-primary: rgb(6, 40, 27);
-    --color-interactive-green: rgb(16, 122, 77);
-    --color-accent-orange: rgb(242, 78, 30);
+    --color-bg-primary: rgb(32, 32, 34);
+    --color-bg-elevated: rgba(255, 255, 255, 0.05);
+    --color-text-primary: rgb(240, 240, 240);
+    --color-text-secondary: rgb(180, 180, 180);
+    --color-text-muted: rgb(140, 140, 140);
+    --color-border-default: rgba(255, 255, 255, 0.1);
+    --color-border-light: rgba(255, 255, 255, 0.06);
+    --color-interactive-primary: rgb(220, 220, 220);
+    --color-interactive-green: rgb(26, 142, 97);
+    --color-accent-orange: rgb(255, 98, 50);
 
     --font-title: "Tasa Orbiter", sans-serif; /* For titles */
     --font-body: "Geist Mono", monospace; /* For everything else */
@@ -97,7 +97,7 @@ section[id] {
 }
 
 body {
-    background: rgb(241 239 235 / var(--tw-bg-opacity, 1));
+    background: rgb(32 32 34 / var(--tw-bg-opacity, 1));
     color: rgb(var(--foreground-rgb));
     font-family: var(--font-body); /* Geist Mono for everything by default */
 }
@@ -118,7 +118,7 @@ body {
 
 .border-border {
     --tw-border-opacity: 1;
-    border-color: rgb(204 204 204 / var(--tw-border-opacity, 1));
+    border-color: rgba(255 255 255 / 0.1);
 }
 
 h1 {
@@ -150,13 +150,13 @@ h1 {
 }
 
 :root {
-    --cherry: rgb(108, 24, 33);
-    --yellow: rgb(248, 205, 101);
-    --orange: rgb(246, 129, 60);
-    --pink: rgb(136, 49, 50);
-    --pink-light: rgb(156, 69, 70);
-    --pink-dark: rgb(116, 29, 30);
-    --pink-medium: rgb(146, 59, 60);
+    --cherry: rgb(138, 44, 53);
+    --yellow: rgb(255, 215, 111);
+    --orange: rgb(255, 139, 70);
+    --pink: rgb(156, 59, 60);
+    --pink-light: rgb(176, 79, 80);
+    --pink-dark: rgb(136, 39, 40);
+    --pink-medium: rgb(166, 69, 70);
 }
 
 .bg-moribito-cherry {
@@ -196,22 +196,22 @@ h1 {
 
 .bg-background {
     --tw-bg-opacity: 1;
-    background-color: rgb(241 239 235 / var(--tw-bg-opacity, 1));
+    background-color: rgb(32 32 34 / var(--tw-bg-opacity, 1));
 }
 
 .text-tertiary {
     --tw-text-opacity: 1;
-    color: rgb(106 106 106 / var(--tw-text-opacity, 1));
+    color: rgb(140 140 140 / var(--tw-text-opacity, 1));
 }
 
 .text-primary {
     --tw-text-opacity: 1;
-    color: rgb(42 42 42 / var(--tw-text-opacity, 1));
+    color: rgb(240 240 240 / var(--tw-text-opacity, 1));
 }
 
 .text-secondary {
     --tw-text-opacity: 1;
-    color: rgb(74 74 74 / var(--tw-text-opacity, 1));
+    color: rgb(180 180 180 / var(--tw-text-opacity, 1));
 }
 
 .text-moribito-cherry {
@@ -260,7 +260,7 @@ h1 {
 }
 
 .bg-card-bg\/50 {
-    background-color: #f9f7f380;
+    background-color: rgba(30, 30, 32, 0.3);
 }
 
 .grid-cols-1 {

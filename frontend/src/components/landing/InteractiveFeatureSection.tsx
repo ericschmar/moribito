@@ -142,12 +142,12 @@ const InteractiveFeatureSection: Component = () => {
               <div class="relative flex items-center justify-center p-8">
                 <div class="relative w-full aspect-square max-w-md">
                   {/* Grid Background */}
-                  <div class="absolute inset-0 bg-gradient-to-br from-orange-100/30 via-orange-50/20 to-transparent rounded-lg overflow-hidden">
+                  <div class="absolute inset-0 bg-gradient-to-br from-orange-900/10 via-orange-950/5 to-transparent rounded-lg overflow-hidden">
                     <div
                       class="absolute inset-0"
                       style={{
                         "background-image":
-                          "linear-gradient(90deg, rgba(242, 120, 75, 0.1) 1px, transparent 1px), linear-gradient(rgba(242, 120, 75, 0.1) 1px, transparent 1px)",
+                          "linear-gradient(90deg, rgba(255, 139, 70, 0.05) 1px, transparent 1px), linear-gradient(rgba(255, 139, 70, 0.05) 1px, transparent 1px)",
                         "background-size": "24px 24px",
                       }}
                     ></div>

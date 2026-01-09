@@ -106,11 +106,7 @@ const PricingCard: Component<PricingCardProps> = (props) => {
             </div>
           </div>
           <div class="mt-auto">
-            <a
-              target="_blank"
-              class="w-full"
-              href="https://app.greptile.com/signup"
-            >
+            <a target="_blank" class="w-full" href="">
               <button class="inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm font-mono font-normal tracking-wider transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&amp;_svg]:pointer-events-none [&amp;_svg]:size-4 [&amp;_svg]:shrink-0 [&amp;_svg]:flex-shrink-0 box-border bg-moribito-cherry text-white shadow-sm h-8 px-3.5 py-1.5 sm:h-9 sm:px-4 sm:py-2 w-full relative overflow-hidden group">
                 <div class="absolute inset-0 pointer-events-none">
                   <div

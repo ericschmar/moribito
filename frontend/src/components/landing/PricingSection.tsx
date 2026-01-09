@@ -12,7 +12,7 @@ const PricingSection: Component = () => {
   ];
 
   return (
-    <main id="pricing" class="relative flex w-full flex-col">
+    <main id="pricing" class="relative flex w-full flex-col py-4">
       <div class="absolute inset-0">
         <GridAnimation />
       </div>

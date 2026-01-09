@@ -54,7 +54,7 @@ const GridAnimation: Component = () => {
             const index = i();
             return (
               <div
-                class={`border-[0.5px] border-[#ccc6] transition-all duration-300 ${
+                class={`border-[0.5px] border-[rgba(255,255,255,0.1)] transition-all duration-300 ${
                   activeCells[index]
                     ? `${activeCells[index]} opacity-50`
                     : "bg-transparent"
