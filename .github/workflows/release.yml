@@ -27,14 +27,14 @@ jobs:
           if [[ "$RUNNER_OS" == "macOS" ]]; then
             ARCH=$(uname -m)
             if [[ "$ARCH" == "arm64" ]]; then
-              JBR_URL="https://cache-redirector.jetbrains.com/intellij-jbr/jbr-25-b176.4-osx-aarch64.tar.gz"
+              JBR_URL="https://cache-redirector.jetbrains.com/intellij-jbr/jbr_jcef-25-osx-aarch64-b176.4.tar.gz"
             else
-              JBR_URL="https://cache-redirector.jetbrains.com/intellij-jbr/jbr-25-b176.4-osx-x64.tar.gz"
+              JBR_URL="https://cache-redirector.jetbrains.com/intellij-jbr/jbr_jcef-25-osx-x64-b176.4.tar.gz"
             fi
           elif [[ "$RUNNER_OS" == "Linux" ]]; then
-            JBR_URL="https://cache-redirector.jetbrains.com/intellij-jbr/jbr-25-b176.4-linux-x64.tar.gz"
+            JBR_URL="https://cache-redirector.jetbrains.com/intellij-jbr/jbr_jcef-25-linux-x64-b176.4.tar.gz"
           elif [[ "$RUNNER_OS" == "Windows" ]]; then
-            JBR_URL="https://cache-redirector.jetbrains.com/intellij-jbr/jbr-25-b176.4-windows-x64.zip"
+            JBR_URL="https://cache-redirector.jetbrains.com/intellij-jbr/jbr_jcef-25-windows-x64-b176.4.zip"
           fi
 
           echo "Downloading JBR from: $JBR_URL"
