@@ -79,6 +79,13 @@ compose.desktop {
     application {
         mainClass = "com.moribito.gui.MainKt"
 
+        // Use JBR from environment variable if available (for CI)
+        // Otherwise fall back to current JAVA_HOME (for local dev)
+        val jbrHome = System.getenv("JBR_HOME")
+        if (jbrHome != null && jbrHome.isNotEmpty()) {
+            javaHome = jbrHome
+        }
+
         nativeDistributions {
             targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb)
             packageName = "Moribito"

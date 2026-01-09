@@ -17,13 +17,46 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Set up Java 25 (JBR)
+      - name: Set up Java 25 (temurin) for packaging
         uses: actions/setup-java@v4
         with:
-          distribution: 'jbr'
+          distribution: 'temurin'
           java-version: '25'
+
+      - name: Download JBR 25 for runtime
+        run: |
+          if [[ "$RUNNER_OS" == "macOS" ]]; then
+            ARCH=$(uname -m)
+            if [[ "$ARCH" == "arm64" ]]; then
+              JBR_URL="https://cache-redirector.jetbrains.com/intellij-jbr/jbr-25-b176.4-osx-aarch64.tar.gz"
+            else
+              JBR_URL="https://cache-redirector.jetbrains.com/intellij-jbr/jbr-25-b176.4-osx-x64.tar.gz"
+            fi
+          elif [[ "$RUNNER_OS" == "Linux" ]]; then
+            JBR_URL="https://cache-redirector.jetbrains.com/intellij-jbr/jbr-25-b176.4-linux-x64.tar.gz"
+          elif [[ "$RUNNER_OS" == "Windows" ]]; then
+            JBR_URL="https://cache-redirector.jetbrains.com/intellij-jbr/jbr-25-b176.4-windows-x64.zip"
+          fi
+
+          echo "Downloading JBR from: $JBR_URL"
+          curl -L "$JBR_URL" -o jbr-download.tar.gz
+          mkdir -p "$HOME/jbr"
+
+          if [[ "$RUNNER_OS" == "Windows" ]]; then
+            unzip -q jbr-download.tar.gz -d "$HOME/jbr"
+            echo "JBR_HOME=$HOME/jbr" >> $GITHUB_ENV
+          else
+            tar -xzf jbr-download.tar.gz -C "$HOME/jbr" --strip-components=1
+            if [[ "$RUNNER_OS" == "macOS" ]]; then
+              echo "JBR_HOME=$HOME/jbr/Contents/Home" >> $GITHUB_ENV
+            else
+              echo "JBR_HOME=$HOME/jbr" >> $GITHUB_ENV
+            fi
+          fi
 
       - name: Build Desktop App
         uses: openMF/mifos-x-actionhub-build-desktop-app-kmp@v1.0.1
         with:
           desktop_package_name: 'Moribito'
+        env:
+          JBR_HOME: ${{ env.JBR_HOME }}
