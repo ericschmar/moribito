@@ -79,11 +79,11 @@ compose.desktop {
     application {
         mainClass = "com.moribito.gui.MainKt"
 
-        // Use JBR from environment variable if available (for CI)
-        // Otherwise fall back to current JAVA_HOME (for local dev)
-        val jbrHome = System.getenv("JBR_HOME")
-        if (jbrHome != null && jbrHome.isNotEmpty()) {
-            javaHome = jbrHome
+        // When JBRSDK is provided (via CI environment), use it for bundling
+        // Otherwise rely on JAVA_HOME which defaults to system JDK for local development
+        val jbrsdkHome = System.getenv("JBRSDK_HOME")
+        if (jbrsdkHome != null && jbrsdkHome.isNotEmpty()) {
+            javaHome = jbrsdkHome
         }
 
         nativeDistributions {
