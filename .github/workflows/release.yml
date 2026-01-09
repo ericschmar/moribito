@@ -23,6 +23,7 @@ jobs:
           java-version: '25'
 
       - name: Download JBR 25 for runtime
+        shell: bash
         run: |
           if [[ "$RUNNER_OS" == "macOS" ]]; then
             ARCH=$(uname -m)
