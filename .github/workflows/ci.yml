@@ -7,22 +7,17 @@ on:
     branches: [ main, develop ]
 
 jobs:
-  build:
-    name: Build and Test
-    runs-on: ubuntu-latest
+  build_desktop:
+    name: Build Desktop App
+    strategy:
+      matrix:
+        os: [ ubuntu-latest, macos-latest, windows-latest ]
+    runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout Repository
+        uses: actions/checkout@v4
 
-      - name: Set up JetBrains Runtime
-        uses: JetBrains/setup-jbr@v1
+      - name: Build Desktop App
+        uses: openMF/mifos-x-actionhub-build-desktop-app-kmp@v1.0.1
         with:
-          version: '25'
-
-      - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@v3
-
-      - name: Build with Gradle
-        run: ./gradlew build
-
-      - name: Run Tests
-        run: ./gradlew test
+          desktop_package_name: 'Moribito'
