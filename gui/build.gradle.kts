@@ -82,10 +82,9 @@ compose.desktop {
         // Application entry point
         mainClass = "com.moribito.gui.MainKt"
 
-        // JVM configuration for runtime
-        jvmArgs += listOf(
-            "-Xmx2048m"
-        )
+        buildTypes.release.proguard {
+            configurationFiles.from(project.file("compose-desktop.pro"))
+        }
 
         nativeDistributions {
             // Package metadata
