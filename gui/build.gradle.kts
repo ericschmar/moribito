@@ -59,7 +59,10 @@ dependencies {
 }
 
 kotlin {
-    jvmToolchain(25)
+    jvmToolchain {
+        languageVersion.set(JavaLanguageVersion.of(21))
+        vendor.set(org.gradle.jvm.toolchain.JvmVendorSpec.JETBRAINS)
+    }
     compilerOptions {
         jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_21)
     }
@@ -100,6 +103,12 @@ compose.desktop {
             macOS {
                 iconFile.set(project.file("icons/moribito.icns"))
                 bundleID = "com.moribito.gui"
+                
+                signing {
+                    sign.set(true)
+                }
+                
+                entitlementsFile.set(project.file("entitlements.plist"))
             }
 
             windows {

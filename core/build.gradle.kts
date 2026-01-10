@@ -7,7 +7,10 @@ plugins {
 }
 
 kotlin {
-    jvmToolchain(25)
+    jvmToolchain {
+        languageVersion.set(JavaLanguageVersion.of(21))
+        vendor.set(org.gradle.jvm.toolchain.JvmVendorSpec.JETBRAINS)
+    }
 
     jvm {
         compilerOptions {
