@@ -105,7 +105,7 @@ compose.desktop {
                 bundleID = "com.moribito.gui"
                 
                 signing {
-                    sign.set(true)
+                    sign.set(project.hasProperty("compose.desktop.mac.signing.identity"))
                 }
                 
                 entitlementsFile.set(project.file("entitlements.plist"))
