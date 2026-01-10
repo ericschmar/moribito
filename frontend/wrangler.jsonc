@@ -4,16 +4,12 @@
  */
 {
 	"$schema": "node_modules/wrangler/config-schema.json",
-	"name": "frontend",
-	"main": "./.output/server/index.mjs",
+	"name": "moribito",
 	"compatibility_date": "2026-01-03",
 	"compatibility_flags": [
 		"nodejs_compat"
 	],
-	"assets": {
-		"binding": "ASSETS",
-		"directory": "./.output/public"
-	},
+	"pages_build_output_dir": "./.output/public",
 	"observability": {
 		"enabled": true
 	}
