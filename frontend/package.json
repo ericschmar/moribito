@@ -5,8 +5,8 @@
 		"dev": "vinxi dev",
 		"build": "vinxi build",
 		"start": "vinxi start",
-		"preview": "bun run build && npx wrangler pages dev .output/public",
-		"deploy": "bun run build && wrangler pages deploy .output/public",
+		"preview": "bun run build && npx wrangler pages dev",
+		"deploy": "bun run build && wrangler pages deploy",
 		"cf-typegen": "wrangler types"
 	},
 	"dependencies": {
