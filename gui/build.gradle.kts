@@ -90,6 +90,7 @@ compose.desktop {
         }
 
         nativeDistributions {
+            modules("jdk.unsupported")
             // Package metadata
             targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb)
             packageName = "Moribito"
