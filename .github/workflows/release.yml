@@ -16,9 +16,3 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Build Desktop App
-        uses: ./.github/actions/build-desktop-app
-        with:
-          desktop_package_name: 'Moribito'
-          build_type: 'Release'
-          java-version: '21'

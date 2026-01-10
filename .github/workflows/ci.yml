@@ -24,6 +24,8 @@ jobs:
           java-version: 21
           cache: 'gradle'
           package-type: 'jdk+jcef'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
