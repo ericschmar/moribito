@@ -16,41 +16,43 @@ dependencies {
     // Core module
     implementation(project(":core"))
 
+    // Jewel UI components
     implementation("org.jetbrains.jewel:jewel-int-ui-standalone:0.33.0-253.29795")
+    implementation("org.jetbrains.jewel:jewel-decorated-window:0.32.1-253.28294.285")
 
-    // IntelliJ Platform icons for AllIconsKeys
+    // IntelliJ Platform icons
     implementation("com.jetbrains.intellij.platform:icons:253.29346.145")
 
-    // Optional, for custom decorated windows:
-    implementation("org.jetbrains.jewel:jewel-decorated-window:0.32.1-253.28294.285")
-    implementation("org.jetbrains.compose.components:components-splitpane:1.9.3")
-
-    // Do not bring in Material (we use Jewel)
+    // Compose Desktop and components
     implementation(compose.desktop.currentOs) {
         exclude(group = "org.jetbrains.compose.material")
-
-        implementation("net.java.dev.jna:jna:5.14.0")
-        implementation("net.java.dev.jna:jna-platform:5.14.0")
     }
-
-    implementation("io.insert-koin:koin-compose:4.1.1")
-    implementation("io.insert-koin:koin-compose-viewmodel:4.1.1")
-
-    implementation("io.github.compose-fluent:fluent:v0.1.0")
-    implementation("io.github.compose-fluent:fluent-icons-extended:v0.1.0") // If you want to use full fluent icons.
-
-    // Compose Desktop
     implementation(compose.material3)
     implementation(compose.materialIconsExtended)
     implementation(compose.components.resources)
+    implementation("org.jetbrains.compose.components:components-splitpane:1.9.3")
+
+    // JNA for native platform integration
+    implementation("net.java.dev.jna:jna:5.14.0")
+    implementation("net.java.dev.jna:jna-platform:5.14.0")
+
+    // Dependency injection
+    implementation("io.insert-koin:koin-compose:4.1.1")
+    implementation("io.insert-koin:koin-compose-viewmodel:4.1.1")
+
+    // Fluent UI icons
+    implementation("io.github.compose-fluent:fluent:v0.1.0")
+    implementation("io.github.compose-fluent:fluent-icons-extended:v0.1.0")
 
     // Coroutines
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.8.0")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-swing:1.8.0")
 
+    // Configuration and serialization
     implementation("com.akuleshov7:ktoml-core:0.7.1")
     implementation("com.akuleshov7:ktoml-file:0.7.1")
 
+    // Additional icons and utilities
     implementation("br.com.devsrsouza.compose.icons:octicons:1.1.1")
     implementation("io.github.serpro69:kotlin-faker:1.16.0")
 
