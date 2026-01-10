@@ -85,6 +85,10 @@ compose.desktop {
             description = "LDAP Directory Explorer"
             vendor = "Moribito"
 
+            // Include all JDK modules to avoid runtime ClassNotFoundException
+            // This increases distributable size but ensures compatibility
+            includeAllModules = true
+
             macOS {
                 iconFile.set(project.file("icons/moribito.icns"))
                 bundleID = "com.moribito.gui"
@@ -97,21 +101,6 @@ compose.desktop {
 
             linux {
                 iconFile.set(project.file("icons/moribito.png"))
-            }
-        }
-
-        // Remove bundled runtime to avoid macOS 15 AMFI issues with adhoc-signed dylibs
-        // Users must have Java 21+ installed on their system
-        afterEvaluate {
-            tasks.named("createDistributable").configure {
-                doLast {
-                    val runtimeDir = file("build/compose/binaries/main/app/Moribito.app/Contents/runtime")
-                    if (runtimeDir.exists()) {
-                        println("Removing bundled JRE runtime to avoid macOS signing issues...")
-                        runtimeDir.deleteRecursively()
-                        println("Runtime removed. Users will need Java 21+ installed.")
-                    }
-                }
             }
         }
     }
