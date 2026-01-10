@@ -17,42 +17,8 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Download JBRSDK 25 for packaging and bundling
-        shell: bash
-        run: |
-          if [[ "$RUNNER_OS" == "macOS" ]]; then
-            ARCH=$(uname -m)
-            if [[ "$ARCH" == "arm64" ]]; then
-              JBRSDK_URL="https://cache-redirector.jetbrains.com/intellij-jbr/jbrsdk_jcef-25-osx-aarch64-b176.4.tar.gz"
-            else
-              JBRSDK_URL="https://cache-redirector.jetbrains.com/intellij-jbr/jbrsdk_jcef-25-osx-x64-b176.4.tar.gz"
-            fi
-          elif [[ "$RUNNER_OS" == "Linux" ]]; then
-            JBRSDK_URL="https://cache-redirector.jetbrains.com/intellij-jbr/jbrsdk_jcef-25-linux-x64-b176.4.tar.gz"
-          elif [[ "$RUNNER_OS" == "Windows" ]]; then
-            JBRSDK_URL="https://cache-redirector.jetbrains.com/intellij-jbr/jbrsdk_jcef-25-windows-x64-b176.4.zip"
-          fi
-
-          echo "Downloading JBRSDK from: $JBRSDK_URL"
-          curl -L "$JBRSDK_URL" -o jbrsdk-download.tar.gz
-          mkdir -p "$HOME/jbrsdk"
-
-          if [[ "$RUNNER_OS" == "Windows" ]]; then
-            unzip -q jbrsdk-download.tar.gz -d "$HOME/jbrsdk"
-            echo "JAVA_HOME=$HOME/jbrsdk" >> $GITHUB_ENV
-            echo "JBRSDK_HOME=$HOME/jbrsdk" >> $GITHUB_ENV
-          else
-            tar -xzf jbrsdk-download.tar.gz -C "$HOME/jbrsdk" --strip-components=1
-            if [[ "$RUNNER_OS" == "macOS" ]]; then
-              echo "JAVA_HOME=$HOME/jbrsdk/Contents/Home" >> $GITHUB_ENV
-              echo "JBRSDK_HOME=$HOME/jbrsdk/Contents/Home" >> $GITHUB_ENV
-            else
-              echo "JAVA_HOME=$HOME/jbrsdk" >> $GITHUB_ENV
-              echo "JBRSDK_HOME=$HOME/jbrsdk" >> $GITHUB_ENV
-            fi
-          fi
-
       - name: Build Desktop App
         uses: openMF/mifos-x-actionhub-build-desktop-app-kmp@v1.0.1
         with:
           desktop_package_name: 'Moribito'
+          java_version: '21'
