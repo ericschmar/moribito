@@ -23,11 +23,8 @@ import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.moribito.gui.theme.AppSizes
-import com.moribito.gui.theme.AppSpacing
 import com.moribito.gui.theme.IntelliJColors
 import com.moribito.gui.viewmodel.RecordTab
-import compose.icons.Octicons
-import compose.icons.octicons.X16
 import org.jetbrains.jewel.foundation.theme.JewelTheme
 import org.jetbrains.jewel.ui.component.Text
 import org.jetbrains.jewel.ui.component.HorizontallyScrollableContainer

@@ -40,10 +40,6 @@ dependencies {
     implementation("io.insert-koin:koin-compose:4.1.1")
     implementation("io.insert-koin:koin-compose-viewmodel:4.1.1")
 
-    // Fluent UI icons
-    implementation("io.github.compose-fluent:fluent:v0.1.0")
-    implementation("io.github.compose-fluent:fluent-icons-extended:v0.1.0")
-
     // Coroutines
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.8.0")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-swing:1.8.0")
@@ -53,7 +49,6 @@ dependencies {
     implementation("com.akuleshov7:ktoml-file:0.7.1")
 
     // Additional icons and utilities
-    implementation("br.com.devsrsouza.compose.icons:octicons:1.1.1")
     implementation("io.github.serpro69:kotlin-faker:1.16.0")
 
     // Testing

@@ -23,12 +23,6 @@ import androidx.compose.ui.unit.dp
 import com.moribito.gui.theme.AppColors
 import com.moribito.gui.theme.AppSpacing
 import com.moribito.ldap.TreeNode
-import compose.icons.Octicons
-import compose.icons.octicons.ChevronDown16
-import compose.icons.octicons.ChevronRight16
-import compose.icons.octicons.File16
-import compose.icons.octicons.FileDirectory16
-import compose.icons.octicons.Person16
 import org.jetbrains.jewel.foundation.theme.JewelTheme
 import androidx.compose.foundation.ContextMenuArea
 import androidx.compose.foundation.ContextMenuItem

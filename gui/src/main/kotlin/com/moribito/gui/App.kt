@@ -10,14 +10,11 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.FrameWindowScope
 import androidx.compose.ui.window.MenuBar
 import androidx.compose.ui.window.WindowState
-import com.moribito.gui.theme.AppSpacing
-import com.moribito.gui.ui.components.Background
 import com.moribito.gui.ui.screens.ConfigurationScreen
 import com.moribito.gui.ui.screens.StartScreen
 import com.moribito.gui.ui.screens.WorkspaceScreen
 import com.moribito.gui.viewmodel.AppView
 import com.moribito.gui.viewmodel.MainViewModel
-import io.github.composefluent.component.*
 import com.moribito.gui.viewmodel.ConnectionState
 import org.koin.compose.koinInject
 

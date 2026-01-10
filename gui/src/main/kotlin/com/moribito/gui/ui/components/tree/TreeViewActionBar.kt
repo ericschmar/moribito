@@ -16,12 +16,6 @@ import com.moribito.gui.theme.AppSizes
 import com.moribito.gui.theme.AppSpacing
 import com.moribito.gui.theme.IntelliJColors
 import com.moribito.gui.ui.components.TextField
-import compose.icons.AllIcons
-import compose.icons.Octicons
-import compose.icons.octicons.Check16
-import compose.icons.octicons.FileDirectory16
-import compose.icons.octicons.ThreeBars16
-import compose.icons.octicons.X16
 import org.jetbrains.jewel.foundation.theme.JewelTheme
 import org.jetbrains.jewel.ui.component.Icon
 import org.jetbrains.jewel.ui.component.IconButton
@@ -154,7 +148,7 @@ fun TreeViewActionBar(
                             ) {
                                 if (showVirtualMembers) {
                                     Icon(
-                                        imageVector = Octicons.Check16,
+                                        key = AllIconsKeys.Actions.Checked,
                                         contentDescription = "Checked",
                                         tint = JewelTheme.globalColors.text.normal,
                                         modifier = Modifier.size(14.dp)
