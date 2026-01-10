@@ -82,8 +82,11 @@ compose.desktop {
         // Application entry point
         mainClass = "com.moribito.gui.MainKt"
 
+        // https://github.com/romainguy/kotlin-explorer/blob/main/build.gradle.kts
         buildTypes.release.proguard {
+            version.set("7.5.0")
             configurationFiles.from(project.file("compose-desktop.pro"))
+            isEnabled = false
         }
 
         nativeDistributions {
@@ -96,7 +99,7 @@ compose.desktop {
 
             // Include all JDK modules to avoid runtime ClassNotFoundException
             // This increases distributable size but ensures compatibility
-            includeAllModules = true
+            // includeAllModules = true
 
             // Platform-specific configurations
             macOS {
@@ -126,10 +129,21 @@ tasks.withType<Test> {
     useJUnitPlatform()
 }
 
-tasks.withType<JavaExec> {
-    val iconPath = file("icons/moribito.icns").absolutePath
+// Configure run task to use JBR (required for DecoratedWindow)
+// Must use afterEvaluate to override Compose Desktop plugin's configuration
+afterEvaluate {
+    val jbrLauncher = javaToolchains.launcherFor {
+        languageVersion.set(JavaLanguageVersion.of(21))
+        vendor.set(org.gradle.jvm.toolchain.JvmVendorSpec.JETBRAINS)
+    }
+    val jbrExecutable = jbrLauncher.get().executablePath.asFile.absolutePath
 
-    if (org.gradle.internal.os.OperatingSystem.current().isMacOsX) {
-        jvmArgs("-Xdock:icon=$iconPath", "-Xdock:name=Moribito")
+    tasks.withType<JavaExec> {
+        setExecutable(jbrExecutable)
+
+        val iconPath = file("icons/moribito.icns").absolutePath
+        if (org.gradle.internal.os.OperatingSystem.current().isMacOsX) {
+            jvmArgs("-Xdock:icon=$iconPath", "-Xdock:name=Moribito")
+        }
     }
 }

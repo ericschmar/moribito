@@ -15,21 +15,98 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Set up Java development environment
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
-          distribution: 'zulu'
-          java-version: '21'
+          distribution: 'jetbrains'
+          java-version: 21
+          cache: 'gradle'
+          package-type: 'jdk+jcef'
 
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
 
-      - name: Package Desktop App
+      # macOS: Import code signing certificate from secrets
+      - name: Import Code Signing Certificate
+        if: matrix.os == 'macos-latest' && env.MACOS_CERTIFICATE != ''
+        env:
+          MACOS_CERTIFICATE: ${{ secrets.MACOS_CERTIFICATE }}
+          MACOS_CERTIFICATE_PWD: ${{ secrets.MACOS_CERTIFICATE_PWD }}
+          KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD }}
+        run: |
+          # Create a temporary keychain
+          security create-keychain -p "$KEYCHAIN_PASSWORD" build.keychain
+          security default-keychain -s build.keychain
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" build.keychain
+
+          # Import certificate
+          echo "$MACOS_CERTIFICATE" | base64 --decode > certificate.p12
+          security import certificate.p12 -k build.keychain -P "$MACOS_CERTIFICATE_PWD" -T /usr/bin/codesign
+
+          # Allow codesign to access the keychain
+          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KEYCHAIN_PASSWORD" build.keychain
+
+          # Clean up
+          rm certificate.p12
+
+      # macOS: Package with signing enabled
+      - name: Package Desktop App (macOS with signing)
+        if: matrix.os == 'macos-latest' && env.MACOS_CERTIFICATE != ''
+        env:
+          MACOS_CERTIFICATE: ${{ secrets.MACOS_CERTIFICATE }}
+        shell: bash
+        run: |
+          # Get the signing identity from the keychain
+          IDENTITY=$(security find-identity -v -p codesigning build.keychain | grep "Developer ID Application" | head -1 | sed 's/.*"\(.*\)".*/\1/')
+          echo "Using signing identity: $IDENTITY"
+
+          ./gradlew :gui:packageDistributionForCurrentOS \
+            -Pcompose.desktop.mac.sign=true \
+            "-Pcompose.desktop.mac.signing.identity=$IDENTITY"
+
+      # macOS: Package without signing (for PRs or when secrets not available)
+      - name: Package Desktop App (macOS without signing)
+        if: matrix.os == 'macos-latest' && env.MACOS_CERTIFICATE == ''
+        env:
+          MACOS_CERTIFICATE: ${{ secrets.MACOS_CERTIFICATE }}
         shell: bash
         run: |
           ./gradlew :gui:packageDistributionForCurrentOS
+
+      # Windows and Linux: Package without signing
+      - name: Package Desktop App
+        if: matrix.os != 'macos-latest'
+        shell: bash
+        run: |
+          ./gradlew :gui:packageDistributionForCurrentOS
+
+      # macOS: Ad-hoc sign the app for testing (when no certificate available)
+      - name: Ad-hoc Sign App (macOS fallback)
+        if: matrix.os == 'macos-latest' && env.MACOS_CERTIFICATE == ''
+        env:
+          MACOS_CERTIFICATE: ${{ secrets.MACOS_CERTIFICATE }}
+        shell: bash
+        run: |
+          APP_PATH=$(find gui/build/compose/binaries/main/app -name "*.app" -type d | head -1)
+          if [ -n "$APP_PATH" ]; then
+            echo "Ad-hoc signing: $APP_PATH"
+
+            # Sign all dylibs in the runtime first (bottom-up signing)
+            find "$APP_PATH/Contents/runtime" -name "*.dylib" -exec codesign -s - --force --timestamp=none {} \; 2>/dev/null || true
+
+            # Sign java executables
+            find "$APP_PATH/Contents/runtime/bin" -type f -perm +111 -exec codesign -s - --force --timestamp=none {} \; 2>/dev/null || true
+
+            # Sign the main executable
+            codesign -s - --force --timestamp=none --entitlements gui/entitlements.plist "$APP_PATH/Contents/MacOS/Moribito" 2>/dev/null || true
+
+            # Sign the app bundle
+            codesign -s - --force --timestamp=none --entitlements gui/entitlements.plist "$APP_PATH" 2>/dev/null || true
+
+            echo "Ad-hoc signing complete"
+          fi
 
       - name: Upload Windows Apps
         if: matrix.os == 'windows-latest'
