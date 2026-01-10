@@ -21,4 +21,4 @@ jobs:
         uses: openMF/mifos-x-actionhub-build-desktop-app-kmp@v1.0.1
         with:
           desktop_package_name: 'Moribito'
-          java_version: '21'
+          java-version: '21'
