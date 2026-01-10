@@ -40,7 +40,6 @@ dependencies {
     implementation("io.github.compose-fluent:fluent-icons-extended:v0.1.0") // If you want to use full fluent icons.
 
     // Compose Desktop
-    implementation(compose.desktop.currentOs)
     implementation(compose.material3)
     implementation(compose.materialIconsExtended)
     implementation(compose.components.resources)
@@ -79,13 +78,6 @@ compose.desktop {
     application {
         mainClass = "com.moribito.gui.MainKt"
 
-        // When JBRSDK is provided (via CI environment), use it for bundling
-        // Otherwise rely on JAVA_HOME which defaults to system JDK for local development
-        val jbrsdkHome = System.getenv("JBRSDK_HOME")
-        if (jbrsdkHome != null && jbrsdkHome.isNotEmpty()) {
-            javaHome = jbrsdkHome
-        }
-
         nativeDistributions {
             targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb)
             packageName = "Moribito"
@@ -105,6 +97,21 @@ compose.desktop {
 
             linux {
                 iconFile.set(project.file("icons/moribito.png"))
+            }
+        }
+
+        // Remove bundled runtime to avoid macOS 15 AMFI issues with adhoc-signed dylibs
+        // Users must have Java 21+ installed on their system
+        afterEvaluate {
+            tasks.named("createDistributable").configure {
+                doLast {
+                    val runtimeDir = file("build/compose/binaries/main/app/Moribito.app/Contents/runtime")
+                    if (runtimeDir.exists()) {
+                        println("Removing bundled JRE runtime to avoid macOS signing issues...")
+                        runtimeDir.deleteRecursively()
+                        println("Runtime removed. Users will need Java 21+ installed.")
+                    }
+                }
             }
         }
     }
