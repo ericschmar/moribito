@@ -7,7 +7,7 @@ export default defineConfig({
   },
 
   server: {
-    preset: "cloudflare_module",
+    preset: "cloudflare-pages",
     compatibilityDate: "2026-01-03"
   }
 });
