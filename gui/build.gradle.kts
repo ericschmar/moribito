@@ -76,9 +76,16 @@ compose.resources {
 
 compose.desktop {
     application {
+        // Application entry point
         mainClass = "com.moribito.gui.MainKt"
 
+        // JVM configuration for runtime
+        jvmArgs += listOf(
+            "-Xmx2048m"
+        )
+
         nativeDistributions {
+            // Package metadata
             targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb)
             packageName = "Moribito"
             packageVersion = "2.0.0"
@@ -89,6 +96,7 @@ compose.desktop {
             // This increases distributable size but ensures compatibility
             includeAllModules = true
 
+            // Platform-specific configurations
             macOS {
                 iconFile.set(project.file("icons/moribito.icns"))
                 bundleID = "com.moribito.gui"
