@@ -16,16 +16,31 @@ type Config struct {
 	Retry      RetryConfig      `yaml:"retry"`
 }
 
+// SSHTunnelConfig contains SSH tunnel/jump-host settings for reaching an LDAP server
+type SSHTunnelConfig struct {
+	Enabled       bool   `yaml:"enabled"`
+	Host          string `yaml:"host"`
+	Port          int    `yaml:"port"`
+	User          string `yaml:"user"`
+	AuthMethod    string `yaml:"auth_method"`
+	Password      string `yaml:"password,omitempty"`
+	KeyFile       string `yaml:"key_file,omitempty"`
+	KeyPassphrase string `yaml:"key_passphrase,omitempty"`
+
+	InsecureIgnoreHostKey bool `yaml:"insecure_ignore_host_key,omitempty"`
+}
+
 // SavedConnection represents a single saved LDAP connection profile
 type SavedConnection struct {
-	Name     string `yaml:"name"`
-	Host     string `yaml:"host"`
-	Port     int    `yaml:"port"`
-	BaseDN   string `yaml:"base_dn"`
-	UseSSL   bool   `yaml:"use_ssl"`
-	UseTLS   bool   `yaml:"use_tls"`
-	BindUser string `yaml:"bind_user"`
-	BindPass string `yaml:"bind_pass"`
+	Name      string          `yaml:"name"`
+	Host      string          `yaml:"host"`
+	Port      int             `yaml:"port"`
+	BaseDN    string          `yaml:"base_dn"`
+	UseSSL    bool            `yaml:"use_ssl"`
+	UseTLS    bool            `yaml:"use_tls"`
+	BindUser  string          `yaml:"bind_user"`
+	BindPass  string          `yaml:"bind_pass"`
+	SSHTunnel SSHTunnelConfig `yaml:"ssh_tunnel,omitempty"`
 }
 
 // LDAPConfig contains LDAP connection settings
@@ -39,6 +54,9 @@ type LDAPConfig struct {
 	BindUser string `yaml:"bind_user"`
 	BindPass string `yaml:"bind_pass"`
 
+	// SSH tunnel settings for the current/default connection
+	SSHTunnel SSHTunnelConfig `yaml:"ssh_tunnel,omitempty"`
+
 	// Multiple saved connections (new feature)
 	SavedConnections   []SavedConnection `yaml:"saved_connections,omitempty"`
 	SelectedConnection int               `yaml:"selected_connection,omitempty"` // Index into SavedConnections, -1 means use default
@@ -51,10 +69,11 @@ type PaginationConfig struct {
 
 // RetryConfig contains retry settings for LDAP operations
 type RetryConfig struct {
-	MaxAttempts    int  `yaml:"max_attempts"`     // Maximum number of retry attempts
-	InitialDelayMs int  `yaml:"initial_delay_ms"` // Initial delay in milliseconds
-	MaxDelayMs     int  `yaml:"max_delay_ms"`     // Maximum delay in milliseconds
-	Enabled        bool `yaml:"enabled"`          // Whether retries are enabled
+	MaxAttempts           int  `yaml:"max_attempts"`            // Maximum number of retry attempts
+	InitialDelayMs        int  `yaml:"initial_delay_ms"`        // Initial delay in milliseconds
+	MaxDelayMs            int  `yaml:"max_delay_ms"`            // Maximum delay in milliseconds
+	Enabled               bool `yaml:"enabled"`                 // Whether retries are enabled
+	ConnectTimeoutSeconds int  `yaml:"connect_timeout_seconds"` // Timeout for the full connect+bind sequence
 }
 
 // Load loads configuration from a YAML file and returns the config and actual path used
@@ -105,6 +124,9 @@ func Load(configPath string) (*Config, string, error) {
 	if config.Retry.MaxDelayMs <= 0 {
 		config.Retry.MaxDelayMs = 5000
 	}
+	if config.Retry.ConnectTimeoutSeconds <= 0 {
+		config.Retry.ConnectTimeoutSeconds = 5
+	}
 
 	return &config, configPath, nil
 }
@@ -114,14 +136,15 @@ func (c *Config) GetActiveConnection() LDAPConnection {
 	// If no saved connections or selected connection is -1, use default
 	if len(c.LDAP.SavedConnections) == 0 || c.LDAP.SelectedConnection < 0 {
 		return LDAPConnection{
-			Name:     "Default",
-			Host:     c.LDAP.Host,
-			Port:     c.LDAP.Port,
-			BaseDN:   c.LDAP.BaseDN,
-			UseSSL:   c.LDAP.UseSSL,
-			UseTLS:   c.LDAP.UseTLS,
-			BindUser: c.LDAP.BindUser,
-			BindPass: c.LDAP.BindPass,
+			Name:      "Default",
+			Host:      c.LDAP.Host,
+			Port:      c.LDAP.Port,
+			BaseDN:    c.LDAP.BaseDN,
+			UseSSL:    c.LDAP.UseSSL,
+			UseTLS:    c.LDAP.UseTLS,
+			BindUser:  c.LDAP.BindUser,
+			BindPass:  c.LDAP.BindPass,
+			SSHTunnel: c.LDAP.SSHTunnel,
 		}
 	}
 
@@ -131,28 +154,20 @@ func (c *Config) GetActiveConnection() LDAPConnection {
 	}
 
 	saved := c.LDAP.SavedConnections[c.LDAP.SelectedConnection]
-	return LDAPConnection{
-		Name:     saved.Name,
-		Host:     saved.Host,
-		Port:     saved.Port,
-		BaseDN:   saved.BaseDN,
-		UseSSL:   saved.UseSSL,
-		UseTLS:   saved.UseTLS,
-		BindUser: saved.BindUser,
-		BindPass: saved.BindPass,
-	}
+	return LDAPConnection(saved)
 }
 
 // LDAPConnection represents the active connection settings
 type LDAPConnection struct {
-	Name     string
-	Host     string
-	Port     int
-	BaseDN   string
-	UseSSL   bool
-	UseTLS   bool
-	BindUser string
-	BindPass string
+	Name      string
+	Host      string
+	Port      int
+	BaseDN    string
+	UseSSL    bool
+	UseTLS    bool
+	BindUser  string
+	BindPass  string
+	SSHTunnel SSHTunnelConfig
 }
 
 // SetActiveConnection updates the current connection settings from a saved connection
@@ -173,6 +188,7 @@ func (c *Config) SetActiveConnection(index int) {
 	c.LDAP.UseTLS = saved.UseTLS
 	c.LDAP.BindUser = saved.BindUser
 	c.LDAP.BindPass = saved.BindPass
+	c.LDAP.SSHTunnel = saved.SSHTunnel
 }
 
 // AddSavedConnection adds a new saved connection
@@ -443,10 +459,11 @@ func Default() *Config {
 			PageSize: 50,
 		},
 		Retry: RetryConfig{
-			Enabled:        true,
-			MaxAttempts:    3,
-			InitialDelayMs: 500,
-			MaxDelayMs:     5000,
+			Enabled:               true,
+			MaxAttempts:           3,
+			InitialDelayMs:        500,
+			MaxDelayMs:            5000,
+			ConnectTimeoutSeconds: 5,
 		},
 	}
 }

@@ -281,11 +281,8 @@ func TestQueryView_TextareaKeyBindings(t *testing.T) {
 	enterMsg := tea.KeyMsg{Type: tea.KeyEnter}
 	_, _ = qv.handleInputMode(enterMsg)
 
-	// The textarea should handle the enter and add a newline
-	if !strings.Contains(qv.textarea.Value(), "line1\n") && qv.textarea.Value() != "line1" {
-		// Either it added a newline or it's still the original value
-		// This is dependent on the textarea implementation
-	}
+	// The textarea should handle the enter and add a newline or keep the original value -
+	// behavior is dependent on the textarea implementation.
 
 	// Test that Ctrl+Enter is used for execution (not regular Enter)
 	qv.textarea.SetValue("(objectClass=*)")

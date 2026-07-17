@@ -2,39 +2,50 @@ package tui
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strconv"
 	"strings"
 	"time"
 
-	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/bubbles/textinput"
+	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/ericschmar/moribito/internal/config"
+	"github.com/ericschmar/moribito/internal/debug"
 	"github.com/ericschmar/moribito/internal/ldap"
+	"github.com/ericschmar/moribito/internal/ssh"
 	zone "github.com/lrstanley/bubblezone"
 )
 
 // StartView provides the start page with configuration editing
 type StartView struct {
-	config     *config.Config
-	configPath string // Path to config file for saving changes
-	width      int
-	height     int
-	cursor     int
-	editing    bool
+	config       *config.Config
+	configPath   string // Path to config file for saving changes
+	width        int
+	height       int
+	cursor       int
+	editing      bool
 	editingField int
-	textInput  textinput.Model // Text input for editing fields
-	container  *ViewContainer
+	textInput    textinput.Model // Text input for editing fields
+	container    *ViewContainer
 
 	// Connection management state
-	connectionCursor        int    // Which saved connection is highlighted
-	showNewConnectionDialog bool   // Whether to show new connection name dialog
+	connectionCursor        int             // Which saved connection is highlighted
+	showNewConnectionDialog bool            // Whether to show new connection name dialog
 	newConnInput            textinput.Model // Text input for new connection name
+
+	// SSH host key error dialog
+	showHostKeyDialog bool
+	hostKeyDialogHost string
 
 	// Error tracking
 	saveError     error     // Last save error
 	saveErrorTime time.Time // When the error occurred
+
+	// Config validation warnings
+	configWarnings     []string  // Warnings from config validation
+	configWarningsTime time.Time // When warnings were captured
 }
 
 // Field indices for editing
@@ -55,6 +66,20 @@ const (
 	FieldBindUser
 	FieldBindPass
 	FieldPageSize
+
+	// SSH Tunnel fields
+	FieldSSHTunnelSeparator
+	FieldSSHTunnelHeader
+	FieldSSHTunnelEnabled
+	FieldSSHHost
+	FieldSSHPort
+	FieldSSHUser
+	FieldSSHAuthMethod
+	FieldSSHPassword
+	FieldSSHKeyFile
+	FieldSSHKeyPassphrase
+	FieldSSHIgnoreHostKey
+
 	FieldConnect
 	FieldCount
 )
@@ -85,19 +110,38 @@ var fields = []fieldConfig{
 	{name: "Bind User", placeholder: "cn=admin,dc=example,dc=com"},
 	{name: "Bind Password", isPassword: true},
 	{name: "Page Size", placeholder: "100"},
+	// SSH Tunnel section
+	{name: "", isSeparator: true},
+	{name: "SSH Tunnel", isHeader: true},
+	{name: "SSH Enabled", isBool: true},
+	{name: "SSH Host", placeholder: "bastion.example.com"},
+	{name: "SSH Port", placeholder: "22"},
+	{name: "SSH User", placeholder: "ops"},
+	{name: "Auth Method", placeholder: "password|key|agent"},
+	{name: "SSH Password", isPassword: true},
+	{name: "Key File", placeholder: "~/.ssh/id_ed25519"},
+	{name: "Key Passphrase", isPassword: true},
+	{name: "Ignore Host Key", isBool: true},
 	{name: "Connect", isAction: true},
+}
+
+// isFieldVisible returns whether a field should be rendered and navigable.
+// SSH sub-fields are hidden when the tunnel is disabled; jump sub-fields
+// are hidden when no jump host is configured.
+func (sv *StartView) isFieldVisible(field int) bool {
+	switch field {
+	case FieldSSHHost, FieldSSHPort, FieldSSHUser, FieldSSHAuthMethod,
+		FieldSSHPassword, FieldSSHKeyFile, FieldSSHKeyPassphrase,
+		FieldSSHIgnoreHostKey:
+		if !sv.config.LDAP.SSHTunnel.Enabled {
+			return false
+		}
+	}
+	return true
 }
 
 // Define consistent styles
 var (
-	titleStyle = lipgloss.NewStyle().
-			Foreground(lipgloss.Color("15")).
-			Background(lipgloss.Color("12")).
-			Bold(true).
-			Align(lipgloss.Center).
-			Padding(1, 2).
-			Margin(0, 0, 1, 0)
-
 	headerStyle = lipgloss.NewStyle().
 			Foreground(lipgloss.Color("14")).
 			Bold(true).
@@ -162,10 +206,6 @@ var (
 			Foreground(lipgloss.Color("8")).
 			Margin(0, 0)
 
-	connectionListStyle = lipgloss.NewStyle().
-				Foreground(lipgloss.Color("7")).
-				Padding(0, 2)
-
 	selectedConnectionStyle = lipgloss.NewStyle().
 				Foreground(lipgloss.Color("15")).
 				Background(lipgloss.Color("12")).
@@ -227,6 +267,12 @@ func NewStartViewWithConfigPath(cfg *config.Config, configPath string) *StartVie
 		newConnInput: newConnInput,
 	}
 
+	// Validate config and capture any warnings
+	if warnings := cfg.ValidateAndRepair(); len(warnings) > 0 {
+		sv.configWarnings = warnings
+		sv.configWarningsTime = time.Now()
+	}
+
 	return sv
 }
 
@@ -245,7 +291,17 @@ func (sv *StartView) SetSize(width, height int) {
 // Update handles input for the start view
 func (sv *StartView) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
+	case SSHTunnelHostKeyMsg:
+		sv.showHostKeyDialog = true
+		sv.hostKeyDialogHost = msg.Host
+		return sv, nil
+
 	case tea.KeyMsg:
+		if sv.showHostKeyDialog {
+			sv.showHostKeyDialog = false
+			return sv, nil
+		}
+
 		if sv.showNewConnectionDialog {
 			return sv.handleNewConnectionDialog(msg)
 		}
@@ -256,12 +312,18 @@ func (sv *StartView) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		switch msg.String() {
 		case "up", "k":
-			if sv.cursor > 0 {
-				sv.cursor--
+			for next := sv.cursor - 1; next >= 0; next-- {
+				if sv.isFieldVisible(next) {
+					sv.cursor = next
+					break
+				}
 			}
 		case "down", "j":
-			if sv.cursor < FieldCount-1 {
-				sv.cursor++
+			for next := sv.cursor + 1; next < FieldCount; next++ {
+				if sv.isFieldVisible(next) {
+					sv.cursor = next
+					break
+				}
 			}
 		case "left", "h":
 			// Handle connection list navigation
@@ -278,6 +340,7 @@ func (sv *StartView) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				}
 			}
 		case "enter":
+			debug.Log("tui/start: enter pressed, cursor=%d (%s), editing=%v", sv.cursor, fields[sv.cursor].name, sv.editing)
 			return sv.handleFieldAction()
 		}
 	}
@@ -318,6 +381,32 @@ func (sv *StartView) getFieldValue(field int) string {
 		return sv.config.LDAP.BindPass
 	case FieldPageSize:
 		return strconv.Itoa(int(sv.config.Pagination.PageSize))
+	case FieldSSHTunnelSeparator:
+		return "────────────────────────"
+	case FieldSSHTunnelHeader:
+		return "SSH Tunnel"
+	case FieldSSHTunnelEnabled:
+		return strconv.FormatBool(sv.config.LDAP.SSHTunnel.Enabled)
+	case FieldSSHHost:
+		return sv.config.LDAP.SSHTunnel.Host
+	case FieldSSHPort:
+		port := sv.config.LDAP.SSHTunnel.Port
+		if port == 0 {
+			return ""
+		}
+		return strconv.Itoa(port)
+	case FieldSSHUser:
+		return sv.config.LDAP.SSHTunnel.User
+	case FieldSSHAuthMethod:
+		return sv.config.LDAP.SSHTunnel.AuthMethod
+	case FieldSSHPassword:
+		return sv.config.LDAP.SSHTunnel.Password
+	case FieldSSHKeyFile:
+		return sv.config.LDAP.SSHTunnel.KeyFile
+	case FieldSSHKeyPassphrase:
+		return sv.config.LDAP.SSHTunnel.KeyPassphrase
+	case FieldSSHIgnoreHostKey:
+		return strconv.FormatBool(sv.config.LDAP.SSHTunnel.InsecureIgnoreHostKey)
 	case FieldConnect:
 		return "Connect to LDAP"
 	}
@@ -368,6 +457,11 @@ func (sv *StartView) View() string {
 	// For very narrow screens, show simplified view
 	if contentWidth < 40 {
 		return sv.renderNarrowView()
+	}
+
+	// Show host key error dialog if active
+	if sv.showHostKeyDialog {
+		return sv.renderHostKeyDialog()
 	}
 
 	// Show new connection dialog if active
@@ -427,6 +521,9 @@ func (sv *StartView) renderConfigFields() string {
 	var fieldLines []string
 
 	for i := 0; i < FieldCount; i++ {
+		if !sv.isFieldVisible(i) {
+			continue
+		}
 		fieldLine := sv.renderField(i)
 		fieldLines = append(fieldLines, fieldLine)
 	}
@@ -621,9 +718,39 @@ func (sv *StartView) renderNewConnectionDialog() string {
 	return sv.container.RenderCentered(style.Render(content))
 }
 
+// renderHostKeyDialog renders an error dialog when the SSH host key is unknown
+func (sv *StartView) renderHostKeyDialog() string {
+	content := strings.Join([]string{
+		"SSH Host Key Unknown",
+		"",
+		fmt.Sprintf("The host key for '%s'", sv.hostKeyDialogHost),
+		"is not in your known_hosts file.",
+		"",
+		"To add it, run:",
+		"",
+		fmt.Sprintf("  ssh-keyscan %s >> ~/.ssh/known_hosts", sv.hostKeyDialogHost),
+		"",
+		"Or enable 'Ignore Host Key' in the SSH",
+		"tunnel settings to skip verification.",
+		"",
+		"Press any key to dismiss.",
+	}, "\n")
+
+	style := lipgloss.NewStyle().
+		Align(lipgloss.Left).
+		Foreground(lipgloss.Color("15")).
+		Background(lipgloss.Color("0")).
+		Border(lipgloss.RoundedBorder()).
+		BorderForeground(lipgloss.Color("9")).
+		Padding(1, 2).
+		Width(52)
+
+	return sv.container.RenderCentered(style.Render(content))
+}
+
 // IsEditing returns true if the start view is currently in editing mode
 func (sv *StartView) IsEditing() bool {
-	return sv.editing || sv.showNewConnectionDialog
+	return sv.editing || sv.showNewConnectionDialog || sv.showHostKeyDialog
 }
 
 // handleEditMode handles input when editing a configuration value
@@ -654,6 +781,10 @@ func (sv *StartView) handleEditMode(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 				sv.config.LDAP.UseSSL = newValue
 			case FieldUseTLS:
 				sv.config.LDAP.UseTLS = newValue
+			case FieldSSHTunnelEnabled:
+				sv.config.LDAP.SSHTunnel.Enabled = newValue
+			case FieldSSHIgnoreHostKey:
+				sv.config.LDAP.SSHTunnel.InsecureIgnoreHostKey = newValue
 			}
 
 			// Save the configuration to disk
@@ -710,6 +841,30 @@ func (sv *StartView) saveValue() {
 		if pageSize, err := strconv.Atoi(inputValue); err == nil && pageSize > 0 {
 			sv.config.Pagination.PageSize = uint32(pageSize)
 		}
+	case FieldSSHTunnelEnabled:
+		if enabled, err := strconv.ParseBool(inputValue); err == nil {
+			sv.config.LDAP.SSHTunnel.Enabled = enabled
+		}
+	case FieldSSHHost:
+		sv.config.LDAP.SSHTunnel.Host = inputValue
+	case FieldSSHPort:
+		if port, err := strconv.Atoi(inputValue); err == nil && port > 0 && port < 65536 {
+			sv.config.LDAP.SSHTunnel.Port = port
+		}
+	case FieldSSHUser:
+		sv.config.LDAP.SSHTunnel.User = inputValue
+	case FieldSSHAuthMethod:
+		sv.config.LDAP.SSHTunnel.AuthMethod = inputValue
+	case FieldSSHPassword:
+		sv.config.LDAP.SSHTunnel.Password = inputValue
+	case FieldSSHKeyFile:
+		sv.config.LDAP.SSHTunnel.KeyFile = inputValue
+	case FieldSSHKeyPassphrase:
+		sv.config.LDAP.SSHTunnel.KeyPassphrase = inputValue
+	case FieldSSHIgnoreHostKey:
+		if v, err := strconv.ParseBool(inputValue); err == nil {
+			sv.config.LDAP.SSHTunnel.InsecureIgnoreHostKey = v
+		}
 	}
 
 	// Save the configuration to disk
@@ -737,6 +892,7 @@ func (sv *StartView) saveConfigToDisk() {
 // handleFieldAction handles enter key press on different field types
 func (sv *StartView) handleFieldAction() (tea.Model, tea.Cmd) {
 	fieldCfg := fields[sv.cursor]
+	debug.Log("tui/start: handleFieldAction cursor=%d name=%q isAction=%v isHeader=%v isSeparator=%v", sv.cursor, fieldCfg.name, fieldCfg.isAction, fieldCfg.isHeader, fieldCfg.isSeparator)
 
 	switch sv.cursor {
 	case FieldConnectionList:
@@ -752,14 +908,15 @@ func (sv *StartView) handleFieldAction() (tea.Model, tea.Cmd) {
 		if len(sv.config.LDAP.SavedConnections) > 0 && sv.config.LDAP.SelectedConnection >= 0 && sv.config.LDAP.SelectedConnection < len(sv.config.LDAP.SavedConnections) {
 			// Update the currently selected saved connection with current settings
 			updated := config.SavedConnection{
-				Name:     sv.config.LDAP.SavedConnections[sv.config.LDAP.SelectedConnection].Name,
-				Host:     sv.config.LDAP.Host,
-				Port:     sv.config.LDAP.Port,
-				BaseDN:   sv.config.LDAP.BaseDN,
-				UseSSL:   sv.config.LDAP.UseSSL,
-				UseTLS:   sv.config.LDAP.UseTLS,
-				BindUser: sv.config.LDAP.BindUser,
-				BindPass: sv.config.LDAP.BindPass,
+				Name:      sv.config.LDAP.SavedConnections[sv.config.LDAP.SelectedConnection].Name,
+				Host:      sv.config.LDAP.Host,
+				Port:      sv.config.LDAP.Port,
+				BaseDN:    sv.config.LDAP.BaseDN,
+				UseSSL:    sv.config.LDAP.UseSSL,
+				UseTLS:    sv.config.LDAP.UseTLS,
+				BindUser:  sv.config.LDAP.BindUser,
+				BindPass:  sv.config.LDAP.BindPass,
+				SSHTunnel: sv.config.LDAP.SSHTunnel,
 			}
 			sv.config.UpdateSavedConnection(sv.config.LDAP.SelectedConnection, updated)
 			sv.saveConfigToDisk()
@@ -783,13 +940,12 @@ func (sv *StartView) handleFieldAction() (tea.Model, tea.Cmd) {
 		return sv, nil
 
 	case FieldConnect:
-		// Save config before connecting to LDAP
+		debug.Log("tui/start: FieldConnect action triggered")
 		sv.saveConfigToDisk()
-		// Attempt to connect to LDAP
 		return sv.handleConnect()
 
 	default:
-		// For regular fields, start editing
+		debug.Log("tui/start: handleFieldAction default branch — starting edit for cursor=%d", sv.cursor)
 		if !fieldCfg.isHeader && !fieldCfg.isSeparator && !fieldCfg.isAction {
 			sv.editing = true
 			sv.editingField = sv.cursor
@@ -823,14 +979,15 @@ func (sv *StartView) handleNewConnectionDialog(msg tea.KeyMsg) (tea.Model, tea.C
 		if connName != "" {
 			// Create new connection from current settings
 			newConn := config.SavedConnection{
-				Name:     connName,
-				Host:     sv.config.LDAP.Host,
-				Port:     sv.config.LDAP.Port,
-				BaseDN:   sv.config.LDAP.BaseDN,
-				UseSSL:   sv.config.LDAP.UseSSL,
-				UseTLS:   sv.config.LDAP.UseTLS,
-				BindUser: sv.config.LDAP.BindUser,
-				BindPass: sv.config.LDAP.BindPass,
+				Name:      connName,
+				Host:      sv.config.LDAP.Host,
+				Port:      sv.config.LDAP.Port,
+				BaseDN:    sv.config.LDAP.BaseDN,
+				UseSSL:    sv.config.LDAP.UseSSL,
+				UseTLS:    sv.config.LDAP.UseTLS,
+				BindUser:  sv.config.LDAP.BindUser,
+				BindPass:  sv.config.LDAP.BindPass,
+				SSHTunnel: sv.config.LDAP.SSHTunnel,
 			}
 			sv.config.AddSavedConnection(newConn)
 
@@ -872,12 +1029,53 @@ func (sv *StartView) handleConnect() (tea.Model, tea.Cmd) {
 		}
 	}
 
+	debug.Log("tui/connect: host=%s port=%d baseDN=%s user=%s ssl=%v tls=%v sshEnabled=%v",
+		activeConn.Host, activeConn.Port, activeConn.BaseDN, activeConn.BindUser,
+		activeConn.UseSSL, activeConn.UseTLS, activeConn.SSHTunnel.Enabled)
+
 	// Return command that will attempt connection in background
 	return sv, func() tea.Msg {
+		var tunnel *ssh.Tunnel
+		ldapHost := activeConn.Host
+		ldapPort := activeConn.Port
+
+		// Establish SSH tunnel if enabled
+		if activeConn.SSHTunnel.Enabled {
+			debug.Log("tui/connect: starting SSH tunnel to %s:%d (auth=%s key=%q)",
+				activeConn.SSHTunnel.Host, activeConn.SSHTunnel.Port,
+				activeConn.SSHTunnel.AuthMethod, activeConn.SSHTunnel.KeyFile)
+			tunnelCfg := ssh.TunnelConfig{
+				SSHHost:               activeConn.SSHTunnel.Host,
+				SSHPort:               activeConn.SSHTunnel.Port,
+				SSHUser:               activeConn.SSHTunnel.User,
+				AuthMethod:            activeConn.SSHTunnel.AuthMethod,
+				Password:              activeConn.SSHTunnel.Password,
+				KeyFile:               activeConn.SSHTunnel.KeyFile,
+				KeyPassphrase:         activeConn.SSHTunnel.KeyPassphrase,
+				InsecureIgnoreHostKey: activeConn.SSHTunnel.InsecureIgnoreHostKey,
+				RemoteHost:            activeConn.Host,
+				RemotePort:            activeConn.Port,
+			}
+
+			var err error
+			tunnel, err = ssh.NewTunnel(tunnelCfg)
+			if err != nil {
+				debug.Log("tui/connect: SSH tunnel failed: %v", err)
+				var hkErr *ssh.HostKeyUnknownError
+				if errors.As(err, &hkErr) {
+					return SSHTunnelHostKeyMsg{Host: hkErr.Host}
+				}
+				return StatusMsg{Message: fmt.Sprintf("SSH tunnel failed: %v", err)}
+			}
+			ldapHost = "127.0.0.1"
+			ldapPort = tunnel.LocalPort()
+			debug.Log("tui/connect: SSH tunnel ready, local addr %s:%d", ldapHost, ldapPort)
+		}
+
 		// Create LDAP configuration
 		ldapConfig := ldap.Config{
-			Host:           activeConn.Host,
-			Port:           activeConn.Port,
+			Host:           ldapHost,
+			Port:           ldapPort,
 			BaseDN:         activeConn.BaseDN,
 			UseSSL:         activeConn.UseSSL,
 			UseTLS:         activeConn.UseTLS,
@@ -888,6 +1086,7 @@ func (sv *StartView) handleConnect() (tea.Model, tea.Cmd) {
 			InitialDelayMs: sv.config.Retry.InitialDelayMs,
 			MaxDelayMs:     sv.config.Retry.MaxDelayMs,
 		}
+		debug.Log("tui/connect: dialing LDAP %s:%d", ldapConfig.Host, ldapConfig.Port)
 
 		// Create channel to receive result or timeout
 		resultChan := make(chan struct {
@@ -898,27 +1097,38 @@ func (sv *StartView) handleConnect() (tea.Model, tea.Cmd) {
 		// Start connection attempt in goroutine
 		go func() {
 			client, err := ldap.NewClient(ldapConfig)
+			debug.Log("tui/connect: ldap.NewClient returned err=%v", err)
 			resultChan <- struct {
 				client *ldap.Client
 				err    error
 			}{client, err}
 		}()
 
-		// Wait for result or timeout (5 seconds)
-		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		timeout := time.Duration(sv.config.Retry.ConnectTimeoutSeconds) * time.Second
+		ctx, cancel := context.WithTimeout(context.Background(), timeout)
 		defer cancel()
 
 		select {
 		case result := <-resultChan:
 			if result.err != nil {
+				if tunnel != nil {
+					tunnel.Close() //nolint:errcheck
+				}
+				debug.Log("tui/connect: connection failed: %v", result.err)
 				return StatusMsg{Message: fmt.Sprintf("Connection failed: %v", result.err)}
 			}
+			debug.Log("tui/connect: connected successfully")
 			return ConnectMsg{
 				Client: result.client,
 				Config: sv.config,
+				Tunnel: tunnel,
 			}
 		case <-ctx.Done():
-			return StatusMsg{Message: "Connection timeout after 5 seconds"}
+			if tunnel != nil {
+				tunnel.Close() //nolint:errcheck
+			}
+			debug.Log("tui/connect: timed out after 5 seconds")
+			return StatusMsg{Message: fmt.Sprintf("Connection timeout after %d seconds", sv.config.Retry.ConnectTimeoutSeconds)}
 		}
 	}
 }

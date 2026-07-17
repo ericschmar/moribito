@@ -126,7 +126,7 @@ func TestTreeView_ClickWithMouseEvent(t *testing.T) {
 	mouseEvent := tea.MouseMsg{
 		X:      10,
 		Y:      5, // Should be within tree content area
-		Type:   tea.MouseLeft,
+		Action: tea.MouseActionPress,
 		Button: tea.MouseButtonLeft,
 	}
 

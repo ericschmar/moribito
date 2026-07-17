@@ -65,7 +65,7 @@ func (c *Checker) getLatestRelease(ctx context.Context) (*GitHubRelease, error) 
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
+	defer resp.Body.Close() //nolint:errcheck
 
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("GitHub API returned status %d", resp.StatusCode)

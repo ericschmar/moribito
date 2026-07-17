@@ -8,24 +8,6 @@ import (
 	"testing"
 )
 
-// mockHTTPClient is a mock HTTP client for testing
-type mockHTTPClient struct {
-	response string
-	status   int
-	err      error
-}
-
-func (m *mockHTTPClient) Do(req *http.Request) (*http.Response, error) {
-	if m.err != nil {
-		return nil, m.err
-	}
-
-	return &http.Response{
-		StatusCode: m.status,
-		Body:       io.NopCloser(strings.NewReader(m.response)),
-	}, nil
-}
-
 func TestCheckForUpdate_MockSuccess(t *testing.T) {
 	// Mock a successful GitHub API response
 	mockResponse := `{

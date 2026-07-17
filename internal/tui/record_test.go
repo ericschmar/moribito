@@ -438,10 +438,6 @@ func TestRecordView_ViewportScrolling(t *testing.T) {
 	// Viewport should ensure the cursor is visible
 	contentHeight := 10 - 2              // height minus DN header space
 	availableHeight := contentHeight - 1 // minus pagination info
-	expectedViewport := (totalAttribs - 1) - availableHeight + 1
-	if expectedViewport < 0 {
-		expectedViewport = 0
-	}
 
 	if rv.viewport < 0 {
 		t.Errorf("Viewport should not be negative, got %d", rv.viewport)

@@ -64,9 +64,9 @@ func NewClient(config Config) (*Client, error) {
 	address := fmt.Sprintf("%s:%d", config.Host, config.Port)
 
 	if config.UseSSL {
-		conn, err = ldap.DialTLS("tcp", address, &tls.Config{InsecureSkipVerify: true})
+		conn, err = ldap.DialURL("ldaps://"+address, ldap.DialWithTLSConfig(&tls.Config{InsecureSkipVerify: true})) //nolint:gosec
 	} else {
-		conn, err = ldap.Dial("tcp", address)
+		conn, err = ldap.DialURL("ldap://" + address)
 	}
 
 	if err != nil {
@@ -74,9 +74,9 @@ func NewClient(config Config) (*Client, error) {
 	}
 
 	if config.UseTLS && !config.UseSSL {
-		err = conn.StartTLS(&tls.Config{InsecureSkipVerify: true})
+		err = conn.StartTLS(&tls.Config{InsecureSkipVerify: true}) //nolint:gosec
 		if err != nil {
-			conn.Close()
+			conn.Close() //nolint:errcheck
 			return nil, fmt.Errorf("failed to start TLS: %w", err)
 		}
 	}
@@ -91,7 +91,7 @@ func NewClient(config Config) (*Client, error) {
 	if config.BindUser != "" {
 		err = conn.Bind(config.BindUser, config.BindPass)
 		if err != nil {
-			conn.Close()
+			conn.Close() //nolint:errcheck
 			return nil, fmt.Errorf("failed to bind: %w", err)
 		}
 	}
@@ -148,7 +148,7 @@ func (c *Client) isRetryableError(err error) bool {
 func (c *Client) reconnect() error {
 	// Close existing connection if any
 	if c.conn != nil {
-		c.conn.Close()
+		c.conn.Close() //nolint:errcheck
 	}
 
 	// Re-establish connection using stored config
@@ -158,9 +158,9 @@ func (c *Client) reconnect() error {
 	address := fmt.Sprintf("%s:%d", c.config.Host, c.config.Port)
 
 	if c.config.UseSSL {
-		conn, err = ldap.DialTLS("tcp", address, &tls.Config{InsecureSkipVerify: true})
+		conn, err = ldap.DialURL("ldaps://"+address, ldap.DialWithTLSConfig(&tls.Config{InsecureSkipVerify: true})) //nolint:gosec
 	} else {
-		conn, err = ldap.Dial("tcp", address)
+		conn, err = ldap.DialURL("ldap://" + address)
 	}
 
 	if err != nil {
@@ -168,9 +168,9 @@ func (c *Client) reconnect() error {
 	}
 
 	if c.config.UseTLS && !c.config.UseSSL {
-		err = conn.StartTLS(&tls.Config{InsecureSkipVerify: true})
+		err = conn.StartTLS(&tls.Config{InsecureSkipVerify: true}) //nolint:gosec
 		if err != nil {
-			conn.Close()
+			conn.Close() //nolint:errcheck
 			return fmt.Errorf("failed to start TLS on reconnect: %w", err)
 		}
 	}
@@ -179,7 +179,7 @@ func (c *Client) reconnect() error {
 	if c.config.BindUser != "" {
 		err = conn.Bind(c.config.BindUser, c.config.BindPass)
 		if err != nil {
-			conn.Close()
+			conn.Close() //nolint:errcheck
 			return fmt.Errorf("failed to bind on reconnect: %w", err)
 		}
 	}
@@ -234,7 +234,7 @@ func (c *Client) withRetry(operation func() error) error {
 // Close closes the LDAP connection
 func (c *Client) Close() {
 	if c.conn != nil {
-		c.conn.Close()
+		c.conn.Close() //nolint:errcheck
 	}
 }
 

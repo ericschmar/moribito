@@ -47,7 +47,7 @@ func TestConfigLoadWithPagination(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create temp dir: %v", err)
 	}
-	defer os.RemoveAll(tempDir)
+	defer os.RemoveAll(tempDir) //nolint:errcheck
 
 	configPath := filepath.Join(tempDir, "config.yaml")
 	configContent := `ldap:
@@ -88,7 +88,7 @@ func TestConfigLoadWithoutPagination(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create temp dir: %v", err)
 	}
-	defer os.RemoveAll(tempDir)
+	defer os.RemoveAll(tempDir) //nolint:errcheck
 
 	configPath := filepath.Join(tempDir, "config.yaml")
 	configContent := `ldap:
@@ -120,7 +120,7 @@ func TestConfigLoadWithRetry(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create temp dir: %v", err)
 	}
-	defer os.RemoveAll(tempDir)
+	defer os.RemoveAll(tempDir) //nolint:errcheck
 
 	configPath := filepath.Join(tempDir, "config.yaml")
 	configContent := `ldap:
@@ -183,7 +183,7 @@ func TestConfigLoadWithoutRetry(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create temp dir: %v", err)
 	}
-	defer os.RemoveAll(tempDir)
+	defer os.RemoveAll(tempDir) //nolint:errcheck
 
 	configPath := filepath.Join(tempDir, "config.yaml")
 	configContent := `ldap:
@@ -273,7 +273,7 @@ func TestCreateDefaultConfigCore(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create temp dir: %v", err)
 	}
-	defer os.RemoveAll(tempDir)
+	defer os.RemoveAll(tempDir) //nolint:errcheck
 
 	// Test creating a config in a specific directory
 	testConfigPath := filepath.Join(tempDir, "test-config.yaml")
@@ -497,7 +497,7 @@ retry:
 	if err != nil {
 		t.Fatalf("Failed to create temp dir: %v", err)
 	}
-	defer os.RemoveAll(tempDir)
+	defer os.RemoveAll(tempDir) //nolint:errcheck
 
 	configPath := filepath.Join(tempDir, "config.yaml")
 	if err := os.WriteFile(configPath, []byte(configYAML), 0644); err != nil {
@@ -558,7 +558,7 @@ retry:
 	if err != nil {
 		t.Fatalf("Failed to create temp dir: %v", err)
 	}
-	defer os.RemoveAll(tempDir)
+	defer os.RemoveAll(tempDir) //nolint:errcheck
 
 	configPath := filepath.Join(tempDir, "config.yaml")
 	if err := os.WriteFile(configPath, []byte(oldConfigYAML), 0644); err != nil {
@@ -600,7 +600,7 @@ func TestLoadReturnsActualPath(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create temp dir: %v", err)
 	}
-	defer os.RemoveAll(tempDir)
+	defer os.RemoveAll(tempDir) //nolint:errcheck
 
 	configPath := filepath.Join(tempDir, "config.yaml")
 	configContent := `ldap:
@@ -636,14 +636,14 @@ func TestLoadReturnsActualPathWhenAutoDiscovered(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create temp dir: %v", err)
 	}
-	defer os.RemoveAll(tempDir)
+	defer os.RemoveAll(tempDir) //nolint:errcheck
 
 	// Save current directory
 	oldWd, err := os.Getwd()
 	if err != nil {
 		t.Fatalf("Failed to get working directory: %v", err)
 	}
-	defer os.Chdir(oldWd)
+	defer os.Chdir(oldWd) //nolint:errcheck
 
 	// Change to temp directory
 	if err := os.Chdir(tempDir); err != nil {

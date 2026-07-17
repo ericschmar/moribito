@@ -11,6 +11,7 @@ import (
 	"github.com/charmbracelet/lipgloss"
 	"github.com/ericschmar/moribito/internal/config"
 	"github.com/ericschmar/moribito/internal/ldap"
+	"github.com/ericschmar/moribito/internal/ssh"
 	"github.com/ericschmar/moribito/internal/updater"
 	"github.com/ericschmar/moribito/internal/version"
 	zone "github.com/lrstanley/bubblezone"
@@ -39,7 +40,11 @@ type (
 	ConnectMsg struct {
 		Client *ldap.Client
 		Config *config.Config
+		Tunnel *ssh.Tunnel
 	}
+
+	// SSHTunnelHostKeyMsg is sent when the SSH host key is unknown
+	SSHTunnelHostKeyMsg struct{ Host string }
 )
 
 // checkForUpdatesCmd creates a command to check for updates
@@ -74,6 +79,7 @@ func checkForUpdatesCmd() tea.Cmd {
 // Model represents the main TUI model
 type Model struct {
 	client       *ldap.Client
+	tunnel       *ssh.Tunnel
 	startView    *StartView
 	tree         *TreeView
 	recordView   *RecordView
@@ -86,6 +92,15 @@ type Model struct {
 	quitting     bool
 	checkUpdates bool
 	updateStatus string
+}
+
+func (m *Model) cleanup() {
+	if m.client != nil {
+		m.client.Close()
+	}
+	if m.tunnel != nil {
+		m.tunnel.Close() //nolint:errcheck
+	}
 }
 
 // NewModel creates a new model
@@ -231,6 +246,7 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		switch msg.String() {
 		case "ctrl+c":
 			m.quitting = true
+			m.cleanup()
 			return m, tea.Quit
 		case "q":
 			// Skip global quit key if we're in an input mode
@@ -241,6 +257,7 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				break // Let the start view handle the input
 			}
 			m.quitting = true
+			m.cleanup()
 			return m, tea.Quit
 		case "tab":
 			return m.switchView(), nil
@@ -268,7 +285,7 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case tea.MouseMsg:
 		// Handle mouse clicks through bubblezone - this will generate zone messages
-		if msg.Type == tea.MouseLeft {
+		if msg.Action == tea.MouseActionPress && msg.Button == tea.MouseButtonLeft {
 			zone.AnyInBounds(m, msg)
 		}
 
@@ -301,13 +318,22 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 		return m, nil
 
+	case SSHTunnelHostKeyMsg:
+		newModel, cmd := m.startView.Update(msg)
+		m.startView = newModel.(*StartView)
+		return m, cmd
+
 	case ConnectMsg:
 		// Handle successful LDAP connection from start view
 		if m.client != nil {
-			m.client.Close() // Close existing connection if any
+			m.client.Close()
+		}
+		if m.tunnel != nil {
+			m.tunnel.Close() //nolint:errcheck
 		}
 
 		m.client = msg.Client
+		m.tunnel = msg.Tunnel
 
 		// Initialize tree and query views with new client
 		m.tree = NewTreeView(msg.Client)
@@ -714,12 +740,6 @@ func (m *Model) handleZoneMessage(msg zone.MsgZoneInBounds) (tea.Model, tea.Cmd)
 		}
 	}
 
-	return m, nil
-}
-
-// handleZoneClick is a legacy method that forwards to handleZoneMessage
-func (m *Model) handleZoneClick(zoneID string) (tea.Model, tea.Cmd) {
-	// This method can be removed if not used elsewhere
 	return m, nil
 }
 

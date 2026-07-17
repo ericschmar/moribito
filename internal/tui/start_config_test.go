@@ -14,14 +14,14 @@ func TestStartView_SaveConfigToDisk(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create temp dir: %v", err)
 	}
-	defer os.RemoveAll(tempDir)
+	defer os.RemoveAll(tempDir) //nolint:errcheck
 
 	configPath := filepath.Join(tempDir, "test-config.yaml")
 
 	// Create initial config
 	cfg := config.Default()
 	cfg.LDAP.Host = "initial.example.com"
-	
+
 	// Save initial config
 	if err := cfg.Save(configPath); err != nil {
 		t.Fatalf("Failed to save initial config: %v", err)
@@ -53,7 +53,7 @@ func TestStartView_BackwardCompatibilityWithoutConfigPath(t *testing.T) {
 	// Create StartView without config path (old style)
 	cfg := config.Default()
 	cfg.LDAP.Host = "test.example.com"
-	
+
 	sv := NewStartView(cfg) // Old constructor without config path
 
 	// Simulate editing
@@ -76,14 +76,14 @@ func TestStartView_ConnectionManagementSaving(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create temp dir: %v", err)
 	}
-	defer os.RemoveAll(tempDir)
+	defer os.RemoveAll(tempDir) //nolint:errcheck
 
 	configPath := filepath.Join(tempDir, "test-config.yaml")
 
 	// Create initial config
 	cfg := config.Default()
 	cfg.LDAP.Host = "test.example.com"
-	
+
 	// Save initial config
 	if err := cfg.Save(configPath); err != nil {
 		t.Fatalf("Failed to save initial config: %v", err)
@@ -105,7 +105,7 @@ func TestStartView_ConnectionManagementSaving(t *testing.T) {
 	}
 	sv.config.AddSavedConnection(newConn)
 	sv.config.SetActiveConnection(0)
-	
+
 	// Call saveConfigToDisk to simulate what would happen in the dialog
 	sv.saveConfigToDisk()
 

@@ -39,7 +39,6 @@ var (
 	// Color blend for table rows - using blue to teal gradient similar to the example
 	startColor, _ = colorful.Hex("#0066CC") // Blue
 	endColor, _   = colorful.Hex("#008080") // Teal
-	blends        = gamut.Blends(lipgloss.Color("#0066CC"), lipgloss.Color("#008080"), 50)
 )
 
 // getRowColor returns a color for a table row based on its index

@@ -8,6 +8,7 @@ import (
 	"github.com/charmbracelet/bubbletea"
 
 	"github.com/ericschmar/moribito/internal/config"
+	"github.com/ericschmar/moribito/internal/debug"
 	"github.com/ericschmar/moribito/internal/ldap"
 	"github.com/ericschmar/moribito/internal/tui"
 	"github.com/ericschmar/moribito/internal/version"
@@ -28,9 +29,28 @@ func main() {
 		showVersion  = flag.Bool("version", false, "Show version information")
 		checkUpdates = flag.Bool("check-updates", false, "Enable automatic update checking")
 		createConfig = flag.Bool("create-config", false, "Create default configuration file in OS-appropriate location")
+		debugLog     = flag.String("debug", "", "Write debug log to this file path")
+
+		// SSH tunnel flags
+		sshHost          = flag.String("ssh-host", "", "SSH tunnel host")
+		sshPort          = flag.Int("ssh-port", 0, "SSH tunnel port (default: 22)")
+		sshUser          = flag.String("ssh-user", "", "SSH tunnel user")
+		sshAuthMethod    = flag.String("ssh-auth", "", "SSH auth method: password, key, or agent")
+		sshPassword      = flag.String("ssh-password", "", "SSH tunnel password")
+		sshKeyFile       = flag.String("ssh-key", "", "SSH private key file path")
+		sshKeyPassphrase = flag.String("ssh-key-passphrase", "", "SSH private key passphrase")
+
+		sshIgnoreHostKey = flag.Bool("ssh-ignore-host-key", false, "Skip SSH host key verification (insecure)")
 	)
 
 	flag.Parse()
+
+	if *debugLog != "" {
+		if err := debug.Enable(*debugLog); err != nil {
+			log.Fatalf("Failed to open debug log %s: %v", *debugLog, err)
+		}
+		debug.Log("moribito starting")
+	}
 
 	if *showVersion {
 		fmt.Println(version.Get().String())
@@ -99,6 +119,33 @@ func main() {
 		cfg.Pagination.PageSize = uint32(*pageSize)
 	}
 
+	// Apply SSH tunnel overrides. A non-empty --ssh-host implicitly enables the tunnel.
+	if *sshHost != "" {
+		cfg.LDAP.SSHTunnel.Enabled = true
+		cfg.LDAP.SSHTunnel.Host = *sshHost
+	}
+	if *sshPort != 0 {
+		cfg.LDAP.SSHTunnel.Port = *sshPort
+	}
+	if *sshUser != "" {
+		cfg.LDAP.SSHTunnel.User = *sshUser
+	}
+	if *sshAuthMethod != "" {
+		cfg.LDAP.SSHTunnel.AuthMethod = *sshAuthMethod
+	}
+	if *sshPassword != "" {
+		cfg.LDAP.SSHTunnel.Password = *sshPassword
+	}
+	if *sshKeyFile != "" {
+		cfg.LDAP.SSHTunnel.KeyFile = *sshKeyFile
+	}
+	if *sshKeyPassphrase != "" {
+		cfg.LDAP.SSHTunnel.KeyPassphrase = *sshKeyPassphrase
+	}
+	if *sshIgnoreHostKey {
+		cfg.LDAP.SSHTunnel.InsecureIgnoreHostKey = true
+	}
+
 	// Get the active connection for validation display
 	activeConn := cfg.GetActiveConnection()
 
@@ -141,8 +188,19 @@ func printHelp() {
 	fmt.Println("  -page-size int     Number of entries per page for paginated queries (default: 50)")
 	fmt.Println("  -check-updates     Enable automatic update checking")
 	fmt.Println("  -create-config     Create default configuration file in OS-appropriate location")
+	fmt.Println("  -debug string      Write debug log to this file (e.g. -debug /tmp/moribito.log)")
 	fmt.Println("  -version           Show version information")
 	fmt.Println("  -help              Show this help message")
+	fmt.Println()
+	fmt.Println("SSH Tunnel Options:")
+	fmt.Println("  -ssh-host string           SSH tunnel host (also enables the tunnel)")
+	fmt.Println("  -ssh-port int              SSH tunnel port (default: 22)")
+	fmt.Println("  -ssh-user string           SSH tunnel user")
+	fmt.Println("  -ssh-auth string           SSH auth method: password, key, or agent")
+	fmt.Println("  -ssh-password string       SSH tunnel password")
+	fmt.Println("  -ssh-key string            SSH private key file path")
+	fmt.Println("  -ssh-key-passphrase string SSH private key passphrase")
+	fmt.Println("  -ssh-ignore-host-key       Skip SSH host key verification (insecure)")
 	fmt.Println()
 	fmt.Println("Configuration file example:")
 	fmt.Println("  ldap:")

@@ -165,13 +165,14 @@ func TestModel_NavigationKeysWithQueryBrowseMode(t *testing.T) {
 	model.queryView.inputMode = false // Set to browse mode
 
 	// Test that number keys DO trigger navigation when NOT in query input mode
+	// Key mapping: "1"→Start, "2"→Tree, "3"→Record, "4"→Query
 	testCases := []struct {
 		key          string
 		expectedView ViewMode
 	}{
-		{"1", ViewModeTree},
-		{"2", ViewModeRecord},
-		{"3", ViewModeQuery},
+		{"1", ViewModeStart},
+		{"2", ViewModeTree},
+		{"3", ViewModeRecord},
 	}
 
 	for _, tc := range testCases {
@@ -198,15 +199,16 @@ func TestModel_NavigationKeysInOtherViews(t *testing.T) {
 	model := NewModel(client, cfg)
 
 	// Test that number keys work normally in other views
+	// Key mapping: "1"→Start, "2"→Tree, "3"→Record, "4"→Query
 	testCases := []struct {
 		initialView  ViewMode
 		key          string
 		expectedView ViewMode
 	}{
-		{ViewModeTree, "2", ViewModeRecord},
-		{ViewModeTree, "3", ViewModeQuery},
-		{ViewModeRecord, "1", ViewModeTree},
-		{ViewModeRecord, "3", ViewModeQuery},
+		{ViewModeTree, "3", ViewModeRecord},
+		{ViewModeTree, "4", ViewModeQuery},
+		{ViewModeRecord, "2", ViewModeTree},
+		{ViewModeRecord, "4", ViewModeQuery},
 	}
 
 	for _, tc := range testCases {
@@ -226,15 +228,13 @@ func TestModel_NavigationKeysInOtherViews(t *testing.T) {
 }
 
 func TestModel_TreeLoadingHandledRegardlessOfCurrentView(t *testing.T) {
-	// Create a model with a mock client
+	// Create a model with a nil client and manually set up tree
 	var client *ldap.Client
 	cfg := config.Default()
 	model := NewModel(client, cfg)
 
-	// Ensure tree exists and is in loading state initially
-	if model.tree == nil {
-		t.Fatal("Tree should exist")
-	}
+	// NewModel with nil client doesn't create a tree, so create one manually
+	model.tree = NewTreeView(nil)
 
 	// Set tree to loading state
 	model.tree.loading = true
@@ -247,7 +247,7 @@ func TestModel_TreeLoadingHandledRegardlessOfCurrentView(t *testing.T) {
 		DN:       "dc=example,dc=com",
 		Name:     "example.com",
 		Children: nil,
-		IsLoaded: false,
+		IsLoaded: true,
 	}
 	rootLoadedMsg := RootNodeLoadedMsg{Node: mockTreeNode}
 
@@ -274,10 +274,13 @@ func TestModel_TreeLoadingHandledRegardlessOfCurrentView(t *testing.T) {
 }
 
 func TestModel_NodeChildrenLoadingHandledRegardlessOfCurrentView(t *testing.T) {
-	// Create a model with a mock client
+	// Create a model with a nil client and manually set up tree
 	var client *ldap.Client
 	cfg := config.Default()
 	model := NewModel(client, cfg)
+
+	// NewModel with nil client doesn't create a tree, so create one manually
+	model.tree = NewTreeView(nil)
 
 	// Set tree to loading state
 	model.tree.loading = true

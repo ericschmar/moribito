@@ -10,20 +10,20 @@ ldap:
   host: "ldap.example.com"
   port: 389  # Use 636 for LDAPS
   base_dn: "dc=example,dc=com"
-  
+
   # Security settings
   use_ssl: false    # Use LDAPS (port 636)
   use_tls: false    # Use StartTLS (recommended for port 389)
-  
+
   # Authentication (leave empty for anonymous bind)
   bind_user: "cn=admin,dc=example,dc=com"
   bind_pass: "your-password-here"
-  
+
   # Alternative OU-based authentication examples:
   # bind_user: "uid=john,ou=users,dc=example,dc=com"
   # bind_user: "john@example.com"  # For AD-style authentication
 
-  # Multiple saved connections (new feature!)
+  # Multiple saved connections
   # You can save multiple LDAP connection profiles and switch between them
   selected_connection: 0  # Index of currently selected connection (-1 for default)
   saved_connections:
@@ -35,7 +35,7 @@ ldap:
       use_tls: false
       bind_user: "cn=admin,dc=prod,dc=example,dc=com"
       bind_pass: "prod-password"
-    
+
     - name: "Development"
       host: "ldap.dev.example.com"
       port: 389
@@ -45,24 +45,35 @@ ldap:
       bind_user: "cn=admin,dc=dev,dc=example,dc=com"
       bind_pass: "dev-password"
 
-    - name: "Staging"
-      host: "ldap.staging.example.com"
-      port: 389
-      base_dn: "dc=staging,dc=example,dc=com"
-      use_ssl: false
-      use_tls: true
-      bind_user: "cn=admin,dc=staging,dc=example,dc=com"
-      bind_pass: ""  # Will prompt for password
+    - name: "Internal via SSH tunnel"
+      host: "ldap.internal.corp"
+      port: 636
+      base_dn: "dc=internal,dc=corp"
+      use_ssl: true
+      use_tls: false
+      bind_user: "cn=reader,dc=internal,dc=corp"
+      bind_pass: "reader-password"
+      ssh_tunnel:
+        enabled: true
+        host: "bastion.example.com"
+        port: 22                        # default: 22
+        user: "ops"
+        auth_method: "key"              # "password", "key", or "agent"
+        key_file: "~/.ssh/id_ed25519"
+        key_passphrase: ""              # omit if key has no passphrase
+        insecure_ignore_host_key: false # set true to skip host key verification
 
 # Pagination settings for query results
 pagination:
-  # Number of entries to load per page (default: 50)
-  # Adjust this based on your server capabilities and performance needs
-  page_size: 50
+  page_size: 50  # default: 50
 
-# Retry settings for LDAP operations  
+# Retry and connection settings
 retry:
   enabled: true
-  max_attempts: 3
-  initial_delay_ms: 500
-  max_delay_ms: 5000
+  max_attempts: 3       # default: 3
+  initial_delay_ms: 500 # default: 500
+  max_delay_ms: 5000    # default: 5000
+  # Timeout (in seconds) for the full connect+bind sequence.
+  # Increase this when connecting via SSH tunnel, which adds latency.
+  # default: 5
+  connect_timeout_seconds: 5

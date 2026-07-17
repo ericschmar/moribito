@@ -674,9 +674,10 @@ func (qv *QueryView) parseSubExpressions(remaining string) ([]string, bool) {
 	parenCount := 0
 
 	for _, r := range remaining {
-		if r == '(' {
+		switch r {
+		case '(':
 			parenCount++
-		} else if r == ')' {
+		case ')':
 			parenCount--
 		}
 
